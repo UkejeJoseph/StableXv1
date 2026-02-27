@@ -17,6 +17,8 @@ const CRITICAL_VARS = [
   'JWT_SECRET',
   'MONGODB_URI',
   'PLATFORM_FEE_WALLET_ID',
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
 ];
 
 const placeholders = [

@@ -3,6 +3,7 @@ import { WebLayout } from "@/components/WebSidebar";
 import { Landmark, CheckCircle2, Clock, ArrowUpRight, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useUser } from "@/contexts/UserContext";
 
 interface Settlement {
     batchId: string;
@@ -22,6 +23,7 @@ interface Summary {
 }
 
 export default function WebMerchantSettlements() {
+    const { user } = useUser();
     const [filter, setFilter] = useState<"all" | "settled" | "pending">("all");
     const [settlements, setSettlements] = useState<Settlement[]>([]);
     const [summary, setSummary] = useState<Summary>({ totalSettledNGN: 0, totalPendingNGN: 0, totalBatches: 0 });
@@ -29,14 +31,13 @@ export default function WebMerchantSettlements() {
 
     useEffect(() => {
         fetchSettlements();
-    }, []);
+    }, [user]);
 
     const fetchSettlements = async () => {
+        if (!user) return;
         try {
-            const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
             const res = await fetch("/api/merchant/settlements", {
                 credentials: "include",
-        
             });
             const data = await res.json();
             if (data.success) {

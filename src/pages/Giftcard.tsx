@@ -21,12 +21,12 @@ export default function Giftcard() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const [selectedCard, setSelectedCard] = useState(null);
+  const [selectedCard, setSelectedCard] = useState<any>(null);
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
-  const [selectedAmount, setSelectedAmount] = useState(null);
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [recipientEmail, setRecipientEmail] = useState("");
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const [purchaseSuccess, setPurchaseSuccess] = useState(null);
+  const [purchaseSuccess, setPurchaseSuccess] = useState<any>(null);
 
   const [paymentCurrency, setPaymentCurrency] = useState("USDT_TRC20");
   const [rates, setRates] = useState({ NGN_USDT: 1 / 1600 });
@@ -38,13 +38,14 @@ export default function Giftcard() {
         const res = await fetch("/api/giftcards?country=NG", {
           credentials: "include"
         });
+        if (!res.ok) throw new Error("Failed to load gift cards");
         const data = await res.json();
         if (data.success) {
           setCards(data.data?.content || []);
         } else {
           throw new Error(data.message || "Failed to load gift cards");
         }
-      } catch (err) {
+      } catch (err: any) {
         toast({
           title: "Failed to load gift cards",
           description: err.message,
@@ -57,19 +58,20 @@ export default function Giftcard() {
 
     const fetchRates = async () => {
       try {
-        const res = await fetch("/api/dashboard/rates");
+        const res = await fetch("/api/transactions/rates");
+        if (!res.ok) throw new Error("Could not fetch rates");
         const data = await res.json();
-        if (data.USDT_NGN) {
-          setRates({ NGN_USDT: 1 / data.USDT_NGN });
+        if (data.success && data.rates?.USDT?.NGN) {
+          setRates({ NGN_USDT: 1 / data.rates.USDT.NGN });
         }
-      } catch (err) {
-        console.error("Failed to fetch rates for giftcard calc");
+      } catch (err: any) {
+        console.warn("Giftcard Rates Error:", err.message);
       }
     };
 
     fetchCards();
     fetchRates();
-  }, []);
+  }, [toast]);
 
   const handlePurchase = async () => {
     if (!selectedAmount || !recipientEmail || !selectedCard) return;
@@ -96,7 +98,7 @@ export default function Giftcard() {
         title: "Gift card purchased!",
         description: `Code sent to ${recipientEmail}`
       });
-    } catch (err) {
+    } catch (err: any) {
       toast({
         title: "Purchase failed",
         description: err.message,
@@ -108,26 +110,26 @@ export default function Giftcard() {
   };
 
   const calculateTotal = () => {
-    if (!selectedAmount) return 0;
+    if (!selectedAmount) return "0";
     const markup = 1.05;
     if (paymentCurrency.startsWith("USDT")) {
       return (selectedAmount * rates.NGN_USDT * markup).toFixed(2);
     }
-    return (selectedAmount * markup).toLocaleString();
+    return Math.round(selectedAmount * markup).toLocaleString();
   };
 
   return (
     <div className="flex flex-col min-h-screen pb-20 bg-background">
       <div className="px-4 py-6">
-        <h1 className="text-2xl font-bold text-foreground mb-1" data-testid="giftcard-title">Gift Cards</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-1">Gift Cards</h1>
         <p className="text-sm text-muted-foreground mb-6">Buy gift cards at great rates</p>
 
         <div className="grid grid-cols-2 gap-4 mb-8">
-          <Card className="p-4 text-center bg-primary text-primary-foreground card-elevated shadow-teal-500/20" data-testid="button-buy-giftcard">
+          <Card className="p-4 text-center bg-primary text-primary-foreground card-elevated shadow-teal-500/20">
             <Gift className="w-8 h-8 mx-auto mb-2" />
             <p className="font-medium">Buy Gift Card</p>
           </Card>
-          <Card className="p-4 text-center opacity-50 cursor-not-allowed" data-testid="button-sell-giftcard">
+          <Card className="p-4 text-center opacity-50 cursor-not-allowed">
             <Gift className="w-8 h-8 mx-auto mb-2 text-primary" />
             <p className="font-medium">Sell Gift Card</p>
           </Card>
@@ -138,12 +140,12 @@ export default function Giftcard() {
         {isLoading ? (
           <div className="grid grid-cols-2 gap-3">
             {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-32 rounded-xl" />
+              <Skeleton key={i} className="h-40 rounded-xl" />
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {cards.map(card => (
+            {cards.map((card: any) => (
               <Card
                 key={card.productId}
                 className="cursor-pointer hover:border-primary transition-all card-elevated group"
@@ -190,9 +192,7 @@ export default function Giftcard() {
       >
         <DialogContent className="bg-card border-border sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {selectedCard?.name}
-            </DialogTitle>
+            <DialogTitle>{selectedCard?.name}</DialogTitle>
             <DialogDescription>
               Select an amount and enter recipient email
             </DialogDescription>
@@ -222,7 +222,7 @@ export default function Giftcard() {
                   Select Amount
                 </Label>
                 <div className="grid grid-cols-3 gap-2">
-                  {(selectedCard?.fixedRecipientDenominations || selectedCard?.fixedSenderDenominations || []).slice(0, 9).map(amount => (
+                  {(selectedCard?.fixedRecipientDenominations || selectedCard?.fixedSenderDenominations || []).slice(0, 9).map((amount: number) => (
                     <button
                       key={amount}
                       onClick={() => setSelectedAmount(amount)}

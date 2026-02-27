@@ -122,8 +122,29 @@ export default function Transfer() {
       return;
     }
 
-    if (!amount || parseFloat(amount) <= 0) {
+    if (!amount || isNaN(Number(amount))) {
       setError("Please enter a valid amount");
+      return;
+    }
+
+    const numAmount = Number(amount);
+    const minAmounts: Record<NetworkType, number> = {
+      ETH: 0.005,
+      SOL: 0.1,
+      USDT_ERC20: 10,
+      BTC: 0.0005,
+      USDT_TRC20: 5,
+      TRX: 10,
+      ETH_TRC20: 0.01,
+      SOL_TRC20: 0.1,
+      XRP: 1,
+      USDC_ERC20: 10,
+      WBTC: 0.0005,
+      DAI: 10
+    };
+
+    if (numAmount < (minAmounts[selectedNetwork] || 0)) {
+      setError(`Minimum transfer amount for ${getNetworkDisplayName(selectedNetwork)} is ${minAmounts[selectedNetwork]}`);
       return;
     }
 

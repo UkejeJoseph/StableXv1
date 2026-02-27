@@ -6,8 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, ArrowLeft, Mail } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
+
+import { useUser } from "@/contexts/UserContext";
 
 export default function VerifyOtp() {
+    const { setUser } = useUser();
     const [otp, setOtp] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [isResending, setIsResending] = useState(false);
@@ -43,6 +47,7 @@ export default function VerifyOtp() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
+                credentials: "include"
             });
 
             const data = await res.json();
@@ -85,12 +90,13 @@ export default function VerifyOtp() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, otp }),
+                credentials: "include"
             });
 
             const data = await res.json();
 
             if (res.ok) {
-                localStorage.setItem("userInfo", JSON.stringify(data));
+                setUser(data);
                 toast({
                     title: "Verification Successful",
                     description: "Welcome to StableX!",
@@ -111,7 +117,8 @@ export default function VerifyOtp() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <div className="min-h-screen flex items-center justify-center p-4 bg-background relative">
+            <BackButton className="absolute top-4 left-4" />
             <Card className="w-full max-w-md p-6 space-y-6">
                 <div className="text-center space-y-2">
                     <div className="flex justify-center mb-4">
@@ -165,16 +172,6 @@ export default function VerifyOtp() {
                                     : "Resend Code"}
                         </button>
                     </p>
-                    <div
-                        onClick={() => {
-                            localStorage.removeItem("userInfo");
-                            navigate("/login");
-                        }}
-                        className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                    >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back to Login
-                    </div>
                 </div>
             </Card>
         </div>

@@ -63,14 +63,22 @@ export default function Convert() {
   const fetchRates = async () => {
     try {
       const res = await fetch("/api/transactions/rates");
+      if (!res.ok) throw new Error("Failed to fetch rates");
       const data = await res.json();
       if (data.success) {
         setRates(data.rates);
         setMarketRate(data.marketRate);
         setSpread(data.spread);
+      } else {
+        throw new Error(data.error || "Rate fetch unsuccessful");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to fetch rates:", error);
+      toast({
+        title: "Rate Sync Error",
+        description: "Could not fetch latest exchange rates.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -104,20 +112,30 @@ export default function Convert() {
   };
 
   const handleConvert = async () => {
+    if (!amount || isNaN(Number(amount))) {
+      toast({ title: "Invalid Amount", description: "Please enter a valid amount.", variant: "destructive" });
+      return;
+    }
+
+    const numAmount = Number(amount);
+    const minAmount = fromCurrency === 'NGN' ? 1000 : 5;
+    if (numAmount < minAmount) {
+      toast({
+        title: "Amount Too Small",
+        description: `Minimum swap is ${minAmount} ${fromCurrency}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!currentRate || currentRate <= 0) {
+      toast({ title: "Rate Error", description: "Invalid exchange rate. Try again later.", variant: "destructive" });
+      return;
+    }
+
     setIsProcessing(true);
-    setErrorMessage("");
-    setSuccessMessage("");
 
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-      const token = userInfo.token;
-
-      if (!token) {
-        setErrorMessage("Please login to swap.");
-        setIsProcessing(false);
-        return;
-      }
-
       const res = await fetch("/api/transactions/swap", {
         method: "POST",
         credentials: "include",
@@ -131,10 +149,14 @@ export default function Convert() {
         })
       });
 
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || `HTTP error! status: ${res.status}`);
+      }
+
       const data = await res.json();
 
       if (data.success) {
-        const toCurr = currencies.find(c => c.id === toCurrency);
         const displayDecimals = toCurrency === 'NGN' ? 2 : 6;
 
         toast({
@@ -148,16 +170,12 @@ export default function Convert() {
         setConvertedAmount("");
         fetchRates(); // Refresh rates
       } else {
-        toast({
-          title: "Swap Failed",
-          description: data.error || "Swap failed",
-          variant: "destructive"
-        });
+        throw new Error(data.error || "Swap failed");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: "Network Error",
-        description: "Network error",
+        title: "Swap Failed",
+        description: error.message || "An unexpected error occurred during the swap.",
         variant: "destructive"
       });
     } finally {

@@ -1,15 +1,18 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useUser } from "../contexts/UserContext";
 
 const ProtectedRoute = () => {
+    const { user, isLoading } = useUser();
     const location = useLocation();
     const isWebMode = location.pathname.startsWith('/web');
 
-    const storageKey = isWebMode ? "webUserInfo" : "userInfo";
     const loginPath = isWebMode ? "/web/login" : "/login";
 
-    const userInfo = localStorage.getItem(storageKey);
+    if (isLoading) {
+        return null; // or a loading spinner
+    }
 
-    if (!userInfo) {
+    if (!user) {
         return <Navigate to={loginPath} state={{ from: location }} replace />;
     }
 

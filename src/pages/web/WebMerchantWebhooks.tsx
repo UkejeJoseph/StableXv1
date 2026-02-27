@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { useUser } from "@/contexts/UserContext";
 
 interface WebhookLog {
     id: string;
@@ -16,6 +17,7 @@ interface WebhookLog {
 }
 
 export default function WebMerchantWebhooks() {
+    const { user } = useUser();
     const { toast } = useToast();
     const [webhookUrl, setWebhookUrl] = useState("");
     const [savedUrl, setSavedUrl] = useState("");
@@ -24,20 +26,18 @@ export default function WebMerchantWebhooks() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchWebhookData();
-    }, []);
+        if (user) {
+            fetchWebhookData();
+        }
+    }, [user]);
 
     const fetchWebhookData = async () => {
+        if (!user) return;
         try {
-            const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-            const token = userInfo.token;
-
             // Fetch webhook URL and logs in parallel
             const [urlRes, logsRes] = await Promise.all([
-                fetch("/api/merchant/webhook", { credentials: "include",
-         }),
-                fetch("/api/merchant/webhook-logs", { credentials: "include",
-         }),
+                fetch("/api/merchant/webhook", { credentials: "include" }),
+                fetch("/api/merchant/webhook-logs", { credentials: "include" }),
             ]);
 
             const urlData = await urlRes.json();
@@ -58,15 +58,23 @@ export default function WebMerchantWebhooks() {
     };
 
     const handleSave = async () => {
+        if (!webhookUrl) {
+            toast({ title: "URL Required", description: "Please enter a valid webhook URL.", variant: "destructive" });
+            return;
+        }
+
+        if (!webhookUrl.startsWith("http://") && !webhookUrl.startsWith("https://")) {
+            toast({ title: "Invalid URL", description: "Webhook URL must start with http:// or https://", variant: "destructive" });
+            return;
+        }
+
         setIsSaving(true);
         try {
-            const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
             const res = await fetch("/api/developer/webhook", {
                 method: "PUT",
                 credentials: "include",
-        headers: {
+                headers: {
                     "Content-Type": "application/json",
-                    
                 },
                 body: JSON.stringify({ webhookUrl }),
             });

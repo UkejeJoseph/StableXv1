@@ -1,27 +1,23 @@
 import { Navigate, Outlet } from 'react-router-dom';
+import { useUser } from '../contexts/UserContext';
 
 const ProtectedAdminRoute = () => {
-    const userInfoString = localStorage.getItem('userInfo');
+    const { user, isLoading } = useUser();
 
-    if (!userInfoString) {
+    if (isLoading) {
+        return null;
+    }
+
+    if (!user) {
         return <Navigate to="/web/login" replace />;
     }
 
-    try {
-        const userInfo = JSON.parse(userInfoString);
-
-        // Strict check: Must be the platform owner's email
-        const isOwner = userInfo.email && userInfo.email.toLowerCase() === 'ukejejoseph1@gmail.com';
-        const isAdminRole = userInfo.role === 'admin';
-
-        if (isOwner || isAdminRole) {
-            return <Outlet />;
-        } else {
-            // Not authorized, kick them back to their standard dashboard
-            return <Navigate to="/web/dashboard" replace />;
-        }
-    } catch (error) {
-        return <Navigate to="/web/login" replace />;
+    // Strict check: Must have admin role verified from server response
+    if (user.role === 'admin') {
+        return <Outlet />;
+    } else {
+        // Not authorized, kick them back to their standard dashboard
+        return <Navigate to="/web/dashboard" replace />;
     }
 };
 

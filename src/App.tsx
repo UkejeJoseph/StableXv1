@@ -60,6 +60,7 @@ import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminTransactions from "./pages/admin/AdminTransactions";
+import AdminWallets from "./pages/admin/AdminWallets";
 
 const queryClient = new QueryClient();
 
@@ -187,6 +188,7 @@ function AnimatedRoutes() {
                 <Route path="/web/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
                 <Route path="/web/admin/users" element={<PageTransition><AdminUsers /></PageTransition>} />
                 <Route path="/web/admin/transactions" element={<PageTransition><AdminTransactions /></PageTransition>} />
+                <Route path="/web/admin/wallets" element={<PageTransition><AdminWallets /></PageTransition>} />
               </Route>
             </Route>
 
@@ -203,6 +205,8 @@ function AnimatedRoutes() {
 
 import StarBackground from "./components/ui/star-background";
 
+import { UserProvider } from "./contexts/UserContext";
+
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
   const handleSplashComplete = useCallback(() => setShowSplash(false), []);
@@ -210,20 +214,22 @@ const App = () => {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <StarBackground />
-            {showSplash ? (
-              <SplashScreen onComplete={handleSplashComplete} />
-            ) : (
-              <BrowserRouter>
-                <AnimatedRoutes />
-              </BrowserRouter>
-            )}
-          </TooltipProvider>
-        </ThemeProvider>
+        <UserProvider>
+          <ThemeProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <StarBackground />
+              {showSplash ? (
+                <SplashScreen onComplete={handleSplashComplete} />
+              ) : (
+                <BrowserRouter>
+                  <AnimatedRoutes />
+                </BrowserRouter>
+              )}
+            </TooltipProvider>
+          </ThemeProvider>
+        </UserProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

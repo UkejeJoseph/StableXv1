@@ -57,7 +57,12 @@ interface USSDBank {
   ussdCode?: string;
 }
 
+import { useUser } from "@/contexts/UserContext";
+import { useQueryClient } from "@tanstack/react-query";
+
 export default function Deposit() {
+  const { user } = useUser();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("checkout");
   const [selectedWallet, setSelectedWallet] = useState<WalletType>("NGN");
@@ -79,8 +84,6 @@ export default function Deposit() {
   const [selectedUssdBank, setSelectedUssdBank] = useState("");
   const [ussdCode, setUssdCode] = useState("");
   const [isLoadingUssdBanks, setIsLoadingUssdBanks] = useState(false);
-
-
 
   // Dynamic Virtual Account state
   const [dynamicAccount, setDynamicAccount] = useState<{
@@ -169,20 +172,13 @@ export default function Deposit() {
       const res = await fetch(`/api/korapay/deposit/verify/${targetRef}`, {
         credentials: "include",
       });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Korapay verification failed");
+      }
       const data = await res.json();
-      if (res.ok && data.transaction?.status === "completed") {
-        const currentBalances = JSON.parse(
-          localStorage.getItem("stablex_balances") ||
-          '{"NGN": 0, "USDT_ERC20": 0, "USDT": 0}'
-        );
-        if (data.transaction && data.transaction.amount) {
-          currentBalances.NGN =
-            data.transaction.amount + (currentBalances.NGN || 0);
-          localStorage.setItem(
-            "stablex_balances",
-            JSON.stringify(currentBalances)
-          );
-        }
+      if (data.transaction?.status === "completed") {
+        await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
         setShowSuccess(true);
         if (ref)
           window.history.replaceState(
@@ -190,24 +186,22 @@ export default function Deposit() {
             document.title,
             window.location.pathname
           );
-      } else if (res.ok) {
-        setErrorMessage("Deposit is still pending verification.");
       } else {
-        setErrorMessage(data.message || "Deposit verification failed");
+        setErrorMessage(data.message || "Deposit is still pending verification.");
       }
-    } catch (e) {
-      console.error(e);
-      setErrorMessage("Failed to verify deposit via Korapay");
+    } catch (e: any) {
+      console.warn("Korapay Verify Error:", e.message);
+      setErrorMessage(e.message || "Failed to verify deposit via Korapay");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Fetch Interswitch config on mount
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const res = await fetch("/api/interswitch/config");
+        const res = await fetch("/api/interswitch/config", { credentials: "include" });
+        if (!res.ok) throw new Error("Could not load checkout config");
         const data = await res.json();
         setConfig(data);
 
@@ -222,8 +216,13 @@ export default function Deposit() {
             document.body.appendChild(script);
           }
         }
-      } catch (e) {
-        console.error("Failed to load Interswitch config:", e);
+      } catch (e: any) {
+        console.warn("Config loading error:", e.message);
+        toast({
+          title: "Service Unavailable",
+          description: "Payment system initialization failed. Some payment methods may be unavailable.",
+          variant: "destructive"
+        });
       }
     };
     fetchConfig();
@@ -240,18 +239,20 @@ export default function Deposit() {
     }
   }, []);
 
-  // Fetch USSD banks when USSD tab is selected
   useEffect(() => {
     if (activeTab === "ussd" && ussdBanks.length === 0) {
       setIsLoadingUssdBanks(true);
-      fetch("/api/interswitch/ussd-banks")
-        .then((res) => res.json())
+      fetch("/api/interswitch/ussd-banks", { credentials: "include" })
+        .then(async (res) => {
+          if (!res.ok) throw new Error("Failed to fetch USSD banks");
+          return res.json();
+        })
         .then((data) => {
           if (data.success && Array.isArray(data.banks)) {
             setUssdBanks(data.banks);
           }
         })
-        .catch(console.error)
+        .catch(err => console.warn("USSD Banks Error:", err.message))
         .finally(() => setIsLoadingUssdBanks(false));
     }
   }, [activeTab]);
@@ -269,92 +270,52 @@ export default function Deposit() {
   };
 
   const handlePaymentConfirmation = async () => {
-    // 1. Get Authentication Token
-    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-    const token = userInfo.token;
-
-    if (!token) {
-      setErrorMessage("You must be logged in to deposit.");
-      return;
-    }
-
     setIsProcessing(true);
+    setErrorMessage("");
 
     try {
       const isCrypto = selectedWallet !== "NGN";
       const ref = transactionRef || `REF-${Date.now()}`;
+      const endpoint = isCrypto ? "/api/transactions/deposit-pending" : "/api/transactions/deposit";
 
-      if (isCrypto) {
-        // ── CRYPTO DEPOSIT: Create PENDING transaction only ──
-        // Balance is NOT credited here. The blockchain listener will:
-        //   1. Detect the on-chain transfer
-        //   2. Verify the amount
-        //   3. Credit the wallet balance
-        //   4. Update the transaction to "completed"
-        const res = await fetch("/api/transactions/deposit-pending", {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
+      const res = await fetch(endpoint, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: parseFloat(amount),
+          currency: selectedWallet,
+          reference: ref,
+        }),
+      });
 
-          },
-          body: JSON.stringify({
-            amount: parseFloat(amount),
-            currency: selectedWallet,
-            reference: ref,
-          }),
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          // Show a "waiting for confirmation" message instead of success
-          setErrorMessage("");
-          setShowSuccess(true);
-          setAmount("");
-        } else {
-          setErrorMessage(data.message || "Failed to record deposit");
-        }
-      } else {
-        // ── FIAT DEPOSIT (NGN): Credit immediately (Interswitch verified) ──
-        const res = await fetch("/api/transactions/deposit", {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-
-          },
-          body: JSON.stringify({
-            amount: parseFloat(amount),
-            currency: selectedWallet,
-            reference: ref,
-          }),
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          if (selectedWallet === "NGN") {
-            // For NGN, the balance is updated via webhook. 
-            // We just show the success/pending dialog.
-            setShowSuccess(true);
-            setAmount("");
-          } else {
-            const currentBalances = JSON.parse(localStorage.getItem("stablex_balances") || '{"NGN": 0, "USDT_ERC20": 0, "USDT": 0}');
-            currentBalances.NGN = data.balance;
-            localStorage.setItem("stablex_balances", JSON.stringify(currentBalances));
-            setShowSuccess(true);
-            setAmount("");
-          }
-          setUssdCode("");
-          setDynamicAccount(null);
-        } else {
-          setErrorMessage(data.message || "Deposit failed");
-        }
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to record deposit");
       }
-    } catch (error) {
-      console.error("Deposit error:", error);
-      setErrorMessage("Network error. Could not complete deposit.");
+
+      await res.json();
+      await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
+      setShowSuccess(true);
+      setAmount("");
+      setUssdCode("");
+      setDynamicAccount(null);
+      setKorapayAccount(null);
+
+      toast({
+        title: "Deposit Recorded",
+        description: isCrypto ? "Waiting for blockchain confirmation." : "Your account has been credited."
+      });
+    } catch (error: any) {
+      console.warn("Deposit confirmation error:", error.message);
+      setErrorMessage(error.message || "Network error. Could not complete deposit.");
+      toast({
+        title: "Deposit Error",
+        description: error.message || "Network connection failed.",
+        variant: "destructive"
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -381,7 +342,6 @@ export default function Deposit() {
     const ref = generateTransactionRef();
     setTransactionRef(ref);
     const amountInKobo = Math.round(parseFloat(amount) * 100);
-    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
 
     const checkoutConfig = {
       merchant_code: config.merchantCode,
@@ -389,20 +349,21 @@ export default function Deposit() {
       txn_ref: ref,
       amount: amountInKobo,
       currency: 566,
-      cust_name: userInfo.name || "StableX Customer",
-      cust_email: userInfo.email || "",
-      cust_id: userInfo._id || "",
+      cust_name: user?.name || "StableX Customer",
+      cust_email: user?.email || "",
+      cust_id: user?._id || "",
       onComplete: async (response: any) => {
-        console.log("Payment response:", response);
-
         if (response.resp === "00" || response.responseCode === "00") {
           try {
             const verifyRes = await fetch(
-              `/api/interswitch/transaction-status?transactionRef=${ref}&amount=${amount}`
+              `/api/interswitch/transaction-status?transactionRef=${ref}&amount=${amount}`,
+              { credentials: "include" }
             );
+            if (!verifyRes.ok) throw new Error("Verification service unavailable");
             const verifyData = await verifyRes.json();
 
             if (verifyData.success && verifyData.ResponseCode === "00") {
+              await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
               setShowSuccess(true);
               setAmount("");
               toast({
@@ -410,29 +371,20 @@ export default function Deposit() {
                 description: `₦${amount} has been deposited via card.`
               });
             } else {
-              setErrorMessage("Service temporarily unavailable. Please refresh and try again.");
+              setErrorMessage("Payment verification failed. Please contact support.");
               toast({
                 title: "Payment Verification Failed",
-                description: "Service temporarily unavailable. Please refresh and try again.",
+                description: "Payment status could not be confirmed.",
                 variant: "destructive"
               });
             }
-          } catch {
+          } catch (e: any) {
+            console.warn("Card Verify Error:", e.message);
             setErrorMessage("Could not verify payment automatically. Please click 'I have paid'.");
-            toast({
-              title: "Payment Verification Error",
-              description: "Could not verify payment automatically. Please click 'I have paid'.",
-              variant: "destructive"
-            });
           }
         } else {
           const err = response.message || response.desc || "Payment failed. Please try again.";
           setErrorMessage(err);
-          toast({
-            title: "Payment Failed",
-            description: err,
-            variant: "destructive"
-          });
         }
         setIsProcessing(false);
       },
@@ -450,8 +402,8 @@ export default function Deposit() {
 
   // ── USSD Payment ──
   const handleUssdPayment = async () => {
-    if (!amount || parseFloat(amount) < 100) {
-      setErrorMessage("Minimum deposit amount is ₦100");
+    if (!amount || parseFloat(amount) < 1000) {
+      setErrorMessage("Minimum deposit amount is ₦1,000");
       return;
     }
     if (!selectedUssdBank) {
@@ -478,6 +430,10 @@ export default function Deposit() {
         }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || "Failed to generate USSD code");
+      }
       const data = await response.json();
 
       if (data.success && data.ussdCode) {
@@ -491,28 +447,13 @@ export default function Deposit() {
         const bank = ussdBanks.find((b) => b.bankCode === selectedUssdBank);
         if (bank?.ussdCode) {
           setUssdCode(bank.ussdCode);
-          toast({
-            title: "USSD Code Generated",
-            description: "Please dial the code to complete your payment."
-          });
         } else {
-          const err = data.error || "Failed to generate USSD code.";
-          setErrorMessage(err);
-          toast({
-            title: "USSD Failed",
-            description: err,
-            variant: "destructive"
-          });
+          throw new Error(data.error || "Failed to generate USSD code");
         }
       }
-    } catch (error) {
-      console.error("USSD error:", error);
-      setErrorMessage("Network error. Please try again.");
-      toast({
-        title: "USSD Error",
-        description: "Network error. Please try again.",
-        variant: "destructive"
-      });
+    } catch (error: any) {
+      console.warn("USSD Error:", error.message);
+      setErrorMessage(error.message || "Network error. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -520,8 +461,8 @@ export default function Deposit() {
 
   // ── Korapay Bank Transfer (Jeroid Style) ──
   const handleKorapayBankTransfer = async () => {
-    if (!amount || parseFloat(amount) < 100) {
-      setErrorMessage("Minimum deposit amount is ₦100");
+    if (!amount || parseFloat(amount) < 1000) {
+      setErrorMessage("Minimum deposit amount is ₦1,000");
       return;
     }
 
@@ -573,22 +514,24 @@ export default function Deposit() {
         })
       });
 
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Korapay initialization failed");
+      }
       const data = await res.json();
 
-      if (res.ok && data.checkoutUrl) {
+      if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       } else {
-        setErrorMessage(data.message || "Failed to initialize checkout.");
+        throw new Error(data.message || "Failed to initialize checkout.");
       }
-    } catch (e) {
-      console.error(e);
-      setErrorMessage("Network error connecting to Korapay.");
+    } catch (e: any) {
+      console.warn("Korapay Init Error:", e.message);
+      setErrorMessage(e.message || "Network error connecting to Korapay.");
     } finally {
       setIsProcessing(false);
     }
   };
-
-
 
   // ── Web Checkout (ALL payment methods in one popup) ──
   const handleWebCheckout = () => {
@@ -612,9 +555,6 @@ export default function Deposit() {
     setTransactionRef(ref);
     const amountInKobo = Math.round(parseFloat(amount) * 100);
 
-    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-    const token = userInfo.token;
-
     const checkoutConfig = {
       merchant_code: config.merchantCode,
       pay_item_id: config.payItemId,
@@ -622,37 +562,34 @@ export default function Deposit() {
       txn_ref: ref,
       amount: amountInKobo,
       currency: 566,
-      cust_name: userInfo.name || "StableX Customer",
-      cust_email: userInfo.email || "",
-      cust_id: userInfo._id || "",
+      cust_name: user?.name || "StableX Customer",
+      cust_email: user?.email || "",
+      cust_id: user?._id || "",
       onComplete: async (response: any) => {
-        console.log("[WebCheckout] Payment response:", response);
-
         try {
-          // 2. Server-side confirmation (MANDATORY per Interswitch docs)
           const verifyRes = await fetch(
             `/api/interswitch/web-checkout-confirm?transactionRef=${ref}&amount=${amount}`,
             {
               credentials: "include",
-
             }
           );
+          if (!verifyRes.ok) throw new Error("Web checkout verification failed");
           const verifyData = await verifyRes.json();
-          console.log("[WebCheckout] Server verification:", verifyData);
 
           if (verifyData.success && verifyData.ResponseCode === "00") {
-            // Verify amount matches
-            if (String(verifyData.Amount) !== String(amountInKobo)) {
-              console.warn("[WebCheckout] ⚠️ Amount mismatch!", verifyData.Amount, "vs", amountInKobo);
-            }
+            await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
             setShowSuccess(true);
             setAmount("");
+            toast({
+              title: "Payment Successful",
+              description: `₦${amount} deposit confirmed.`
+            });
           } else {
-            setErrorMessage("Payment verification failed. Contact support with ref: " + ref);
+            setErrorMessage("Payment verification failed. Ref: " + ref);
           }
-        } catch (err) {
-          console.error("[WebCheckout] Verification error:", err);
-          setErrorMessage("Could not verify payment. Contact support with ref: " + ref);
+        } catch (err: any) {
+          console.warn("WebCheckout Verify Error:", err.message);
+          setErrorMessage("Verification error. Please contact support with ref: " + ref);
         }
         setIsProcessing(false);
       },
@@ -669,7 +606,6 @@ export default function Deposit() {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
-
         },
         body: JSON.stringify({
           amount: parseFloat(amount),
@@ -679,8 +615,6 @@ export default function Deposit() {
       })
         .then(res => res.json())
         .then(data => {
-          console.log("[WebCheckout] Pending transaction created:", data);
-          console.log("[WebCheckout] Launching Interswitch Inline Checkout...", checkoutConfig);
           window.webpayCheckout(checkoutConfig);
         })
         .catch(err => {
@@ -697,8 +631,8 @@ export default function Deposit() {
 
   // ── Dynamic Virtual Account ──
   const handleDynamicTransfer = async () => {
-    if (!amount || parseFloat(amount) < 100) {
-      setErrorMessage("Minimum deposit amount is ₦100");
+    if (!amount || parseFloat(amount) < 1000) {
+      setErrorMessage("Minimum deposit amount is ₦1,000");
       return;
     }
 
@@ -720,6 +654,10 @@ export default function Deposit() {
         }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || "Failed to generate virtual account");
+      }
       const data = await response.json();
 
       if (data.success && data.accountNumber) {
@@ -730,11 +668,11 @@ export default function Deposit() {
           expiryDateTime: data.expiryDateTime || "",
         });
       } else {
-        setErrorMessage(data.error || "Failed to generate virtual account. Please try again.");
+        throw new Error(data.error || "Failed to generate virtual account. Please try again.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Dynamic transfer error:", error);
-      setErrorMessage("Network error. Please try again.");
+      setErrorMessage(error.message || "Network error. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -976,7 +914,9 @@ export default function Deposit() {
                   <Button
                     className="w-full bg-green-600 hover:bg-green-700 text-white py-6 text-lg font-bold shadow-lg"
                     onClick={handlePaymentConfirmation}
+                    disabled={isProcessing}
                   >
+                    {isProcessing ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
                     I have sent the money
                   </Button>
 
@@ -1177,7 +1117,9 @@ export default function Deposit() {
                     <Button
                       className="w-full bg-green-600 hover:bg-green-700 text-white"
                       onClick={handlePaymentConfirmation}
+                      disabled={isProcessing}
                     >
+                      {isProcessing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                       I have sent the money
                     </Button>
 
@@ -1216,7 +1158,9 @@ export default function Deposit() {
                     <Button
                       className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white"
                       onClick={handlePaymentConfirmation}
+                      disabled={isProcessing}
                     >
+                      {isProcessing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                       I have completed payment
                     </Button>
                   </div>

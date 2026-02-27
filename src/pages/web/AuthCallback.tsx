@@ -23,16 +23,19 @@ export default function AuthCallback() {
         if (data) {
             try {
                 const userData = JSON.parse(decodeURIComponent(data));
-                console.log("[AUTH CALLBACK] ✅ Google auth successful:", userData.email);
+                console.log("[AUTH CALLBACK] ✅ Google auth successful");
 
-                // Store in localStorage — wrap under 'user' key for consistency
-                const stored = { ...userData, token: "cookie-auth-active" };
-                localStorage.setItem("userInfo", JSON.stringify(stored));
+                // Store in localStorage — only non-sensitive display data
+                localStorage.setItem("userInfo", JSON.stringify({
+                    email: userData.email,
+                    name: userData.firstName || userData.name,
+                    role: userData.role,
+                }));
 
                 // Redirect to dashboard
                 navigate("/web/dashboard");
             } catch (err) {
-                console.error("[AUTH CALLBACK] Failed to parse auth data:", err);
+                console.error("[AUTH CALLBACK] Failed to parse auth data");
                 navigate("/web/login?error=parse_failed");
             }
         } else {

@@ -46,7 +46,9 @@ export function QuickActions({ variant = "home", onConnect, onQuickSend }: Quick
           const isWeb = window.location.pathname.startsWith('/web');
           const finalPath = action.path && isWeb && !action.path.startsWith('/web')
             ? `/web${action.path}`
-            : action.path || "/";
+            : !isWeb && action.path?.startsWith('/web')
+              ? action.path.replace('/web', '')
+              : action.path || "/";
 
           if (action.onClick) {
             return (

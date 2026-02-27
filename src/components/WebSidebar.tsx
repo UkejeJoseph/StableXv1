@@ -23,16 +23,17 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useState } from "react";
+import { useUser } from "@/contexts/UserContext";
 
-export function WebLayout({ children }: { children: React.ReactNode }) {
+export function WebLayout({ children, hideSidebar = false }: { children: React.ReactNode; hideSidebar?: boolean }) {
+  const { user, logout } = useUser();
   const location = useLocation();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const userInfoStr = localStorage.getItem("webUserInfo");
-  const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
-  const isMerchant = userInfo?.user?.kycStatus === 'verified';
-  const kycLevel = userInfo?.user?.kycLevel || 1;
-  const kycStatus = userInfo?.user?.kycStatus || 'pending';
+
+  const isMerchant = user?.kycStatus === 'verified';
+  const kycLevel = user?.kycLevel || 1;
+  const kycStatus = user?.kycStatus || 'pending';
 
   // Sidebar collapsible states
   const [openAssets, setOpenAssets] = useState(true);
@@ -42,9 +43,13 @@ export function WebLayout({ children }: { children: React.ReactNode }) {
   const [openMerchant, setOpenMerchant] = useState(true);
   const [openTools, setOpenTools] = useState(true);
 
-  const handleLogout = () => {
-    localStorage.removeItem("webUserInfo");
-    navigate("/web/login");
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/web/login");
+    } catch (e) {
+      console.error("Logout error", e);
+    }
   };
 
   const isActive = (path: string) => location.pathname === path;
@@ -62,7 +67,7 @@ export function WebLayout({ children }: { children: React.ReactNode }) {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate("/web/dashboard")}
+                onClick={() => navigate(-1)}
                 className="text-white hover:bg-white/10 h-8 w-8 mr-2"
                 data-testid="button-back-web"
               >
@@ -174,12 +179,12 @@ export function WebLayout({ children }: { children: React.ReactNode }) {
           <DropdownMenu>
             <DropdownMenuTrigger className="outline-none">
               <div className="w-8 h-8 rounded-full bg-muted/30 border border-border/50 flex items-center justify-center font-bold text-[#F0B90B] text-sm hover:border-[#F0B90B] cursor-pointer transition-colors">
-                {userInfo?.user?.firstName?.[0] || userInfo?.user?.email?.[0]?.toUpperCase() || 'U'}
+                {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64 bg-[#1e2329] border-border/20 text-white p-2 z-50">
               <div className="px-2 py-3 border-b border-border/20 mb-2">
-                <p className="font-semibold text-sm">{userInfo?.user?.email}</p>
+                <p className="font-semibold text-sm">{user?.email}</p>
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <span className={`text-xs px-2 py-0.5 rounded ${kycStatus === 'verified' ? 'bg-green-500/20 text-green-500' : kycStatus === 'rejected' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                     {kycStatus === 'verified' ? '✓ Verified' : kycStatus === 'rejected' ? '✗ Rejected' : '⏳ Pending'}
@@ -187,7 +192,7 @@ export function WebLayout({ children }: { children: React.ReactNode }) {
                   <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded flex items-center gap-1">
                     <Shield className="w-3 h-3" /> KYC Lv.{kycLevel}
                   </span>
-                  <span className="text-xs text-muted-foreground">UID: {userInfo?.user?._id?.slice(-8).toUpperCase()}</span>
+                  <span className="text-xs text-muted-foreground">UID: {user?._id?.slice(-8).toUpperCase()}</span>
                 </div>
               </div>
 

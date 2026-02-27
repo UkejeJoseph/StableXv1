@@ -9,8 +9,8 @@ export interface CryptoPrice {
   image?: string;
 }
 
-const COINGECKO_API = "https://api.coingecko.com/api/v3";
-const BINANCE_API = "https://api.binance.com/api/v3";
+const COINGECKO_API = import.meta.env.VITE_COINGECKO_API || "https://api.coingecko.com/api/v3";
+const BINANCE_API = import.meta.env.VITE_BINANCE_API || "https://api.binance.com/api/v3";
 
 export async function getMarketPrices(): Promise<CryptoPrice[]> {
   try {
@@ -73,7 +73,7 @@ export async function getTrendingCoins(): Promise<CryptoPrice[]> {
     const response = await fetch(`${COINGECKO_API}/search/trending`);
 
     if (!response.ok) {
-      throw new Error("Failed to fetch trending coins");
+      throw new Error(`Failed to fetch trending coins: ${response.statusText}`);
     }
 
     const data = await response.json();

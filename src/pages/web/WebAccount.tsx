@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { useWallets } from "@/hooks/useWallets";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { useUser } from "@/contexts/UserContext";
 
 const settingsItems = [
   { icon: Building2, label: "Bank Account", path: "/settings/bank" },
@@ -34,14 +35,13 @@ const otherItems = [
 ];
 
 export default function WebAccount() {
+  const { user, logout } = useUser();
   const [walletCount, setWalletCount] = useState(0);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Read real user data from localStorage
-  const userInfo = JSON.parse(localStorage.getItem("userInfo") || '{}');
-  const userEmail = userInfo?.email || 'Not logged in';
-  const userInitials = userEmail
+  const userEmail = user?.email || 'Not logged in';
+  const userInitials = userEmail !== 'Not logged in'
     ? userEmail.substring(0, 2).toUpperCase()
     : '??';
 
@@ -53,23 +53,21 @@ export default function WebAccount() {
 
   // Redirect to login if no user info
   useEffect(() => {
-    if (!userInfo?.token) {
+    if (!user) {
       navigate('/login');
     }
-  }, [userInfo, navigate]);
+  }, [user, navigate]);
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/users/logout", { method: "POST" });
+      await logout();
+      // Clear the react query cache to remove cached balances/wallets
+      queryClient.clear();
+      // Redirect to login page
+      navigate("/login");
     } catch (e) {
       console.error("Logout error", e);
     }
-    // Clear user info and token from local storage
-    localStorage.removeItem("userInfo");
-    // Clear the react query cache to remove cached balances/wallets
-    queryClient.clear();
-    // Redirect to login page
-    navigate("/login");
   };
 
   return (

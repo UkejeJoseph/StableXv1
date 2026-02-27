@@ -6,8 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, LogIn } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
+import { useUser } from "@/contexts/UserContext";
 
 export default function Login() {
+    const { user, setUser } = useUser();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -16,12 +19,10 @@ export default function Login() {
     const { toast } = useToast();
 
     useEffect(() => {
-        // Redirect if already logged in
-        const userInfo = localStorage.getItem("userInfo");
-        if (userInfo) {
+        if (user) {
             navigate("/dashboard");
         }
-    }, [navigate]);
+    }, [user, navigate]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -32,21 +33,19 @@ export default function Login() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
+                credentials: "include"
             });
 
             const data = await res.json();
 
             if (res.ok) {
-                // We use HTTP-only cookies for security, but save a dummy token so frontend routing doesn't redirect us to login
-                const stored = { ...data, token: "cookie-auth-active" };
-                localStorage.setItem("userInfo", JSON.stringify(stored));
+                setUser(data);
                 toast({
                     title: "Welcome back!",
                     description: "Logged in successfully.",
                 });
                 navigate("/dashboard");
             } else {
-                // Handle "Verify" error specifically?
                 if (data.message && data.message.includes("verify")) {
                     navigate("/verify", { state: { email } });
                 }
@@ -64,7 +63,8 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <div className="min-h-screen flex items-center justify-center p-4 bg-background relative">
+            <BackButton className="absolute top-4 left-4" />
             <Card className="w-full max-w-md border-none shadow-none sm:border sm:shadow-sm">
                 <CardContent className="p-6">
                     <div className="text-center mb-8">

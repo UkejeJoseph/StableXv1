@@ -11,7 +11,12 @@ import { useToast } from "@/components/ui/use-toast";
 import { ArrowDownUp, Info, History } from "lucide-react";
 import { getMarketPrices } from "@/lib/marketData";
 
+import { useBalances } from "@/hooks/useBalances";
+import { useQueryClient } from "@tanstack/react-query";
+
 export default function WebConvert() {
+  const queryClient = useQueryClient();
+  const { data: balancesData } = useBalances();
   const [tab, setTab] = useState("buy");
   const [spendAmount, setSpendAmount] = useState("");
   const [receiveAmount, setReceiveAmount] = useState("0.00");
@@ -20,6 +25,11 @@ export default function WebConvert() {
   const [isLoading, setIsLoading] = useState(false);
   const [prices, setPrices] = useState<any[]>([]);
   const { toast } = useToast();
+
+  const getBalance = (currency: string) => {
+    if (!balancesData) return 0;
+    return balancesData[currency as keyof typeof balancesData] || 0;
+  };
 
   useEffect(() => {
     const fetchPrices = async () => {
@@ -31,7 +41,7 @@ export default function WebConvert() {
     return () => clearInterval(interval);
   }, []);
 
-  // Simple mocked conversion math for display purposes
+  // Simple conversion math for preview based on general rates
   useEffect(() => {
     if (!spendAmount || isNaN(Number(spendAmount))) {
       setReceiveAmount("0.00");
@@ -46,7 +56,7 @@ export default function WebConvert() {
     } else if (spendCurrency === "USDT" && receiveCurrency === "NGN") {
       setReceiveAmount((amount * 1600).toFixed(2));
     } else {
-      setReceiveAmount((amount * 0.98).toFixed(4)); // fallback
+      setReceiveAmount((amount * 1).toFixed(4)); // Direct conversion for crypto-crypto
     }
   }, [spendAmount, spendCurrency, receiveCurrency, prices]);
 
@@ -57,7 +67,22 @@ export default function WebConvert() {
   };
 
   const handleTransaction = async () => {
-    if (!spendAmount || Number(spendAmount) <= 0) return;
+    if (!spendAmount || isNaN(Number(spendAmount))) {
+      toast({ title: "Invalid Amount", description: "Please enter a valid amount.", variant: "destructive" });
+      return;
+    }
+
+    const numAmount = Number(spendAmount);
+    const minAmount = spendCurrency === 'NGN' ? 1000 : 5;
+    if (numAmount < minAmount) {
+      toast({
+        title: "Amount Too Small",
+        description: `Minimum swap is ${minAmount} ${spendCurrency}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const res = await fetch("/api/transactions/swap", {
@@ -71,6 +96,11 @@ export default function WebConvert() {
         })
       });
 
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || "Swap failed");
+      }
+
       const data = await res.json();
 
       if (data.success) {
@@ -78,18 +108,15 @@ export default function WebConvert() {
           title: "Swap Successful",
           description: `Successfully swapped ${spendAmount} ${spendCurrency} for ${data.receivedAmount.toFixed(4)} ${receiveCurrency}.`,
         });
+        await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
         setSpendAmount("");
       } else {
-        toast({
-          title: "Swap Failed",
-          description: data.error || "A transaction error occurred.",
-          variant: "destructive"
-        });
+        throw new Error(data.error || "A transaction error occurred.");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: "Network Error",
-        description: "Could not connect to the server.",
+        title: "Swap Failed",
+        description: error.message,
         variant: "destructive"
       });
     } finally {
@@ -131,7 +158,7 @@ export default function WebConvert() {
               <div className="bg-[#0b0e11] rounded-xl p-4 border border-border/10 focus-within:border-[#F0B90B]/50 transition-colors">
                 <div className="flex justify-between text-xs text-muted-foreground mb-2">
                   <span>Spend</span>
-                  <span>Balance: 0.00 {spendCurrency}</span>
+                  <span>Balance: {getBalance(spendCurrency).toLocaleString()} {spendCurrency}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Input
@@ -208,7 +235,7 @@ export default function WebConvert() {
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Transaction Fee</span>
-                  <span className="font-medium text-green-500">0 NGN</span>
+                  <span className="font-medium text-green-500">Included in rate</span>
                 </div>
               </div>
             )}

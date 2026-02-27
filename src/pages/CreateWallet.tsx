@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/contexts/UserContext";
 import {
   saveWalletReference,
   getNetworkDisplayName,
@@ -109,31 +110,30 @@ const networkOptions: NetworkOption[] = [
 ];
 
 export default function CreateWallet() {
+  const { user } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [step, setStep] = useState<"choose" | "create" | "import">("choose");
   const [network, setNetwork] = useState<NetworkType>("ETH");
   const [walletData, setWalletData] = useState<WalletData | null>(null);
-  const [showMnemonic, setShowMnemonic] = useState(false);
-  const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [importMethod, setImportMethod] = useState<"mnemonic" | "privateKey">("mnemonic");
   const [importValue, setImportValue] = useState("");
 
   const handleCreateWallet = async (selectedNetwork: NetworkType) => {
+    if (!user) {
+      toast({ title: "Auth Required", description: "Log in to create a wallet", variant: "destructive" });
+      return;
+    }
     setNetwork(selectedNetwork);
     setIsProcessing(true);
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-      if (!userInfo.token) throw new Error("Not authenticated");
-
       const response = await fetch("/api/wallets/generate", {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          
         },
         body: JSON.stringify({ network: selectedNetwork }),
       });
@@ -183,17 +183,14 @@ export default function CreateWallet() {
   };
 
   const handleImportWallet = async () => {
+    if (!user) return;
     setIsProcessing(true);
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-      if (!userInfo.token) throw new Error("Not authenticated");
-
       const response = await fetch("/api/wallets/import", {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          
         },
         body: JSON.stringify({
           network,
@@ -221,12 +218,14 @@ export default function CreateWallet() {
         mnemonic: "",
       });
 
+      setImportValue(""); // Clear sensitive data from state immediately
       toast({
         title: "Wallet Imported!",
         description: "Your wallet has been securely imported to the exchange.",
       });
       navigate("/wallet");
     } catch (error: any) {
+      setImportValue(""); // Clear on failure as well for security
       toast({
         title: "Import Failed",
         description: error.message || "Invalid mnemonic or private key. Please try again.",

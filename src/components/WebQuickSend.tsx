@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search, Send, CheckCircle2, Copy } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useUser } from "@/contexts/UserContext";
 
 interface WebQuickSendProps {
     isOpen: boolean;
@@ -11,6 +12,7 @@ interface WebQuickSendProps {
 }
 
 export function WebQuickSend({ isOpen, onClose }: WebQuickSendProps) {
+    const { user } = useUser();
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [username, setUsername] = useState("");
     const [recipient, setRecipient] = useState<{ _id: string; username: string; email: string } | null>(null);
@@ -23,13 +25,11 @@ export function WebQuickSend({ isOpen, onClose }: WebQuickSendProps) {
     const suggestedAmounts = ["10", "50", "100", "500"];
 
     const searchUser = async () => {
-        if (!username.trim()) return;
+        if (!username.trim() || !user) return;
         setIsLoading(true);
         try {
-            const token = JSON.parse(localStorage.getItem("userInfo") || "{}").token;
             const res = await fetch(`/api/users/search?q=${username}`, {
                 credentials: "include",
-        
             });
             const data = await res.json();
 
@@ -45,15 +45,15 @@ export function WebQuickSend({ isOpen, onClose }: WebQuickSendProps) {
     };
 
     const generatePaymentLink = async () => {
+        if (!user) return;
         setIsLoading(true);
         try {
-            const token = JSON.parse(localStorage.getItem("userInfo") || "{}").token;
             const res = await fetch(`/api/transactions/payment-link/create`, {
                 method: "POST",
                 credentials: "include",
-        headers: {
+                headers: {
                     "Content-Type": "application/json",
-                    },
+                },
                 body: JSON.stringify({ currency: "USDT_TRC20" })
             });
             const data = await res.json();
@@ -70,17 +70,26 @@ export function WebQuickSend({ isOpen, onClose }: WebQuickSendProps) {
     };
 
     const confirmSend = async () => {
-        if (!recipient || !amount || isNaN(Number(amount)) || Number(amount) <= 0) return;
+        if (!recipient || !amount || isNaN(Number(amount)) || !user) return;
+
+        const numAmount = Number(amount);
+        if (numAmount < 1) {
+            toast({
+                title: "Amount Too Small",
+                description: "Minimum internal transfer is 1 USDT",
+                variant: "destructive"
+            });
+            return;
+        }
 
         setIsLoading(true);
         try {
-            const token = JSON.parse(localStorage.getItem("userInfo") || "{}").token;
             const res = await fetch(`/api/transactions/transfer/internal`, {
                 method: "POST",
                 credentials: "include",
-        headers: {
+                headers: {
                     "Content-Type": "application/json",
-                    },
+                },
                 body: JSON.stringify({
                     recipient_username: recipient.username,
                     amount,

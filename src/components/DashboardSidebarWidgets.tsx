@@ -2,25 +2,23 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Gift, Megaphone } from "lucide-react";
+import { useUser } from "@/contexts/UserContext";
 
 export function DashboardSidebarWidgets() {
+    const { user } = useUser();
     const [announcements, setAnnouncements] = useState<any[]>([]);
     const [rewards, setRewards] = useState<any>(null);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const userInfoStr = localStorage.getItem("userInfo");
-                const token = userInfoStr ? JSON.parse(userInfoStr).token : null;
-
                 const annRes = await fetch("/api/dashboard/announcements");
                 const annData = await annRes.json();
                 if (annData.success) setAnnouncements(annData.announcements);
 
-                if (token) {
+                if (user) {
                     const rewRes = await fetch("/api/dashboard/rewards", {
                         credentials: "include",
-        
                     });
                     const rewData = await rewRes.json();
                     if (rewData.success) setRewards(rewData.rewards);
@@ -30,7 +28,7 @@ export function DashboardSidebarWidgets() {
             }
         };
         fetchData();
-    }, []);
+    }, [user]);
 
     return (
         <div className="space-y-4">

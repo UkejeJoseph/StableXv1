@@ -3,11 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, LogIn } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
+import { useUser } from "@/contexts/UserContext";
 
 export default function Login() {
+    const { user, setUser } = useUser();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -16,11 +18,10 @@ export default function Login() {
     const { toast } = useToast();
 
     useEffect(() => {
-        const userInfo = localStorage.getItem("webUserInfo");
-        if (userInfo) {
+        if (user) {
             navigate("/web/dashboard");
         }
-    }, [navigate]);
+    }, [user, navigate]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -36,9 +37,7 @@ export default function Login() {
             const data = await res.json();
 
             if (res.ok) {
-                // Wrap response under 'user' key so sidebar/components can access userInfo.user.kycStatus, etc.
-                const stored = { user: data, token: data.token };
-                localStorage.setItem("webUserInfo", JSON.stringify(stored));
+                setUser(data);
                 toast({
                     title: "Welcome back!",
                     description: "Logged in successfully.",
@@ -63,7 +62,8 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen w-full flex bg-background font-sans">
+        <div className="min-h-screen w-full flex bg-background font-sans relative">
+            <BackButton className="absolute top-4 left-4 z-50 text-white hover:text-white/80" />
             {/* Left Side - Branding/Marketing (Hidden on very small screens, but this is the web version) */}
             <div className="hidden lg:flex lg:flex-1 bg-[#0b0e11] flex-col justify-between p-12 relative overflow-hidden">
                 <div className="relative z-10">

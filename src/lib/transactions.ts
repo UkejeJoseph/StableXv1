@@ -22,6 +22,15 @@ export interface TransactionResult {
   explorerUrl?: string;
 }
 
+export const FEES = {
+  ETH: 0.005,
+  USDT_ERC20: 15,
+  USDT_TRC20: 1.5,
+  BTC: 0.0002,
+  SOL: 0.02,
+  TRX: 15,
+};
+
 export async function estimateGasFee(
   network: NetworkType,
   toAddress: string,
@@ -33,13 +42,13 @@ export async function estimateGasFee(
     switch (network) {
       case "ETH":
       case "USDT_ERC20": {
-        const fee = network === "ETH" ? 0.005 : 15;
+        const fee = network === "ETH" ? FEES.ETH : FEES.USDT_ERC20;
         return {
           network,
           gasPrice: "20 Gwei",
           gasLimit: "21000",
           totalFee: `${fee} ${network.includes("USDT") ? "USDT" : "ETH"}`,
-          feeInUSD: "$15.00",
+          feeInUSD: `$${fee === FEES.ETH ? "15.00" : "15.00"}`, // Approximation
         };
       }
 
@@ -48,8 +57,8 @@ export async function estimateGasFee(
           network,
           gasPrice: "5000 lamports",
           gasLimit: "1",
-          totalFee: "0.000005 SOL",
-          feeInUSD: "$0.001",
+          totalFee: `${FEES.SOL} SOL`,
+          feeInUSD: "$0.02",
         };
       }
 
@@ -58,8 +67,8 @@ export async function estimateGasFee(
           network,
           gasPrice: "10 sat/byte",
           gasLimit: "250 bytes",
-          totalFee: "0.000025 BTC",
-          feeInUSD: "$1.50",
+          totalFee: `${FEES.BTC} BTC`,
+          feeInUSD: "$12.00",
         };
       }
 
@@ -67,9 +76,8 @@ export async function estimateGasFee(
       case "TRX":
       case "ETH_TRC20":
       case "SOL_TRC20": {
-        // We know our backend charges ~1.5 USDT withdrawal fee for TRC20 
         const isTx = network === "TRX";
-        const fee = isTx ? "15 TRX" : "1.5 USDT";
+        const fee = isTx ? `${FEES.TRX} TRX` : `${FEES.USDT_TRC20} USDT`;
         const feeUsd = isTx ? "$1.8" : "$1.50";
         return {
           network,
@@ -96,22 +104,15 @@ export async function estimateGasFee(
 }
 
 export async function sendTransaction(request: TransactionRequest): Promise<TransactionResult> {
-  const { network, toAddress, amount, fromAddress } = request;
+  const { network, toAddress, amount } = request;
 
   try {
-    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-    const token = userInfo.token;
-
-    if (!token) {
-      throw new Error("You must be logged in to execute a withdrawal");
-    }
-
     const response = await fetch("/api/transactions/withdraw-crypto", {
       method: "POST",
       credentials: "include",
-        headers: {
+      headers: {
         "Content-Type": "application/json",
-        },
+      },
       body: JSON.stringify({
         network,
         toAddress,

@@ -38,7 +38,14 @@ const authUser = asyncHandler(async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 15 * 60 * 1000 // 15 mins
+            maxAge: 15 * 60 * 1000 // 15 minutes
+        });
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
 
         console.log(`[AUTH] ✅ Login successful for: ${email} (ID: ${user._id})`);
@@ -51,7 +58,6 @@ const authUser = asyncHandler(async (req, res) => {
             role: user.role,
             kycStatus: user.kycStatus,
             isVerified: user.isVerified,
-            refreshToken, // Send refresh token optionally in payload, or maybe cookie too later. We keep token out.
         });
     } else {
         console.log(`[AUTH] ❌ Wrong password for: ${email}`);
@@ -91,7 +97,14 @@ const verifyOtp = asyncHandler(async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 15 * 60 * 1000 // 15 mins
+            maxAge: 15 * 60 * 1000 // 15 minutes
+        });
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
 
         console.log(`[OTP] ✅ Verification successful for: ${email}`);
@@ -99,7 +112,6 @@ const verifyOtp = asyncHandler(async (req, res) => {
             _id: user._id,
             email: user.email,
             role: user.role,
-            refreshToken,
             message: "Account verified successfully"
         });
     } else {
@@ -331,6 +343,10 @@ const searchUser = asyncHandler(async (req, res) => {
 // @access  Public
 const logoutUser = asyncHandler(async (req, res) => {
     res.cookie('token', '', {
+        httpOnly: true,
+        expires: new Date(0),
+    });
+    res.cookie('refreshToken', '', {
         httpOnly: true,
         expires: new Date(0),
     });

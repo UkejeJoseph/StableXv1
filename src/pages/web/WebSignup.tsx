@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, User, Store, ArrowLeft } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 
 export default function Signup() {
     const [role, setRole] = useState("user");
@@ -30,6 +31,29 @@ export default function Signup() {
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (role === "merchant" && !formData.businessName.trim()) {
+            toast({ variant: "destructive", title: "Missing Information", description: "Business name is required for merchants." });
+            return;
+        }
+
+        if (role === "user") {
+            if (!formData.firstName.trim() || !formData.lastName.trim()) {
+                toast({ variant: "destructive", title: "Missing Information", description: "First and last names are required." });
+                return;
+            }
+        }
+
+        if (!formData.email.includes("@")) {
+            toast({ variant: "destructive", title: "Invalid Email", description: "Please enter a valid email address." });
+            return;
+        }
+
+        if (formData.password.length < 6) {
+            toast({ variant: "destructive", title: "Weak Password", description: "Password must be at least 6 characters long." });
+            return;
+        }
+
         if (formData.password !== formData.confirmPassword) {
             toast({
                 variant: "destructive",
@@ -66,7 +90,7 @@ export default function Signup() {
                 });
                 navigate("/web/verify", { state: { email: formData.email } });
             } else {
-                throw new Error(data.message || "Signup failed");
+                throw new Error(data.message || data.error || "Signup failed");
             }
         } catch (error: any) {
             toast({
@@ -80,7 +104,8 @@ export default function Signup() {
     };
 
     return (
-        <div className="min-h-screen w-full flex bg-background font-sans">
+        <div className="min-h-screen w-full flex bg-background font-sans relative">
+            <BackButton className="absolute top-4 left-4 z-50 text-white hover:text-white/80" />
             {/* Left Side - Branding/Marketing */}
             <div className="hidden lg:flex lg:flex-1 bg-[#0b0e11] flex-col justify-between p-12 relative overflow-hidden">
                 <div className="relative z-10">
@@ -110,16 +135,6 @@ export default function Signup() {
             <div className="flex-1 flex flex-col items-center justify-center p-8 lg:p-12 relative z-10 bg-background/95 backdrop-blur-sm overflow-y-auto w-full">
                 <div className="w-full max-w-md py-8">
                     <div className="mb-8">
-                        <div
-                            onClick={() => {
-                                localStorage.removeItem("webUserInfo");
-                                navigate("/web/login");
-                            }}
-                            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-6 transition-colors cursor-pointer"
-                        >
-                            <ArrowLeft className="w-4 h-4 mr-2" />
-                            Back to Login
-                        </div>
                         <h1 className="text-3xl font-bold mb-2">Create Account</h1>
                         <p className="text-muted-foreground">Join StableX Web today</p>
                     </div>

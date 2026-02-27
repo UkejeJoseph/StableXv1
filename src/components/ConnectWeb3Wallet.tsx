@@ -3,8 +3,10 @@ import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { useUser } from "@/contexts/UserContext";
 
 export function ConnectWeb3Wallet() {
+    const { user } = useUser();
     const { address, isConnected } = useAccount();
     const { connectors, connect, status, error } = useConnect();
     const { disconnect } = useDisconnect();
@@ -19,17 +21,14 @@ export function ConnectWeb3Wallet() {
     }, [isConnected, address]);
 
     const linkWalletToBackend = async (walletAddress: string) => {
+        if (!user) return;
         setIsLinking(true);
         try {
-            const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-            if (!userInfo.token) return;
-
             const response = await fetch("/api/wallets/connect", {
                 method: "POST",
                 credentials: "include",
-        headers: {
+                headers: {
                     "Content-Type": "application/json",
-                    
                 },
                 body: JSON.stringify({ address: walletAddress, network: "ETH" }), // Default to ETH/EVM
             });

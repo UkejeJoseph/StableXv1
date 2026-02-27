@@ -8,6 +8,7 @@ import { ethers } from 'ethers';
 import { Connection, PublicKey } from '@solana/web3.js';
 import axios from 'axios';
 import { TronWeb } from 'tronweb';
+import { rateLimit } from 'express-rate-limit';
 
 // @desc    Get all users with basic wallet/balance info
 // @route   GET /api/admin/users
@@ -308,4 +309,301 @@ export const getUserStats = asyncHandler(async (req, res) => {
     ]);
 
     res.json({ success: true, stats });
+});
+
+// ── Treasury Management ──
+
+// @desc    Credit the internal treasury (liquidity top-up)
+// @route   POST /api/admin/treasury/credit
+// @access  Private/Admin
+export const creditTreasury = asyncHandler(async (req, res) => {
+    const { currency, amount, reason } = req.body;
+
+    // 1. Validation
+    if (!currency || !amount || amount <= 0) {
+        res.status(400);
+        throw new Error('Currency and a positive amount are required');
+    }
+
+    if (!reason || reason.length < 10) {
+        res.status(400);
+        throw new Error('A descriptive reason (min 10 chars) is required for audit purposes');
+    }
+
+    const VALID_CURRENCIES = ['NGN', 'USDT_TRC20', 'USDT_ERC20', 'ETH', 'BTC', 'SOL', 'TRX'];
+    if (!VALID_CURRENCIES.includes(currency)) {
+        res.status(400);
+        throw new Error('Invalid currency for treasury credit');
+    }
+
+    // 2. Find/Verify Treasury User
+    const treasuryUser = await User.findOne({ email: 'platform@stablex.internal' });
+    if (!treasuryUser) {
+        res.status(404);
+        throw new Error('Treasury user not found. Please run the platform wallet initialization script.');
+    }
+
+    // 3. Atomic Credit
+    const wallet = await Wallet.findOneAndUpdate(
+        { user: treasuryUser._id, currency, walletType: 'treasury' },
+        { $inc: { balance: Number(amount) } },
+        { new: true, upsert: true }
+    );
+
+    // 4. Create Audit Log (Transaction)
+    await Transaction.create({
+        user: treasuryUser._id,
+        type: 'admin_credit',
+        currency,
+        amount: Number(amount),
+        status: 'completed',
+        reference: `admin_credit_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        description: reason,
+        metadata: {
+            adminId: req.user._id,
+            adminEmail: req.user.email,
+            ip: req.ip
+        }
+    });
+
+    console.log(`🔐 [ADMIN] ${req.user.email} credited ${amount} ${currency} to treasury. Reason: ${reason}`);
+
+    res.json({
+        success: true,
+        message: `Treasury credited with ${amount} ${currency}`,
+        newBalance: wallet.balance,
+        currency
+    });
+});
+
+// @desc    Debit the internal treasury (revenue withdrawal)
+// @route   POST /api/admin/treasury/debit
+// @access  Private/Admin
+export const debitTreasury = asyncHandler(async (req, res) => {
+    const { currency, amount, reason } = req.body;
+
+    if (!currency || !amount || amount <= 0) {
+        res.status(400);
+        throw new Error('Currency and amount are required');
+    }
+
+    if (!reason || reason.length < 10) {
+        res.status(400);
+        throw new Error('A descriptive reason is required');
+    }
+
+    const treasuryUser = await User.findOne({ email: 'platform@stablex.internal' });
+    if (!treasuryUser) {
+        res.status(404);
+        throw new Error('Treasury user not found');
+    }
+
+    // Atomic Balance Check + Debit
+    const wallet = await Wallet.findOneAndUpdate(
+        {
+            user: treasuryUser._id,
+            currency,
+            balance: { $gte: Number(amount) }
+        },
+        { $inc: { balance: -Number(amount) } },
+        { new: true }
+    );
+
+    if (!wallet) {
+        res.status(400);
+        throw new Error(`Insufficient treasury balance in ${currency}`);
+    }
+
+    // Audit Log
+    await Transaction.create({
+        user: treasuryUser._id,
+        type: 'admin_debit',
+        currency,
+        amount: Number(amount),
+        status: 'completed',
+        reference: `admin_debit_${Date.now()}`,
+        description: reason,
+        metadata: {
+            adminId: req.user._id,
+            adminEmail: req.user.email
+        }
+    });
+
+    res.json({
+        success: true,
+        message: `${amount} ${currency} debited from treasury`,
+        newBalance: wallet.balance,
+        currency
+    });
+});
+
+// @desc    Get all treasury balances
+// @route   GET /api/admin/treasury/balances
+// @access  Private/Admin
+export const getTreasuryBalances = asyncHandler(async (req, res) => {
+    const treasuryUser = await User.findOne({ email: 'platform@stablex.internal' });
+    if (!treasuryUser) {
+        res.status(404);
+        throw new Error('Treasury user not found');
+    }
+
+    const wallets = await Wallet.find({ user: treasuryUser._id });
+
+    // Also get last 50 admin actions
+    const logs = await Transaction.find({
+        user: treasuryUser._id,
+        type: { $in: ['admin_credit', 'admin_debit'] }
+    })
+        .sort({ createdAt: -1 })
+        .limit(50);
+
+    res.json({
+        success: true,
+        balances: wallets,
+        logs: logs.map(log => ({
+            id: log._id,
+            date: log.createdAt,
+            type: log.type === 'admin_credit' ? 'Credit' : 'Debit',
+            currency: log.currency,
+            amount: log.amount,
+            reason: log.description,
+            admin: log.metadata?.get('adminEmail') || 'System'
+        }))
+    });
+});
+
+// @desc    Get real on-chain balances vs liabilities
+// @route   GET /api/admin/hot-wallets/balances
+// @access  Private/Admin
+export const getHotWalletBalances = asyncHandler(async (req, res) => {
+    const results = {};
+    const liabilities = await Wallet.aggregate([
+        { $match: { walletType: 'user' } },
+        { $group: { _id: '$currency', total: { $sum: '$balance' } } }
+    ]);
+
+    const liabilityMap = Object.fromEntries(liabilities.map(l => [l._id, l.total]));
+
+    // 1. TRON (USDT + TRX)
+    try {
+        const tronWeb = new TronWeb({
+            fullHost: 'https://api.trongrid.io',
+            headers: { "TRON-PRO-API-KEY": process.env.TRONGRID_API_KEY || "" }
+        });
+        const addr = process.env.STABLEX_HOT_WALLET_TRC20;
+
+        const trxBal = await tronWeb.trx.getBalance(addr);
+
+        // USDT TRC20 balance via contract call
+        const contract = await tronWeb.contract().at("TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"); // USDT TRC20
+        const usdtBal = await contract.balanceOf(addr).call();
+
+        results.TRON = {
+            address: addr,
+            native: trxBal / 1e6,
+            tokens: {
+                USDT: parseInt(usdtBal) / 1e6
+            },
+            liabilities: liabilityMap['USDT_TRC20'] || 0
+        };
+    } catch (err) {
+        console.warn("[HOT-WALLET-AUDIT] TRON fetch failed:", err.message);
+        results.TRON = { error: "Unable to fetch on-chain balance" };
+    }
+
+    // 2. ETH (ETH + USDT ERC20)
+    try {
+        const provider = new ethers.JsonRpcProvider(process.env.ETH_RPC_URL || "https://ethereum-rpc.publicnode.com");
+        const addr = process.env.STABLEX_HOT_WALLET_ETH;
+        const ethBal = await provider.getBalance(addr);
+
+        const usdtAbi = ["function balanceOf(address) view returns (uint256)"];
+        const contract = new ethers.Contract("0xdAC17F958D2ee523a2206206994597C13D831ec7", usdtAbi, provider);
+        const usdtBal = await contract.balanceOf(addr);
+
+        results.ETH = {
+            address: addr,
+            native: parseFloat(ethers.formatEther(ethBal)),
+            tokens: {
+                USDT: Number(usdtBal) / 1e6
+            },
+            liabilities: liabilityMap['USDT_ERC20'] || 0
+        };
+    } catch (err) {
+        console.warn("[HOT-WALLET-AUDIT] ETH fetch failed:", err.message);
+        results.ETH = { error: "Unable to fetch on-chain balance" };
+    }
+
+    // 3. BTC
+    try {
+        const addr = process.env.STABLEX_HOT_WALLET_BTC;
+        const btcRes = await axios.get(`https://blockstream.info/api/address/${addr}`);
+        const satoshis = btcRes.data.chain_stats.funded_txo_sum - btcRes.data.chain_stats.spent_txo_sum;
+
+        results.BTC = {
+            address: addr,
+            native: satoshis / 1e8,
+            liabilities: liabilityMap['BTC'] || 0
+        };
+    } catch (err) {
+        console.warn("[HOT-WALLET-AUDIT] BTC fetch failed:", err.message);
+        results.BTC = { error: "Unable to fetch on-chain balance" };
+    }
+
+    // 4. SOL
+    try {
+        const solConn = new Connection(process.env.SOL_RPC_URL || "https://api.mainnet-beta.solana.com");
+        const addr = process.env.STABLEX_HOT_WALLET_SOL;
+        const bal = await solConn.getBalance(new PublicKey(addr));
+
+        results.SOL = {
+            address: addr,
+            native: bal / 1e9,
+            liabilities: liabilityMap['SOL'] || 0
+        };
+    } catch (err) {
+        console.warn("[HOT-WALLET-AUDIT] SOL fetch failed:", err.message);
+        results.SOL = { error: "Unable to fetch on-chain balance" };
+    }
+
+    // Calculate Solvency Status
+    Object.keys(results).forEach(net => {
+        const r = results[net];
+        if (r.error) {
+            r.status = 'UNKNOWN';
+            return;
+        }
+
+        // Check if primary asset covers liability
+        let asset = r.native;
+        let liability = r.liabilities;
+
+        // If it's TRON/ETH, USDT is usually the liability we care about more
+        if (net === 'TRON' || net === 'ETH') {
+            asset = r.tokens.USDT;
+        }
+
+        r.solvency = asset >= liability ? 'SOLVENT' : 'UNDERFUNDED';
+        r.coverage = liability > 0 ? (asset / liability) * 100 : 100;
+
+        if (r.solvency === 'UNDERFUNDED') {
+            console.error(`[SOLVENCY] ⚠️ CRITICAL: ${net} underfunded. On-chain: ${asset} Owed to users: ${liability}`);
+        }
+    });
+
+    res.json({
+        success: true,
+        data: results,
+        liabilities: liabilityMap
+    });
+});
+
+// ── Rate Limiting for Treasury Endpoints ──
+export const treasuryLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 10, // 10 requests per window
+    message: { message: 'Too many treasury administrative actions. Please wait an hour.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => req.user?._id || req.ip // Rate limit per admin user
 });

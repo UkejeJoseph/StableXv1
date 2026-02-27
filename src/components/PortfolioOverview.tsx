@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Eye, EyeOff, RefreshCw, ArrowDownToLine, ArrowUpFromLine, Plus } from "lucide-react";
+import { Eye, EyeOff, ArrowDownToLine, ArrowUpFromLine, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { getMarketPrices } from "@/lib/marketData";
 
 export function PortfolioOverview() {
@@ -10,17 +10,24 @@ export function PortfolioOverview() {
     const [summaryData, setSummaryData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [totalUsdBalance, setTotalUsdBalance] = useState(0);
+    const location = useLocation();
+    const isWeb = location.pathname.startsWith('/web');
+
+    const getDynamicPath = (path: string) => {
+        if (isWeb && !path.startsWith('/web')) {
+            return `/web${path}`;
+        } else if (!isWeb && path.startsWith('/web')) {
+            return path.replace('/web', '');
+        }
+        return path;
+    };
 
     const fetchSummary = async () => {
         try {
-            const userInfoStr = localStorage.getItem("userInfo");
-            const token = userInfoStr ? JSON.parse(userInfoStr).token : null;
-            if (!token) return;
-
             const res = await fetch("/api/dashboard/summary", {
                 credentials: "include",
-        
             });
+            if (!res.ok) throw new Error("Could not fetch portfolio summary");
             const data = await res.json();
             setSummaryData(data);
 
@@ -29,7 +36,7 @@ export function PortfolioOverview() {
             data.wallets?.forEach((w: any) => {
                 if (w.currency === "NGN") {
                     total += w.balance * 0.00062;
-                } else if (w.currency === "USDT") {
+                } else if (w.currency === "USDT" || w.currency === "USDT_ERC20") {
                     total += w.balance;
                 } else {
                     const priceData = prices.find(p => p.symbol === w.currency);
@@ -39,8 +46,8 @@ export function PortfolioOverview() {
                 }
             });
             setTotalUsdBalance(total);
-        } catch (e) {
-            console.error(e);
+        } catch (e: any) {
+            console.warn("Portfolio Summary Error:", e.message);
         } finally {
             setIsLoading(false);
         }
@@ -64,9 +71,15 @@ export function PortfolioOverview() {
                     </div>
 
                     <div className="flex items-end gap-3">
-                        <h1 className="text-4xl font-bold text-foreground">
-                            {isLoading ? "..." : isHidden ? "********" : formatUsd(totalUsdBalance)}
-                        </h1>
+                        {isLoading ? (
+                            <div className="h-10 w-32 bg-muted animate-pulse rounded flex items-center justify-center">
+                                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/30" />
+                            </div>
+                        ) : (
+                            <h1 className="text-4xl font-bold text-foreground">
+                                {isHidden ? "********" : formatUsd(totalUsdBalance)}
+                            </h1>
+                        )}
                         <span className="text-sm text-muted-foreground pb-1">USD</span>
                     </div>
 
@@ -82,19 +95,19 @@ export function PortfolioOverview() {
 
                 <div className="flex bg-muted/30 p-2 rounded-xl gap-2 w-full md:w-auto overflow-x-auto">
                     <Button asChild size="lg" className="bg-[#F0B90B] hover:bg-[#F0B90B]/90 text-black font-semibold rounded-lg flex-1 min-w-[120px]">
-                        <Link to="/web/deposit">
+                        <Link to={getDynamicPath("/deposit")}>
                             <ArrowDownToLine className="w-4 h-4 mr-2" />
                             Deposit
                         </Link>
                     </Button>
                     <Button asChild size="lg" variant="secondary" className="font-semibold rounded-lg flex-1 min-w-[120px]">
-                        <Link to="/web/withdraw">
+                        <Link to={getDynamicPath("/withdraw")}>
                             <ArrowUpFromLine className="w-4 h-4 mr-2" />
                             Withdraw
                         </Link>
                     </Button>
                     <Button asChild size="lg" variant="outline" className="font-semibold rounded-lg flex-1 min-w-[120px]">
-                        <Link to="/web/convert">
+                        <Link to={getDynamicPath("/convert")}>
                             <Plus className="w-4 h-4 mr-2" />
                             Trade
                         </Link>

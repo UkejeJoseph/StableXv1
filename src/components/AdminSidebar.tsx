@@ -19,6 +19,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
     const navigation = [
         { name: "Overview", href: "/web/admin", icon: LayoutDashboard },
+        { name: "Wallet Management", href: "/web/admin/wallets", icon: Wallet },
         { name: "Users & KYC", href: "/web/admin/users", icon: Users },
         { name: "Global Ledger", href: "/web/admin/transactions", icon: Activity },
         { name: "System Settings", href: "/web/admin/settings", icon: Settings },

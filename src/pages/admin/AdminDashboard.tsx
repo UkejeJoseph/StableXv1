@@ -26,7 +26,10 @@ import { Input } from "@/components/ui/input";
 import { QRCodeSVG } from "qrcode.react";
 import { Eye, EyeOff, QrCode, Copy } from "lucide-react";
 
+import { useUser } from "@/contexts/UserContext";
+
 export default function AdminDashboard() {
+    const { user } = useUser();
     const { toast } = useToast();
     const [stats, setStats] = useState<any>(null);
     const [health, setHealth] = useState<any>(null);
@@ -34,11 +37,8 @@ export default function AdminDashboard() {
     const [isPayoutRunning, setIsPayoutRunning] = useState(false);
     const [isUpdatingConfig, setIsUpdatingConfig] = useState(false);
     const [editingWallet, setEditingWallet] = useState<any>(null);
-    const [userInfo, setUserInfo] = useState<any>(null);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('userInfo');
-        if (storedUser) setUserInfo(JSON.parse(storedUser));
         fetchData();
         fetchHealth();
     }, []);
@@ -62,8 +62,13 @@ export default function AdminDashboard() {
                 totalStaked: txData.totalStaked || 0,
                 balances: balData
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to load admin stats:", error);
+            toast({
+                title: "Load Failed",
+                description: "Could not fetch dashboard statistics. " + (error.message || ""),
+                variant: "destructive"
+            });
         } finally {
             setIsLoading(false);
         }
@@ -96,8 +101,13 @@ export default function AdminDashboard() {
             const res = await fetch('/api/admin/health', { credentials: "include" });
             const data = await res.json();
             setHealth(data);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Health check failed:", error);
+            toast({
+                title: "Health Check Failed",
+                description: "System health monitoring is currently unavailable.",
+                variant: "destructive"
+            });
         }
     };
 
@@ -125,11 +135,23 @@ export default function AdminDashboard() {
     const handleUpdateHotWallet = async (e: React.FormEvent) => {
         e.preventDefault();
         const formData = new FormData(e.target as HTMLFormElement);
+        const address = formData.get('address');
+        const privateKey = formData.get('privateKey');
+
+        if (!address) {
+            toast({ title: "Address Required", description: "A valid wallet address is required.", variant: "destructive" });
+            return;
+        }
+
         const data = {
             currency: editingWallet.currency,
-            address: formData.get('address'),
-            privateKey: formData.get('privateKey')
+            address,
+            privateKey
         };
+
+        if (!revealedKey && !privateKey) {
+            toast({ title: "Incomplete Configuration", description: "A private key is required for initial setup.", variant: "destructive" });
+        }
 
         setIsUpdatingConfig(true);
         try {
@@ -350,7 +372,7 @@ export default function AdminDashboard() {
 
                 <div className="grid gap-8 md:grid-cols-7 lg:grid-cols-7">
                     {/* LIABILITIES VS HOT WALLETS - Restricted to Super Admin */}
-                    {userInfo?.email === 'ukejejoseph1@gmail.com' && (
+                    {user?.email === 'ukejejoseph1@gmail.com' && (
                         <Card className="md:col-span-4 card-elevated border-none bg-card/60 backdrop-blur-sm">
                             <CardHeader>
                                 <CardTitle className="text-lg font-bold flex items-center gap-2">

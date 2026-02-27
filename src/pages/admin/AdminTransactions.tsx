@@ -3,7 +3,7 @@ import { AdminLayout } from "@/components/AdminSidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Copy, ArrowUpRight, ArrowDownLeft, RefreshCcw } from "lucide-react";
+import { Copy, ArrowUpRight, ArrowDownLeft, RefreshCcw, Activity } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 export default function AdminTransactions() {
@@ -17,10 +17,8 @@ export default function AdminTransactions() {
 
     const fetchTransactions = async () => {
         try {
-            const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
             const res = await fetch('/api/admin/transactions?limit=100', {
                 credentials: "include",
-        
             });
             const data = await res.json();
             setTransactions(data.transactions);

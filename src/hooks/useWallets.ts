@@ -5,18 +5,16 @@ export function useWallets() {
     return useQuery({
         queryKey: ['wallets'],
         queryFn: async () => {
-            const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-            if (!userInfo.token) return [];
-
             const res = await fetch("/api/wallets", {
                 credentials: "include",
-        headers: {
-                    
+                headers: {
                     "Content-Type": "application/json"
                 }
             });
 
             if (!res.ok) {
+                // Return empty array on 401/unauthorized
+                if (res.status === 401) return [];
                 throw new Error("Failed to fetch wallets");
             }
 

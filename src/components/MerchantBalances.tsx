@@ -2,24 +2,34 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowUpFromLine, Replace, History } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+
+import { useUser } from "@/contexts/UserContext";
 
 export function MerchantBalances() {
+    const { user } = useUser();
     const [summaryData, setSummaryData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<string>("NGN");
+    const location = useLocation();
+    const isWeb = location.pathname.startsWith('/web');
+
+    const getDynamicPath = (path: string) => {
+        if (isWeb && !path.startsWith('/web')) {
+            return `/web${path}`;
+        } else if (!isWeb && path.startsWith('/web')) {
+            return path.replace('/web', '');
+        }
+        return path;
+    };
 
     const tabs = ["NGN", "USDT", "BTC", "ETH", "SOL"];
 
     const fetchSummary = async () => {
+        if (!user) return;
         try {
-            const userInfoStr = localStorage.getItem("userInfo");
-            const token = userInfoStr ? JSON.parse(userInfoStr).token : null;
-            if (!token) return;
-
             const res = await fetch("/api/dashboard/summary", {
                 credentials: "include",
-        
             });
             const data = await res.json();
             setSummaryData(data);
@@ -32,12 +42,13 @@ export function MerchantBalances() {
 
     useEffect(() => {
         fetchSummary();
-    }, []);
+    }, [user]);
 
     const activeWallet = summaryData?.wallets?.find((w: any) => w.currency === activeTab) || { balance: 0, pending: 0 };
 
     // Format amounts cleanly based on currency
     const formatAmount = (val: number, curr: string) => {
+        if (val === undefined || val === null) return "0.00";
         if (curr === 'BTC' || curr === 'ETH') return val.toFixed(6);
         if (curr === 'SOL') return val.toFixed(4);
         return val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -82,18 +93,18 @@ export function MerchantBalances() {
                     {/* Action Buttons */}
                     <div className="flex flex-col gap-3 w-full md:w-auto">
                         <Button asChild className="w-full bg-[#1bc553] hover:bg-[#1bc553]/90 text-white font-bold h-11">
-                            <Link to="/web/deposit">
+                            <Link to={getDynamicPath("/deposit")}>
                                 Add Funds <Plus className="w-4 h-4 ml-2" />
                             </Link>
                         </Button>
                         <div className="flex gap-3">
                             <Button asChild variant="default" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold h-10">
-                                <Link to="/web/withdraw">
+                                <Link to={getDynamicPath("/withdraw")}>
                                     Withdraw <ArrowUpFromLine className="w-4 h-4 ml-2" />
                                 </Link>
                             </Button>
                             <Button asChild variant="secondary" className="flex-1 font-bold h-10 bg-muted/50 hover:bg-muted text-foreground border border-border/50">
-                                <Link to="/web/convert">
+                                <Link to={getDynamicPath("/convert")}>
                                     <Replace className="w-4 h-4 mr-2" /> Convert Funds
                                 </Link>
                             </Button>

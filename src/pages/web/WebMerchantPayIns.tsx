@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Copy, ArrowDownLeft, Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useUser } from "@/contexts/UserContext";
 
 interface Transaction {
     _id: string;
@@ -17,22 +18,19 @@ interface Transaction {
 }
 
 const WebMerchantPayIns = () => {
+    const { user } = useUser();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-    const token = userInfo?.token;
-
     useEffect(() => {
         fetchTransactions();
-    }, []);
+    }, [user]);
 
     const fetchTransactions = async () => {
-        if (!token) return;
+        if (!user) return;
         try {
             const res = await fetch("/api/transactions/history", {
                 credentials: "include",
-        
             });
             const data = await res.json();
             if (data.success) {

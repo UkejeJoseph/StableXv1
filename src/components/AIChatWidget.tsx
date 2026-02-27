@@ -3,6 +3,7 @@ import { MessageCircle, X, Send, Loader2, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { useUser } from "@/contexts/UserContext";
 
 interface Message {
     role: "user" | "model";
@@ -10,6 +11,7 @@ interface Message {
 }
 
 export function AIChatWidget() {
+    const { user } = useUser();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
@@ -19,20 +21,15 @@ export function AIChatWidget() {
     // Initialize chat
     useEffect(() => {
         if (isOpen && messages.length === 0) {
-            const userInfoStr = localStorage.getItem("userInfo");
             let name = "StableX User";
-            if (userInfoStr) {
-                try {
-                    const u = JSON.parse(userInfoStr);
-                    // Fallback to name if it exists, otherwise email prefix
-                    name = u.name || (u.email ? u.email.split("@")[0] : name);
-                } catch (e) { }
+            if (user) {
+                name = user.firstName || (user.email ? user.email.split("@")[0] : name);
             }
             setMessages([
                 { role: "model", content: `Hey ${name}, I am your StableX AI assistant! Ask me anything.` }
             ]);
         }
-    }, [isOpen, messages.length]);
+    }, [isOpen, messages.length, user]);
 
     useEffect(() => {
         if (messagesEndRef.current) {
@@ -49,47 +46,36 @@ export function AIChatWidget() {
         setMessages(newMessages);
         setIsLoading(true);
 
-        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-        if (!apiKey || apiKey === "your_gemini_api_key_here") {
-            setMessages((prev) => [
-                ...prev,
-                { role: "model", content: "Error: VITE_GEMINI_API_KEY is not configured in the .env file. Please paste a free API key from Google AI Studio into your .env to enable the chat widget." }
-            ]);
-            setIsLoading(false);
-            return;
-        }
+        // Send to secure backend endpoint
 
         try {
-            // Build history for Gemini
-            const history = newMessages.map(msg => ({
+            // Build history for Backend endpoint (expects simplified user/model array)
+            const chatHistory = messages.map(msg => ({
                 role: msg.role === "model" ? "model" : "user",
                 parts: [{ text: msg.content }]
             }));
 
-            const systemInstruction = "You are a helpful AI support assistant for StableX, a modern fintech app that allows users to deposit NGN (fiat) via Interswitch, swap with crypto (USDT, BTC, ETH), use virtual accounts, and withdraw via direct bank transfer. Be highly concise, friendly, and helpful. Format responses in plain text.";
-
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
+            const response = await fetch('/api/ai/chat', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    systemInstruction: { parts: [{ text: systemInstruction }] },
-                    contents: history,
+                    message: userMessage,
+                    history: chatHistory
                 })
             });
 
             const data = await response.json();
 
-            if (response.ok && data.candidates && data.candidates.length > 0) {
-                const aiText = data.candidates[0].content.parts[0].text;
-                setMessages((prev) => [...prev, { role: "model", content: aiText }]);
+            if (response.ok) {
+                setMessages((prev) => [...prev, { role: "model", content: data.reply }]);
             } else {
-                const errorMsg = data?.error?.message || "Unknown error";
-                console.error("Gemini API Error:", data);
-                setMessages((prev) => [...prev, { role: "model", content: `Sorry, AI is temporarily unavailable. (${response.status}: ${errorMsg})` }]);
+                console.error("AI service error:", data.message);
+                setMessages((prev) => [...prev, { role: "model", content: data.message || "AI service unavailable" }]);
             }
         } catch (error) {
             console.error("Chat error:", error);
-            setMessages((prev) => [...prev, { role: "model", content: "Network error. Please try again." }]);
+            setMessages((prev) => [...prev, { role: "model", content: "Could not connect. Try again." }]);
         } finally {
             setIsLoading(false);
         }

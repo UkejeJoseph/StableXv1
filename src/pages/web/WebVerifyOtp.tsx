@@ -6,8 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, ArrowLeft, Mail } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
+
+import { useUser } from "@/contexts/UserContext";
 
 export default function VerifyOtp() {
+    const { setUser } = useUser();
     const [otp, setOtp] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [isResending, setIsResending] = useState(false);
@@ -43,6 +47,7 @@ export default function VerifyOtp() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
+                credentials: "include"
             });
 
             const data = await res.json();
@@ -85,12 +90,13 @@ export default function VerifyOtp() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, otp }),
+                credentials: "include"
             });
 
             const data = await res.json();
 
             if (res.ok) {
-                localStorage.setItem("webUserInfo", JSON.stringify(data));
+                setUser(data);
                 toast({
                     title: "Verification Successful",
                     description: "Welcome to StableX!",
@@ -111,7 +117,8 @@ export default function VerifyOtp() {
     };
 
     return (
-        <div className="min-h-screen w-full flex bg-background font-sans">
+        <div className="min-h-screen w-full flex bg-background font-sans relative">
+            <BackButton className="absolute top-4 left-4 z-50 text-white hover:text-white/80" />
             {/* Left Side - Branding/Marketing */}
             <div className="hidden lg:flex lg:flex-1 bg-[#0b0e11] flex-col justify-between p-12 relative overflow-hidden">
                 <div className="relative z-10">
@@ -190,21 +197,9 @@ export default function VerifyOtp() {
                                         : "Resend Code"}
                             </button>
                         </p>
-
-                        <div
-                            onClick={() => {
-                                localStorage.removeItem("webUserInfo");
-                                navigate("/web/login");
-                            }}
-                            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                        >
-                            <ArrowLeft className="w-4 h-4 mr-2" />
-                            Back to Login
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
     );
 }
-

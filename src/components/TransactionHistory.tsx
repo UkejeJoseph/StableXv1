@@ -106,21 +106,17 @@ export function TransactionHistory() {
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-      const token = userInfo?.token;
-      if (!token) return;
-
       const typeParam = activeTab !== 'all' ? `?type=${activeTab}` : '';
       const response = await fetch(`/api/transactions/history${typeParam}`, {
         credentials: "include",
-        
       });
+      if (!response.ok) throw new Error("Failed to fetch history");
       const data = await response.json();
       if (data.success) {
         setTransactions(data.transactions || []);
       }
-    } catch (error) {
-      console.error('Failed to fetch transactions:', error);
+    } catch (error: any) {
+      console.warn('Transaction History error:', error.message);
     } finally {
       setLoading(false);
     }
@@ -182,7 +178,6 @@ export function TransactionHistory() {
       {/* Transaction Receipt Dialog */}
       <Dialog open={!!selectedTx} onOpenChange={(open) => !open && setSelectedTx(null)}>
         <DialogContent className="sm:max-w-md bg-card border-border/50 text-foreground overflow-hidden">
-          {/* Apple Pay style top shine */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-50"></div>
 
           <DialogHeader>
@@ -220,12 +215,6 @@ export function TransactionHistory() {
                   <span className="text-sm text-muted-foreground">Reference</span>
                   <span className="text-sm font-mono truncate max-w-[200px]">{selectedTx.reference}</span>
                 </div>
-                {selectedTx.description && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Description</span>
-                    <span className="text-sm font-medium text-right max-w-[200px] truncate">{selectedTx.description}</span>
-                  </div>
-                )}
               </div>
 
               <div className="pt-2 flex justify-center">

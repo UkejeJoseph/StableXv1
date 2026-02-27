@@ -76,7 +76,7 @@ const QRPay = () => {
         </Card>
 
         <Card className="p-6 flex flex-col items-center justify-center">
-          {amount && account ? (
+          {Number(amount) >= 1 && account ? (
             <div className="space-y-4">
               <div className="p-4 bg-white rounded-lg">
                 <QRCodeSVG

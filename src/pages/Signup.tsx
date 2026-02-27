@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, User, Store, ArrowLeft } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 
 export default function Signup() {
     const [role, setRole] = useState("user");
@@ -30,6 +31,29 @@ export default function Signup() {
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (role === "merchant" && !formData.businessName.trim()) {
+            toast({ variant: "destructive", title: "Missing Information", description: "Business name is required for merchants." });
+            return;
+        }
+
+        if (role === "user") {
+            if (!formData.firstName.trim() || !formData.lastName.trim()) {
+                toast({ variant: "destructive", title: "Missing Information", description: "First and last names are required." });
+                return;
+            }
+        }
+
+        if (!formData.email.includes("@")) {
+            toast({ variant: "destructive", title: "Invalid Email", description: "Please enter a valid email address." });
+            return;
+        }
+
+        if (formData.password.length < 6) {
+            toast({ variant: "destructive", title: "Weak Password", description: "Password must be at least 6 characters long." });
+            return;
+        }
+
         if (formData.password !== formData.confirmPassword) {
             toast({
                 variant: "destructive",
@@ -80,20 +104,11 @@ export default function Signup() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <div className="min-h-screen flex items-center justify-center p-4 bg-background relative">
+            <BackButton className="absolute top-4 left-4" />
             <Card className="w-full max-w-md border-none shadow-none sm:border sm:shadow-sm">
                 <CardContent className="p-6">
                     <div className="mb-6">
-                        <div
-                            onClick={() => {
-                                localStorage.removeItem("userInfo");
-                                navigate("/login");
-                            }}
-                            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-4 cursor-pointer"
-                        >
-                            <ArrowLeft className="w-4 h-4 mr-2" />
-                            Back to Login
-                        </div>
                         <h1 className="text-2xl font-bold mb-2">Create Account</h1>
                         <p className="text-muted-foreground">Join StableX today</p>
                     </div>

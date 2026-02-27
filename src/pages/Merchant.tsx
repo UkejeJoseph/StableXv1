@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { LayoutDashboard, TrendingUp, ArrowUpRight, ArrowDownRight, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useBalances } from "@/hooks/useBalances";
+import { useUser } from "@/contexts/UserContext";
 
 interface TransactionRecord {
   _id: string;
@@ -15,6 +16,7 @@ interface TransactionRecord {
 }
 
 const Merchant = () => {
+  const { user } = useUser();
   const { data: balancesData } = useBalances();
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [rate, setRate] = useState<number>(1600);
@@ -22,23 +24,18 @@ const Merchant = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [user]);
 
   const fetchData = async () => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-      const token = userInfo.token;
-
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-
       // Fetch transactions and rates in parallel
       const [txRes, rateRes] = await Promise.all([
         fetch("/api/transactions/history", {
           credentials: "include",
-        
         }),
         fetch("/api/transactions/rates"),
       ]);

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useUser } from "@/contexts/UserContext";
 
 interface BankAccount {
     _id: string;
@@ -21,9 +22,8 @@ interface Bank {
 }
 
 const WebMerchantPayouts = () => {
+    const { user } = useUser();
     const { toast } = useToast();
-    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-    const token = userInfo?.token;
 
     const [balanceNGN, setBalanceNGN] = useState(0);
     const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
@@ -45,10 +45,10 @@ const WebMerchantPayouts = () => {
     useEffect(() => {
         fetchData();
         fetchBanks();
-    }, []);
+    }, [user]);
 
     const fetchData = async () => {
-        if (!token) return;
+        if (!user) return;
         try {
             // Fetch NGN Balance
             const walletRes = await fetch("/api/wallets", { credentials: "include" });
@@ -164,8 +164,12 @@ const WebMerchantPayouts = () => {
         }
 
         const amount = parseFloat(payoutAmount);
-        if (isNaN(amount) || amount <= 0 || amount > balanceNGN) {
-            toast({ title: "Invalid Amount", description: "Please enter a valid amount within your current balance.", variant: "destructive" });
+        if (isNaN(amount) || amount < 1000) {
+            toast({ title: "Amount Too Small", description: "Minimum payout is \u20A61,000", variant: "destructive" });
+            return;
+        }
+        if (amount > balanceNGN) {
+            toast({ title: "Insufficient Balance", description: "You don't have enough NGN balance for this payout.", variant: "destructive" });
             return;
         }
 
@@ -409,6 +413,6 @@ const WebMerchantPayouts = () => {
             </div>
         </WebLayout>
     );
-}
+};
 
 export default WebMerchantPayouts;

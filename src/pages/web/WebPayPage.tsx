@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Send, CheckCircle2, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { WebLayout } from "@/components/WebSidebar";
+import { useUser } from "@/contexts/UserContext";
 
 export default function WebPayPage() {
+    const { user } = useUser();
     const { username } = useParams();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -19,23 +21,10 @@ export default function WebPayPage() {
     const [currency, setCurrency] = useState(urlCurrency);
     const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [myUsername, setMyUsername] = useState("");
+
+    const isLoggedIn = !!user;
 
     const suggestedAmounts = ["10", "50", "100", "500"];
-
-    useEffect(() => {
-        const userInfo = localStorage.getItem("userInfo");
-        if (userInfo) {
-            setIsLoggedIn(true);
-            try {
-                // We'd ideally need our own username to avoid paying ourselves, 
-                // but the backend handles that validation.
-                const parsed = JSON.parse(userInfo);
-                if (parsed.username) setMyUsername(parsed.username);
-            } catch (e) { }
-        }
-    }, []);
 
     const handlePay = async () => {
         if (!isLoggedIn) {
@@ -44,17 +33,26 @@ export default function WebPayPage() {
             return;
         }
 
-        if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return;
+        if (!amount || isNaN(Number(amount))) return;
+
+        const numAmount = Number(amount);
+        if (numAmount < 1) {
+            toast({
+                title: "Amount Too Small",
+                description: "Minimum internal transfer is 1 USDT",
+                variant: "destructive"
+            });
+            return;
+        }
 
         setIsLoading(true);
         try {
-            const token = JSON.parse(localStorage.getItem("userInfo") || "{}").token;
             const res = await fetch(`/api/transactions/transfer/internal`, {
                 method: "POST",
                 credentials: "include",
-        headers: {
+                headers: {
                     "Content-Type": "application/json",
-                    },
+                },
                 body: JSON.stringify({
                     recipient_username: username,
                     amount,

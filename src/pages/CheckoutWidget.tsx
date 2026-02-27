@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, ShieldCheck, ArrowRight, Store, CheckCircle2, Copy, AlertCircle, Zap } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useUser } from "@/contexts/UserContext";
 
 interface CheckoutDetails {
     amount: number;
@@ -20,9 +21,12 @@ interface CheckoutDetails {
     };
     merchantAddresses: Record<string, string>;
     expiresAt: string;
+    platformFee?: number;
+    feePercentage?: number;
 }
 
 const CheckoutWidget = () => {
+    const { user } = useUser();
     const { sessionId } = useParams<{ sessionId: string }>();
     const navigate = useNavigate();
     const { toast } = useToast();
@@ -36,8 +40,7 @@ const CheckoutWidget = () => {
     const [selectedCrypto, setSelectedCrypto] = useState<string>("USDT");
 
     // Check if the user trying to pay is logged into StableX
-    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-    const isAuthenticated = !!userInfo.token;
+    const isAuthenticated = !!user;
 
     useEffect(() => {
         if (sessionId) fetchCheckoutDetails();
@@ -127,7 +130,8 @@ const CheckoutWidget = () => {
     const handleStableXPayment = async () => {
         if (!isAuthenticated) {
             sessionStorage.setItem("checkoutRedirect", `/checkout/${sessionId}`);
-            navigate("/web/login");
+            const isWeb = window.location.pathname.startsWith('/web');
+            navigate(isWeb ? "/web/login" : "/login");
             return;
         }
 
@@ -227,15 +231,17 @@ const CheckoutWidget = () => {
 
                         {/* Status Warnings */}
                         <div className="space-y-4">
-                            <div className="p-5 bg-green-500/10 border border-green-500/20 rounded-2xl flex items-center gap-4 text-green-500 animate-in zoom-in-95 duration-500">
-                                <div className="h-10 w-10 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
-                                    <CheckCircle2 className="w-6 h-6" />
+                            {isCompleted && (
+                                <div className="p-5 bg-green-500/10 border border-green-500/20 rounded-2xl flex items-center gap-4 text-green-500 animate-in zoom-in-95 duration-500">
+                                    <div className="h-10 w-10 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+                                        <CheckCircle2 className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-sm text-green-400">Payment Verified Successfully</p>
+                                        <p className="text-[10px] font-medium opacity-80 mt-0.5">Redirecting you back to merchant shortly...</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="font-bold text-sm text-green-400">Payment Verified Successfully</p>
-                                    <p className="text-[10px] font-medium opacity-80 mt-0.5">Redirecting you back to merchant shortly...</p>
-                                </div>
-                            </div>
+                            )}
 
                             {details.status === 'completed' && (
                                 <div className="bg-muted/30 rounded-2xl p-4 border border-border/40 space-y-3">
@@ -245,12 +251,14 @@ const CheckoutWidget = () => {
                                         <span className="font-bold">{details.amount.toLocaleString()} {details.currency}</span>
                                     </div>
                                     <div className="flex justify-between text-xs">
-                                        <span className="text-muted-foreground">Platform Fee (1.5%)</span>
-                                        <span className="font-bold">{(details.amount * 0.015).toLocaleString()} {details.currency}</span>
+                                        <span className="text-muted-foreground">
+                                            Platform Fee ({((details.platformFee || 0) / (details.amount || 1) * 100).toFixed(1)}%)
+                                        </span>
+                                        <span className="font-bold">{(details.platformFee || 0).toLocaleString()} {details.currency}</span>
                                     </div>
                                     <div className="flex justify-between text-sm pt-2 border-t border-border/50">
                                         <span className="font-bold text-foreground">Merchant Receives</span>
-                                        <span className="font-bold text-primary">{(details.amount * 0.985).toLocaleString()} {details.currency}</span>
+                                        <span className="font-bold text-primary">{(details.amount - (details.platformFee || 0)).toLocaleString()} {details.currency}</span>
                                     </div>
                                 </div>
                             )}

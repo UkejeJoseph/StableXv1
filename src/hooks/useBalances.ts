@@ -13,17 +13,15 @@ export const useBalances = () => {
     return useQuery({
         queryKey: ['userBalances'],
         queryFn: async (): Promise<AppBalances> => {
-            const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-            if (!userInfo.token) {
-                return { NGN: 0, USDT: 0, BTC: 0, ETH: 0, TRX: 0 };
-            }
-
             const res = await fetch("/api/users/profile", {
                 credentials: "include",
-        
             });
 
             if (!res.ok) {
+                // If unauthorized, return empty balances instead of throwing
+                if (res.status === 401) {
+                    return { NGN: 0, USDT: 0, BTC: 0, ETH: 0, TRX: 0 };
+                }
                 throw new Error("Failed to fetch balances");
             }
 

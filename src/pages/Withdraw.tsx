@@ -36,7 +36,7 @@ type WalletType = "NGN" | "USDT_ERC20" | "USDT" | "BTC" | "ETH" | "SOL" | "TRX" 
 export default function Withdraw() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data: balancesData } = useBalances();
+  const { data: balancesData, isLoading: isLoadingBalances } = useBalances();
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState("method_selection");
@@ -66,6 +66,7 @@ export default function Withdraw() {
       setIsLoadingBanks(true);
       try {
         const res = await fetch("/api/interswitch/banks", { credentials: "include" });
+        if (!res.ok) throw new Error("Could not load banks");
         const data = await res.json();
         if (data.success && Array.isArray(data.banks)) {
           const formattedBanks = data.banks.map((b: any) => ({
@@ -74,8 +75,8 @@ export default function Withdraw() {
           }));
           setBanks(formattedBanks);
         }
-      } catch (error) {
-        console.error("Failed to fetch banks", error);
+      } catch (error: any) {
+        console.warn("Failed to fetch banks:", error.message);
         setBanks([
           { Code: "044", Name: "Access Bank" },
           { Code: "058", Name: "GTBank" },
@@ -104,15 +105,19 @@ export default function Withdraw() {
           const res = await fetch(`/api/interswitch/name-enquiry?bankCode=${selectedBank}&accountId=${accountNumber}`, {
             credentials: "include"
           });
+          if (!res.ok) throw new Error("Name enquiry failed");
           const data = await res.json();
 
           if (data.success && data.accountName) {
             setAccountName(data.accountName);
           } else {
-            if (data.error) console.log(data.error);
+            setErrorMessage("Could not verify account. Check account number and try again.");
+            setAccountName("");
           }
-        } catch (error) {
-          console.error("Name enquiry failed", error);
+        } catch (error: any) {
+          console.warn("Name enquiry failed:", error.message);
+          setErrorMessage("Could not verify account. Check account number and try again.");
+          setAccountName("");
         } finally {
           setIsVerifyingName(false);
         }
@@ -130,13 +135,14 @@ export default function Withdraw() {
         setIsLoadingKorapayBanks(true);
         try {
           const res = await fetch("/api/korapay/banks", { credentials: "include" });
+          if (!res.ok) throw new Error("Failed to fetch Korapay banks");
           const data = await res.json();
           if (Array.isArray(data)) {
             const formatted = data.map((b: any) => ({ Code: b.bank_code, Name: b.name }));
             setKorapayBanks(formatted);
           }
-        } catch (error) {
-          console.error("Failed to fetch Korapay banks", error);
+        } catch (error: any) {
+          console.warn("Korapay Banks Error:", error.message);
         } finally {
           setIsLoadingKorapayBanks(false);
         }
@@ -146,11 +152,30 @@ export default function Withdraw() {
   }, [activeTab]);
 
   const handleWithdraw = async () => {
-    if (!amount) return;
+    if (!amount || isNaN(Number(amount))) {
+      setErrorMessage("Please enter a valid amount");
+      return;
+    }
+
+    const numAmount = Number(amount);
+    if (numAmount < 500) {
+      setErrorMessage("Minimum withdrawal is 500 NGN");
+      return;
+    }
 
     if (selectedWallet === "NGN") {
-      if (!accountNumber || !selectedBank || !accountName) {
-        setErrorMessage("Please fill all bank details.");
+      if (!accountNumber || accountNumber.length !== 10) {
+        setErrorMessage("Please enter a valid 10-digit account number");
+        return;
+      }
+
+      if (!selectedBank) {
+        setErrorMessage("Please select a bank");
+        return;
+      }
+
+      if (!accountName) {
+        setErrorMessage("Account name could not be verified. Please check details.");
         return;
       }
     } else {
@@ -164,14 +189,6 @@ export default function Withdraw() {
     setErrorMessage("");
 
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-      const token = userInfo.token;
-
-      if (!token) {
-        setErrorMessage("You must be logged in.");
-        return;
-      }
-
       if (selectedWallet === "NGN") {
         const payload = {
           amount,
@@ -190,29 +207,23 @@ export default function Withdraw() {
           body: JSON.stringify(payload)
         });
 
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || errorData.message || "Withdrawal failed");
+        }
         const data = await res.json();
 
-        if (data.success) {
-          await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
-          setSuccessRef(data.transactionRef);
-          setShowSuccess(true);
-          setAmount("");
-          setAccountNumber("");
-          setAccountName("");
-          toast({
-            title: "Withdrawal Sent",
-            description: `Successfully sent ₦${amount} to ${accountName}`
-          });
-        } else {
-          setErrorMessage(data.error || "Withdrawal failed. Please try again.");
-          toast({
-            title: "Withdrawal Failed",
-            description: data.error || "Transaction error",
-            variant: "destructive"
-          });
-        }
+        await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
+        setSuccessRef(data.transactionRef);
+        setShowSuccess(true);
+        setAmount("");
+        setAccountNumber("");
+        setAccountName("");
+        toast({
+          title: "Withdrawal Sent",
+          description: `Successfully sent ₦${amount} to ${accountName}`
+        });
       } else {
-        // Crypto Withdrawal API Handler (Mocked/Future integration)
         const payload = {
           currency: selectedWallet,
           amount,
@@ -228,35 +239,21 @@ export default function Withdraw() {
           body: JSON.stringify(payload)
         });
 
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || errorData.message || "Crypto withdrawal failed");
+        }
         const data = await res.json();
 
-        if (res.ok && data.success) {
-          await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
-          setSuccessRef(data.transactionRef || `TXN-${Date.now()}`);
-          setShowSuccess(true);
-          toast({
-            title: "Withdrawal Sent",
-            description: `Successfully sent ${amount} ${selectedWallet} to your address.`
-          });
-          setAmount("");
-          setCryptoAddress("");
-        } else {
-          // If API doesn't exist yet, we catch it locally to show the UI works
-          if (res.status === 404) {
-            console.warn("Crypto withdraw endpoint missing. Simulating success for UI demo.");
-            setShowSuccess(true);
-            setAmount("");
-            setCryptoAddress("");
-          } else {
-            const errorMsg = data.error || data.message || "Crypto withdrawal failed.";
-            setErrorMessage(errorMsg);
-            toast({
-              title: "Withdrawal Failed",
-              description: errorMsg,
-              variant: "destructive"
-            });
-          }
-        }
+        await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
+        setSuccessRef(data.transactionRef || `TXN-${Date.now()}`);
+        setShowSuccess(true);
+        toast({
+          title: "Withdrawal Sent",
+          description: `Successfully sent ${amount} ${selectedWallet} to recipient.`
+        });
+        setAmount("");
+        setCryptoAddress("");
       }
     } catch (error) {
       console.error("Withdraw error:", error);
@@ -281,62 +278,40 @@ export default function Withdraw() {
     setErrorMessage("");
 
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-      const token = userInfo.token;
-
-      const payload = {
-        amount,
-        accountNumber,
-        bankCode: selectedBank,
-        accountName,
-      };
-
       const res = await fetch("/api/korapay/payout", {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          amount,
+          accountNumber,
+          bankCode: selectedBank,
+          accountName,
+        })
       });
 
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Korapay withdrawal failed");
+      }
       const data = await res.json();
 
-      if (res.ok) {
-        await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
-        const currentBalances = JSON.parse(localStorage.getItem("stablex_balances") || '{}');
-        if (currentBalances.NGN) {
-          currentBalances.NGN -= parseFloat(amount);
-          localStorage.setItem("stablex_balances", JSON.stringify(currentBalances));
-        }
-
-        setSuccessRef(data.reference);
-        setShowSuccess(true);
-        setAmount("");
-        setAccountNumber("");
-        setAccountName("");
-        setSelectedBank("");
-        toast({
-          title: "Payout Initiated",
-          description: `Korapay withdrawal for ₦${amount} sent.`
-        });
-      } else {
-        const errorMsg = data.message || "Korapay withdrawal failed.";
-        setErrorMessage(errorMsg);
-        toast({
-          title: "Payout Failed",
-          description: errorMsg,
-          variant: "destructive"
-        });
-      }
-    } catch (e) {
-      console.error(e);
-      setErrorMessage("Network error connecting to Korapay.");
+      await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
+      setSuccessRef(data.reference);
+      setShowSuccess(true);
+      setAmount("");
+      setAccountNumber("");
+      setAccountName("");
+      setSelectedBank("");
       toast({
-        title: "Network Error",
-        description: "Korapay connection failed.",
-        variant: "destructive"
+        title: "Payout Initiated",
+        description: `Korapay withdrawal for ₦${amount} sent.`
       });
+    } catch (e: any) {
+      console.warn("Korapay Payout Error:", e.message);
+      setErrorMessage(e.message || "Network error connecting to Korapay.");
     } finally {
       setIsProcessing(false);
     }
@@ -559,10 +534,13 @@ export default function Withdraw() {
                   className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-6"
                   size="lg"
                   onClick={handleWithdraw}
-                  disabled={!accountName || !amount || isProcessing}
+                  disabled={!accountName || !amount || isProcessing || isLoadingBalances}
                 >
-                  {isProcessing ? (
-                    <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Processing Transfer...</>
+                  {isProcessing || isLoadingBalances ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      {isProcessing ? "Processing Transfer..." : "Loading Balances..."}
+                    </>
                   ) : (
                     "Confirm Withdrawal"
                   )}
@@ -648,10 +626,13 @@ export default function Withdraw() {
                   className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-6"
                   size="lg"
                   onClick={handleKorapayWithdraw}
-                  disabled={!accountName || !amount || !accountNumber || !selectedBank || isProcessing}
+                  disabled={!accountName || !amount || !accountNumber || !selectedBank || isProcessing || isLoadingBalances}
                 >
-                  {isProcessing ? (
-                    <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Processing Payout...</>
+                  {isProcessing || isLoadingBalances ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      {isProcessing ? "Processing Payout..." : "Syncing Balances..."}
+                    </>
                   ) : (
                     "Confirm Payout"
                   )}
@@ -717,10 +698,13 @@ export default function Withdraw() {
                   className="w-full mt-6 bg-red-600 hover:bg-red-700 text-white font-semibold py-6"
                   size="lg"
                   onClick={handleWithdraw}
-                  disabled={!cryptoAddress || !amount || isProcessing}
+                  disabled={!cryptoAddress || !amount || isProcessing || isLoadingBalances}
                 >
-                  {isProcessing ? (
-                    <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Processing...</>
+                  {isProcessing || isLoadingBalances ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      {isProcessing ? "Processing..." : "Loading Balances..."}
+                    </>
                   ) : (
                     `Send ${amount || '0'} ${selectedWallet}`
                   )}

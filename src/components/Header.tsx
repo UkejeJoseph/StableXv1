@@ -14,7 +14,15 @@ export function Header({ userInitials = "JU", currency = "NGN", onCurrencyChange
   const location = useLocation();
   const navigate = useNavigate();
 
-  const showBackButton = location.pathname !== "/" && location.pathname !== "/dashboard";
+  const isWeb = location.pathname.startsWith('/web');
+  const showBackButton = location.pathname !== "/" && location.pathname !== "/dashboard" && location.pathname !== "/web/dashboard";
+
+  const getDynamicPath = (path: string) => {
+    if (isWeb && !path.startsWith('/web')) {
+      return `/web${path}`;
+    }
+    return path;
+  };
 
   return (
     <header className="flex items-center justify-between px-4 py-3 bg-card border-b border-border" data-testid="header">
@@ -58,17 +66,17 @@ export function Header({ userInitials = "JU", currency = "NGN", onCurrencyChange
             <Moon className="w-5 h-5" />
           )}
         </Button>
-        <Link to="/wallet">
+        <Link to={getDynamicPath("/wallet")}>
           <Button variant="ghost" size="icon" data-testid="button-wallet">
             <Wallet className="w-5 h-5" />
           </Button>
         </Link>
-        <Link to="/trade">
+        <Link to={getDynamicPath("/trade")}>
           <Button variant="ghost" size="icon" data-testid="button-trade">
             <TrendingUp className="w-5 h-5" />
           </Button>
         </Link>
-        <Link to="/giftcard">
+        <Link to={getDynamicPath("/giftcard")}>
           <Button variant="ghost" size="icon" data-testid="button-giftcard">
             <Gift className="w-5 h-5" />
           </Button>

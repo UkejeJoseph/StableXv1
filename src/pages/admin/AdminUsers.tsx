@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/AdminSidebar";
-import { Card, CardContent } from "@/components/Card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Copy, ShieldCheck, User as UserIcon } from "lucide-react";
@@ -124,7 +124,7 @@ export default function AdminUsers() {
                                         <TableCell className="text-right">
                                             {user.role === 'admin' && (
                                                 <div className="flex justify-end pr-2">
-                                                    <ShieldCheck className="w-5 h-5 text-green-500" title="Admin User" />
+                                                    <ShieldCheck className="w-5 h-5 text-green-500" />
                                                 </div>
                                             )}
                                         </TableCell>

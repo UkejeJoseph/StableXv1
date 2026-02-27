@@ -11,8 +11,10 @@ import { AssetDistributionChart } from "@/components/AssetDistributionChart";
 import { DashboardSidebarWidgets } from "@/components/DashboardSidebarWidgets";
 import { MerchantBalances } from "@/components/MerchantBalances";
 import { MerchantKYCPanel } from "@/components/MerchantKYCPanel";
+import { useUser } from "@/contexts/UserContext";
 
 const WebMerchantDashboard = () => {
+    const { user } = useUser();
     const { toast } = useToast();
     const [kycStatus, setKycStatus] = useState<string>("pending");
     const [apiKeys, setApiKeys] = useState<{ publicKey: string | null; secretKey: string | null }>({ publicKey: null, secretKey: null });
@@ -20,19 +22,15 @@ const WebMerchantDashboard = () => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-    const token = userInfo?.token;
-
     useEffect(() => {
         fetchDeveloperSettings();
-    }, []);
+    }, [user]);
 
     const fetchDeveloperSettings = async () => {
-        if (!token) return;
+        if (!user) return;
         try {
             const res = await fetch("/api/developer/keys", {
                 credentials: "include",
-        
             });
             const data = await res.json();
             if (data.success) {
@@ -43,14 +41,18 @@ const WebMerchantDashboard = () => {
             // Fetch User for KYC
             const userRes = await fetch("/api/users/profile", {
                 credentials: "include",
-        
             });
             const userData = await userRes.json();
             if (userData._id) {
                 setKycStatus(userData.kycStatus || 'pending');
             }
-        } catch (error) {
-            console.error(error);
+        } catch (error: any) {
+            console.error("Failed to load developer settings:", error);
+            toast({
+                title: "Load Failed",
+                description: "Could not fetch your merchant settings. Please refresh.",
+                variant: "destructive"
+            });
         } finally {
             setIsLoading(false);
         }
@@ -62,7 +64,6 @@ const WebMerchantDashboard = () => {
             const res = await fetch("/api/developer/keys", {
                 method: "POST",
                 credentials: "include",
-        
             });
             const data = await res.json();
             if (data.success) {
@@ -83,9 +84,9 @@ const WebMerchantDashboard = () => {
             const res = await fetch("/api/developer/webhook", {
                 method: "PUT",
                 credentials: "include",
-        headers: {
+                headers: {
                     "Content-Type": "application/json",
-                    },
+                },
                 body: JSON.stringify({ webhookUrl })
             });
             const data = await res.json();

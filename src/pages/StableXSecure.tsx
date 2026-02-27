@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -132,13 +133,6 @@ const SECURE_ASSETS: SecureAsset[] = [
 
 const SECURE_STORAGE_KEY = "stablex_secure_balances";
 
-function getSecureBalances(): Record<string, number> {
-  return {};
-}
-
-function updateSecureBalance(assetId: string, amount: number): void {
-  // Mock disabled.
-}
 
 export default function StableXSecure() {
   const navigate = useNavigate();
@@ -156,7 +150,27 @@ export default function StableXSecure() {
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const balances = getSecureBalances();
+  const { data: walletsData, isLoading } = useQuery({
+    queryKey: ['userWallets'],
+    queryFn: async () => {
+      const res = await fetch('/api/wallets', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch wallets');
+      return res.json();
+    }
+  });
+
+  const balances = useMemo(() => {
+    const map: Record<string, number> = {};
+    if (walletsData?.wallets) {
+      walletsData.wallets.forEach((w: any) => {
+        // Map common symbols to ids
+        const symbol = w.currency?.toLowerCase();
+        if (symbol) map[symbol] = w.balance || 0;
+        if (symbol === 'usdt_trc20' || symbol === 'usdt_erc20') map['usdt'] = (map['usdt'] || 0) + (w.balance || 0);
+      });
+    }
+    return map;
+  }, [walletsData]);
 
   const assetsWithBalances = SECURE_ASSETS.map((a) => ({
     ...a,
@@ -229,8 +243,8 @@ export default function StableXSecure() {
     setIsProcessing(true);
     setErrorMessage("");
 
+    // Simulate completion (In real app, this would be an API call)
     setTimeout(() => {
-      updateSecureBalance(selectedAsset.id, -withdrawAmount);
       setIsProcessing(false);
       setShowWithdrawDialog(false);
       setSuccessMessage(
@@ -566,13 +580,13 @@ export default function StableXSecure() {
               <Button
                 className="w-full"
                 onClick={processWithdrawal}
-                disabled={isProcessing || !amount || !withdrawAddress}
+                disabled={isProcessing || isLoading || !amount || !withdrawAddress}
                 data-testid="button-confirm-withdraw"
               >
-                {isProcessing ? (
+                {isProcessing || isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
+                    {isProcessing ? "Processing..." : "Loading Balances..."}
                   </>
                 ) : (
                   "Confirm Withdrawal"

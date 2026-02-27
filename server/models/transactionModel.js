@@ -32,7 +32,6 @@ const transactionSchema = mongoose.Schema({
     reference: {
         type: String,
         required: true,
-        unique: true,
     },
     description: {
         type: String,

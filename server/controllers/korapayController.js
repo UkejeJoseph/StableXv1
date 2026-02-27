@@ -283,14 +283,25 @@ export const handleWebhook = async (req, res) => {
                 return res.status(200).send('OK');
             }
 
-            transaction.status = 'completed';
-            transaction.metadata = { ...transaction.metadata, korapayWebhook: 'success', event: event.event };
-            // Ensure actual amount paid is recorded if different
-            if (data.amount_paid && data.amount_paid !== transaction.amount) {
-                transaction.amount = data.amount_paid;
-                transaction.description += ` (Adjusted amount: ${data.amount_paid})`;
+            // Use atomic update to prevent double-crediting race conditions
+            const isAdjusted = data.amount_paid && data.amount_paid !== transaction.amount;
+            const updatedTransaction = await Transaction.findOneAndUpdate(
+                { _id: transaction._id, status: { $ne: 'completed' } },
+                {
+                    $set: {
+                        status: 'completed',
+                        amount: isAdjusted ? data.amount_paid : transaction.amount,
+                        description: isAdjusted ? transaction.description + ` (Adjusted amount: ${data.amount_paid})` : transaction.description,
+                        metadata: { ...transaction.metadata, korapayWebhook: 'success', event: event.event }
+                    }
+                },
+                { new: true }
+            );
+
+            if (!updatedTransaction) {
+                console.log(`[KORAPAY WEBHOOK] Transaction ${transaction._id} already processed.`);
+                return res.status(200).send('OK');
             }
-            await transaction.save();
 
             let walletType = targetUser.role === 'merchant' ? 'merchant' : 'user';
 

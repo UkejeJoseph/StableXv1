@@ -5,7 +5,28 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const redisClient = new Redis(process.env.REDIS_URL, {
+    tls: {
+        rejectUnauthorized: false,
+    },
+    maxRetriesPerRequest: 3,
+    retryStrategy(times) {
+        if (times > 3) {
+            console.error('[Redis] Max retries reached. Giving up.');
+            return null;
+        }
+        return Math.min(times * 200, 1000);
+    },
+    lazyConnect: false,
+});
+
+redisClient.on('error', (err) => {
+    console.error('[Redis] Connection error:', err.message);
+});
+
+redisClient.on('connect', () => {
+    console.log('[Redis] Connected to Upstash successfully.');
+});
 
 // Tier 1: Auth endpoints (strictest)
 export const authLimiter = rateLimit({

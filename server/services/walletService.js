@@ -13,12 +13,42 @@ import Transaction from '../models/transactionModel.js';
 export async function creditUserWallet(userId, currency, amount, transactionRef, metadata = {}) {
     console.log(`[SVC:Wallet] 💰 Crediting ${amount} ${currency} to User ${userId} (Ref: ${transactionRef})`);
 
-    // 1. Find the transaction first for idempotency
-    let transaction = await Transaction.findOne({ reference: transactionRef });
+    // 1. ATOMIC Transaction Update for Idempotency
+    let transaction;
+    try {
+        transaction = await Transaction.findOneAndUpdate(
+            { reference: transactionRef, status: { $nin: ['completed', 'credited'] } },
+            {
+                $set: {
+                    status: 'completed',
+                    user: userId,
+                    amount: Number(amount),
+                    currency: currency,
+                    metadata: metadata
+                },
+                $setOnInsert: {
+                    type: 'deposit',
+                    description: `Credit of ${amount} ${currency}`,
+                }
+            },
+            { new: true, upsert: true }
+        );
+    } catch (error) {
+        // E11000 duplicate key error means it didn't match the query because status WAS completed/credited,
+        // so it tried to insert a new one and hit the unique index on `reference`.
+        if (error.code === 11000) {
+            console.log(`[SVC:Wallet] ⚠️ Transaction ${transactionRef} is already completed. Skipping credit.`);
+            return {
+                wallet: await Wallet.findOne({ user: userId, $or: [{ network: currency }, { currency: currency }] }),
+                transaction: await Transaction.findOne({ reference: transactionRef })
+            };
+        }
+        throw error;
+    }
 
-    if (transaction && (transaction.status === 'completed' || transaction.status === 'credited')) {
-        console.log(`[SVC:Wallet] ⚠️ Transaction ${transactionRef} is already completed. Skipping credit.`);
-        return { wallet: await Wallet.findOne({ user: userId, $or: [{ network: currency }, { currency: currency }] }), transaction };
+    if (!transaction) {
+        console.log(`[SVC:Wallet] ⚠️ Transaction ${transactionRef} already credited. Skipping.`);
+        return { wallet: null, transaction: null };
     }
 
     // 2. Atomic balance increment (with upsert for missing fiat wallets)
@@ -40,26 +70,6 @@ export async function creditUserWallet(userId, currency, amount, transactionRef,
     );
 
     console.log(`[SVC:Wallet] ✅ Balance updated securely to: ${wallet.balance}`);
-
-    // 3. Update Transaction Record
-    transaction = await Transaction.findOneAndUpdate(
-        { reference: transactionRef },
-        {
-            $set: {
-                status: 'completed',
-                user: userId,
-                amount: Number(amount),
-                currency: currency,
-                metadata: metadata
-            },
-            $setOnInsert: {
-                type: 'deposit',
-                description: `Credit of ${amount} ${currency}`,
-            }
-        },
-        { new: true, upsert: true }
-    );
-
     console.log(`[SVC:Wallet] ✅ Transaction ${transactionRef} marked as completed`);
 
     return { wallet, transaction };

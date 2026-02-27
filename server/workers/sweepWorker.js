@@ -28,9 +28,14 @@ const processSweepQueue = async () => {
         console.log(`\n🧹 [SWEEP WORKER] Found ${pendingSweeps.length} pending sweeps to retry...`);
 
         for (const sweep of pendingSweeps) {
-            // Mark as processing to prevent concurrency overlap
-            sweep.status = 'processing';
-            await sweep.save();
+            // Mark as processing atomically to prevent concurrency overlap across multiple workers
+            const lockedSweep = await SweepQueue.findOneAndUpdate(
+                { _id: sweep._id, status: { $in: ['pending', 'failed'] } },
+                { $set: { status: 'processing' } },
+                { new: true }
+            );
+
+            if (!lockedSweep) continue;
 
             try {
                 const wallet = await Wallet.findById(sweep.walletId);
@@ -51,30 +56,30 @@ const processSweepQueue = async () => {
                 const sweepTxHash = await sweepToHotWallet(wallet, token, sweep.amount, sweep.depositTxHash);
 
                 // Success
-                sweep.status = 'completed';
-                sweep.lastError = 'Success: ' + sweepTxHash;
-                await sweep.save();
+                lockedSweep.status = 'completed';
+                lockedSweep.lastError = 'Success: ' + sweepTxHash;
+                await lockedSweep.save();
 
                 console.log(`[SWEEP WORKER] ✅ Sweep completed successfully on retry! Tx: ${sweepTxHash}`);
 
             } catch (err) {
-                console.error(`[SWEEP WORKER] ❌ Sweep retry ${sweep.retryCount + 1}/${MAX_RETRIES} failed: ${err.message}`);
+                console.error(`[SWEEP WORKER] ❌ Sweep retry ${lockedSweep.retryCount + 1}/${MAX_RETRIES} failed: ${err.message}`);
 
-                sweep.retryCount += 1;
+                lockedSweep.retryCount += 1;
 
-                if (sweep.retryCount >= MAX_RETRIES) {
-                    sweep.status = 'failed';
+                if (lockedSweep.retryCount >= MAX_RETRIES) {
+                    lockedSweep.status = 'failed';
                     console.error(`[SWEEP WORKER] 🚫 Sweep permanently failed after ${MAX_RETRIES} attempts. manual intervention required.`);
                 } else {
-                    sweep.status = 'pending';
+                    lockedSweep.status = 'pending';
                     // Exponential backoff multiplier: 5m, 15m, 45m, 135m -> helps save energy checking dead wallets constantly
-                    const backoffMins = 5 * Math.pow(3, sweep.retryCount - 1);
-                    sweep.nextRetryAt = new Date(Date.now() + backoffMins * 60 * 1000);
+                    const backoffMins = 5 * Math.pow(3, lockedSweep.retryCount - 1);
+                    lockedSweep.nextRetryAt = new Date(Date.now() + backoffMins * 60 * 1000);
                     console.log(`[SWEEP WORKER] ⏳ Queuing next retry for ${backoffMins} minutes from now.`);
                 }
 
-                sweep.lastError = err.message;
-                await sweep.save();
+                lockedSweep.lastError = err.message;
+                await lockedSweep.save();
             }
         }
     } catch (globalErr) {

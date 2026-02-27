@@ -191,10 +191,16 @@ export default function VerifyOtp() {
                             </button>
                         </p>
 
-                        <Link to="/web/login" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors">
+                        <div
+                            onClick={() => {
+                                localStorage.removeItem("webUserInfo");
+                                navigate("/web/login");
+                            }}
+                            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                        >
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             Back to Login
-                        </Link>
+                        </div>
                     </div>
                 </div>
             </div>

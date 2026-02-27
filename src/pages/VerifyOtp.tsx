@@ -165,13 +165,16 @@ export default function VerifyOtp() {
                                     : "Resend Code"}
                         </button>
                     </p>
-                    <Link
-                        to="/login"
-                        className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors"
+                    <div
+                        onClick={() => {
+                            localStorage.removeItem("userInfo");
+                            navigate("/login");
+                        }}
+                        className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors cursor-pointer"
                     >
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Back to Login
-                    </Link>
+                    </div>
                 </div>
             </Card>
         </div>

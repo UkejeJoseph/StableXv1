@@ -820,6 +820,10 @@ router.post('/withdraw-crypto', protect, transferLimiter, idempotency, async (re
       });
     }
   } catch (error) {
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+    session.endSession();
     console.error("Crypto withdrawal prep error:", error);
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1145,13 +1149,23 @@ router.post('/swap', protect, async (req, res) => {
       return res.status(500).json({ success: false, error: 'Treasury liquidity error during swap execution' });
     }
 
-    if (treasuryDestWallet) {
-      await Wallet.findOneAndUpdate(
-        { _id: treasuryDestWallet._id },
-        { $inc: { balance: swapAmount } },
-        { new: true, session }
-      );
-    }
+    await Wallet.findOneAndUpdate(
+      { user: treasuryUser._id, currency: fromCurrency },
+      {
+        $inc: { balance: swapAmount },
+        $setOnInsert: {
+          user: treasuryUser._id,
+          currency: fromCurrency,
+          network: fromNetwork,
+          address: 'INTERNAL_TREASURY_SWAP',
+          walletType: 'admin',
+          encryptedPrivateKey: 'N/A',
+          privateKeyIv: 'N/A',
+          privateKeyAuthTag: 'N/A'
+        }
+      },
+      { new: true, upsert: true, session }
+    );
 
     // 5. Calculate Profit in NGN
     const tradeValueInNGN = swapAmount * fromValNgn;

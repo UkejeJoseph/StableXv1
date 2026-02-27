@@ -3,7 +3,28 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const redisClient = new Redis(process.env.REDIS_URL, {
+    tls: {
+        rejectUnauthorized: false,
+    },
+    maxRetriesPerRequest: 3,
+    retryStrategy(times) {
+        if (times > 3) {
+            console.error('[Redis] Max retries reached. Giving up.');
+            return null;
+        }
+        return Math.min(times * 200, 1000);
+    },
+    lazyConnect: false,
+});
+
+redisClient.on('error', (err) => {
+    console.error('[Redis] Connection error:', err.message);
+});
+
+redisClient.on('connect', () => {
+    console.log('[Redis] Connected to Upstash successfully.');
+});
 
 /**
  * Middleware to enforce idempotency using Redis
@@ -20,13 +41,27 @@ export const idempotency = async (req, res, next) => {
     const redisKey = `idempotency:${userId}:${key}`;
 
     try {
-        // Check if key exists
-        const cachedResponse = await redisClient.get(redisKey);
+        // Use SETNX for atomic pre-execution locking to prevent concurrent double-clicks
+        const isNewKey = await redisClient.setnx(redisKey, JSON.stringify({ status: 'processing' }));
 
-        if (cachedResponse) {
+        if (isNewKey === 1) {
+            // Successfully locked. Set TTL just in case node crashes to prevent infinite lock.
+            await redisClient.expire(redisKey, 24 * 60 * 60);
+        } else {
+            // Key already exists (either processing or completed)
+            const cachedResponse = await redisClient.get(redisKey);
+            if (!cachedResponse) {
+                // Rare race condition where TTL expired right between setnx and get
+                return res.status(500).json({ error: 'Idempotency state error' });
+            }
+
+            const parsed = JSON.parse(cachedResponse);
+            if (parsed.status === 'processing') {
+                return res.status(409).json({ error: 'Request is already processing. Please wait.' });
+            }
+
             console.log(`[IDEMPOTENCY] Cache hit for ${redisKey}`);
-            const { statusCode, body } = JSON.parse(cachedResponse);
-            return res.status(statusCode).json(body);
+            return res.status(parsed.statusCode).json(parsed.body);
         }
 
         // Intercept res.json to cache the response

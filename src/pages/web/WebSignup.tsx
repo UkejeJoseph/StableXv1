@@ -110,10 +110,16 @@ export default function Signup() {
             <div className="flex-1 flex flex-col items-center justify-center p-8 lg:p-12 relative z-10 bg-background/95 backdrop-blur-sm overflow-y-auto w-full">
                 <div className="w-full max-w-md py-8">
                     <div className="mb-8">
-                        <Link to="/web/login" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-6 transition-colors">
+                        <div
+                            onClick={() => {
+                                localStorage.removeItem("webUserInfo");
+                                navigate("/web/login");
+                            }}
+                            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-6 transition-colors cursor-pointer"
+                        >
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             Back to Login
-                        </Link>
+                        </div>
                         <h1 className="text-3xl font-bold mb-2">Create Account</h1>
                         <p className="text-muted-foreground">Join StableX Web today</p>
                     </div>

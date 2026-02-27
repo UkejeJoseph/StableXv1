@@ -84,10 +84,16 @@ export default function Signup() {
             <Card className="w-full max-w-md border-none shadow-none sm:border sm:shadow-sm">
                 <CardContent className="p-6">
                     <div className="mb-6">
-                        <Link to="/login" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-4">
+                        <div
+                            onClick={() => {
+                                localStorage.removeItem("userInfo");
+                                navigate("/login");
+                            }}
+                            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-4 cursor-pointer"
+                        >
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             Back to Login
-                        </Link>
+                        </div>
                         <h1 className="text-2xl font-bold mb-2">Create Account</h1>
                         <p className="text-muted-foreground">Join StableX today</p>
                     </div>

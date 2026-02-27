@@ -81,17 +81,6 @@ export const purchaseGiftCard = asyncHandler(async (req, res) => {
             throw new Error(order.message || 'Reloadly provider error');
         }
 
-        // 5. Credit platform profit
-        if (PLATFORM_FEE_WALLET_ID && platformProfit > 0) {
-            await creditUserWallet(
-                PLATFORM_FEE_WALLET_ID,
-                paymentCurrency,
-                platformProfit,
-                `giftcard_profit_${txRef}`,
-                { type: 'giftcard_profit', productId, quantity, originalTx: txRef }
-            );
-        }
-
         res.json({
             success: true,
             message: 'Gift card purchased successfully',
@@ -99,6 +88,21 @@ export const purchaseGiftCard = asyncHandler(async (req, res) => {
             charged: totalCost,
             currency: paymentCurrency,
         });
+
+        // 5. Credit platform profit (executed after success response to prevent refund exploits on DB errors)
+        if (PLATFORM_FEE_WALLET_ID && platformProfit > 0) {
+            try {
+                await creditUserWallet(
+                    PLATFORM_FEE_WALLET_ID,
+                    paymentCurrency,
+                    platformProfit,
+                    `giftcard_profit_${txRef}`,
+                    { type: 'giftcard_profit', productId, quantity, originalTx: txRef }
+                );
+            } catch (feeError) {
+                console.error(`[GIFTCARD] Failed to route platform profit for tx ${txRef}:`, feeError);
+            }
+        }
     } catch (err) {
         console.error(`[GIFTCARD] ❌ Purchase Failed: ${err.message}. Refunding user...`);
         // Refund user on Reloadly failure

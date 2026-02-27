@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { WebLayout } from "@/components/WebSidebar";
 import { PortfolioOverview } from "@/components/PortfolioOverview";
 import { AssetDistributionChart } from "@/components/AssetDistributionChart";
@@ -8,21 +8,33 @@ import { TrendingTokens } from "@/components/TrendingTokens";
 import { MarqueeTicker } from "@/components/MarqueeTicker";
 import { TransactionHistory } from "@/components/TransactionHistory";
 import { WebQuickSend } from "@/components/WebQuickSend";
-import { Wallet, Hexagon, ShieldCheck, Plus } from "lucide-react";
+import { Wallet, Hexagon, ShieldCheck, Plus, TrendingUp, Info } from "lucide-react";
 import { WebAssetList } from "@/components/WebAssetList";
 import { MultiChainWalletModal } from "@/components/MultiChainWalletModal";
 import { useWallets } from "@/hooks/useWallets";
 import { useBalances } from "@/hooks/useBalances";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { getMarketPrices, type CryptoPrice } from "@/lib/marketData";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { QuickActionsGrid } from "@/components/QuickActionsGrid";
 
 const WebDashboard = () => {
   const { data: wallets = [], isLoading: isWalletsLoading, refetch: refetchWallets } = useWallets();
+  const [isQuickSendOpen, setIsQuickSendOpen] = useState(false);
+  const [isConnectOpen, setIsConnectOpen] = useState(false);
+  const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
+  const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
+  const [prices, setPrices] = useState<CryptoPrice[]>([]);
+
+  useEffect(() => {
+    const fetchPrices = async () => {
+      const data = await getMarketPrices();
+      setPrices(data);
+    };
+    fetchPrices();
+    const interval = setInterval(fetchPrices, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleConnect = (providerId: string, address: string, network: string) => {
     // Logic to save the external wallet connection to backend
@@ -81,15 +93,51 @@ const WebDashboard = () => {
             <ServicesList />
             <DashboardSidebarWidgets />
 
-            <Card className="p-6 bg-[#0b0e11] text-white border-border/40 relative overflow-hidden" data-testid="rates-banner">
+            <Card className="p-6 bg-[#0b0e11] border-border/40 relative overflow-hidden group hover:border-[#F0B90B]/30 transition-all shadow-xl" data-testid="rates-banner">
               <div className="relative z-10">
-                <h3 className="font-semibold text-xl mb-1">Live Market Rates</h3>
-                <p className="text-sm text-white/70">Stay up to date with realtime pricing driven by our aggregated liquidity pools.</p>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-[#F0B90B]" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xl text-white">Market Pulse</h3>
+                    <p className="text-xs text-muted-foreground">Aggregated Live Feeds</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {prices.slice(0, 4).map((token) => (
+                    <div key={token.id} className="flex items-center justify-between group/item">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[10px] font-bold">
+                          {token.symbol.slice(0, 2)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white leading-none">{token.symbol}</p>
+                          <p className="text-[10px] text-muted-foreground mt-1">{token.name}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-white leading-none">
+                          ${token.price.toLocaleString(undefined, { minimumFractionDigits: token.price < 1 ? 4 : 2 })}
+                        </p>
+                        <p className={`text-[10px] mt-1 font-medium ${token.priceChange24h >= 0 ? "text-green-500" : "text-red-500"}`}>
+                          {token.priceChange24h >= 0 ? "+" : ""}{token.priceChange24h.toFixed(2)}%
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Button variant="link" className="w-full text-[#F0B90B] mt-6 gap-2 p-0 h-auto font-bold flex items-center justify-center border-t border-border/10 pt-4">
+                  <span>View All Markets</span>
+                  <Plus className="w-4 h-4" />
+                </Button>
               </div>
 
-              {/* Decorative Orbs */}
-              <div className="absolute right-[-10%] bottom-[-50%] w-48 h-48 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute right-[10%] top-[-20%] w-32 h-32 bg-blue-500/20 rounded-full blur-2xl pointer-events-none" />
+              {/* Decorative Background Elements */}
+              <div className="absolute right-[-10%] bottom-[-10%] w-48 h-48 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute left-[0%] top-[0%] w-32 h-32 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
             </Card>
           </div>
         </div>

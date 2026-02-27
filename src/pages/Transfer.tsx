@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,7 @@ import {
 } from "@/lib/transactions";
 
 export default function Transfer() {
+  const { toast } = useToast();
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkType>("ETH");
   const [toAddress, setToAddress] = useState("");
   const [amount, setAmount] = useState("");
@@ -141,16 +143,31 @@ export default function Transfer() {
       });
 
       setTransactionResult(result);
-
       if (result.success) {
+        toast({
+          title: "Transfer Initiated",
+          description: `Transaction sent successfully to ${toAddress.slice(0, 6)}...`,
+        });
         setShowConfirmDialog(false);
         setShowSuccessDialog(true);
         resetForm();
       } else {
-        setError(result.error || "Transaction failed");
+        const errorMsg = result.error || "Transaction failed";
+        setError(errorMsg);
+        toast({
+          title: "Transfer Failed",
+          description: errorMsg,
+          variant: "destructive"
+        });
       }
     } catch (err: any) {
-      setError(err.message || "Transaction failed");
+      const errorMsg = err.message || "Transaction failed";
+      setError(errorMsg);
+      toast({
+        title: "Error",
+        description: errorMsg,
+        variant: "destructive"
+      });
     } finally {
       setIsSending(false);
     }

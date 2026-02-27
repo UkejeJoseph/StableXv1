@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { BalanceDisplay } from "@/components/BalanceDisplay";
 import { QuickActions } from "@/components/QuickActions";
@@ -8,7 +8,8 @@ import { MarqueeTicker } from "@/components/MarqueeTicker";
 import { TransactionHistory } from "@/components/TransactionHistory";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Wallet, Hexagon } from "lucide-react";
+import { MessageCircle, Wallet, Hexagon, TrendingUp } from "lucide-react";
+import { getMarketPrices, type CryptoPrice } from "@/lib/marketData";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,17 @@ const Home = () => {
   const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
   const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [prices, setPrices] = useState<CryptoPrice[]>([]);
+
+  useEffect(() => {
+    const fetchPrices = async () => {
+      const data = await getMarketPrices();
+      setPrices(data);
+    };
+    fetchPrices();
+    const interval = setInterval(fetchPrices, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   const connectMetaMask = async () => {
     if (typeof window.ethereum === "undefined") {
@@ -102,14 +114,29 @@ const Home = () => {
 
       <TransactionHistory />
 
-      <Card className="mx-4 mt-6 p-4 bg-navy text-white relative overflow-visible" data-testid="rates-banner">
-        <div className="relative z-10">
-          <h3 className="font-semibold text-lg">Rates</h3>
-          <p className="text-sm text-white/80">Stay up to date with our rates</p>
+      <Card className="mx-4 mt-6 bg-[#12161a] border-border/10 overflow-hidden shadow-lg relative" data-testid="rates-banner">
+        <div className="p-4 relative z-10 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#F0B90B]/10 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-[#F0B90B]" />
+            </div>
+            <div className="flex flex-col">
+              <h3 className="font-bold text-white">Live Market Rates</h3>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Powered by Binance & CoinGecko</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            {prices.slice(0, 3).map((token) => (
+              <div key={token.id} className="flex flex-col items-end">
+                <span className="text-xs font-bold text-white">{token.symbol}</span>
+                <span className={`text-[10px] font-medium ${token.priceChange24h >= 0 ? "text-green-500" : "text-red-500"}`}>
+                  ${token.price.toLocaleString(undefined, { minimumFractionDigits: token.price < 1 ? 4 : 2 })}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="absolute right-4 bottom-2 opacity-50">
-          <div className="w-20 h-20 rounded-full bg-white/10" />
-        </div>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16" />
       </Card>
 
       <Button

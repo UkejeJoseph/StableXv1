@@ -125,7 +125,12 @@ export function TrendingTokens() {
                   {/* Trade Action */}
                   <td className="pr-6 py-4 text-right whitespace-nowrap">
                     <Button variant="link" className="text-[#F0B90B] hover:text-[#F0B90B]/80 font-semibold p-0 h-auto" asChild>
-                      <Link to={`/web/trade?symbol=${token.symbol}`}>Trade</Link>
+                      <Link to={window.location.pathname.startsWith('/web')
+                        ? `/web/trade?symbol=${token.symbol}`
+                        : `/trade?symbol=${token.symbol}`
+                      }>
+                        Trade
+                      </Link>
                     </Button>
                   </td>
 

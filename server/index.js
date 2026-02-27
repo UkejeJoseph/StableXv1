@@ -4,13 +4,22 @@ import path from 'path';
 import cors from 'cors';
 import passport from 'passport';
 import cookieParser from 'cookie-parser';
+import cron from 'node-cron';
 import connectDB from './config/db.js';
 import interswitchRoutes from './interswitch.js';
 import transactionRoutes from './transactions.js';
+import { apiLimiter } from './middleware/rateLimiter.js';
+import * as Sentry from "@sentry/node";
+import { sendAlert } from './utils/alerting.js';
 connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 9090;
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({ dsn: process.env.SENTRY_DSN });
+  console.log('🛡️ Sentry initialized.');
+}
 
 // ── Environment Hardening (Fail-Fast) ─────────────────────────
 const CRITICAL_VARS = [
@@ -71,6 +80,9 @@ import giftcardRoutes from './routes/giftcardRoutes.js';
 import stakingRoutes from './routes/stakingRoutes.js';
 import korapayRoutes from './routes/korapayRoutes.js';
 
+// Apply global rate limiter to all /api routes
+app.use('/api', apiLimiter);
+
 app.use('/api/interswitch', interswitchRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/users', userRoutes);
@@ -110,12 +122,18 @@ app.use((err, req, res, next) => {
   });
 });
 
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
+
 import { startBlockchainListener } from './workers/blockchainListener.js';
 import { startBtcListener } from './workers/btcListener.js';
 import { startEthListener } from './workers/ethListener.js';
 import { startSolListener } from './workers/solListener.js';
+import { startWebhookWorker } from './workers/webhookRetryWorker.js';
 import { startSweepWorker } from './workers/sweepWorker.js';
 import { distributeYield } from './services/stakingService.js';
+import { sendDailyStats } from './utils/alerting.js';
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
@@ -124,16 +142,16 @@ app.listen(PORT, '0.0.0.0', () => {
   startEthListener();        // Native ETH + USDT ERC20
   startSolListener();        // Native SOL
   startSweepWorker();        // TRON Sweep Retry Queue
+  startWebhookWorker();      // Webhook Notification Queue
 
-  // Daily staking yield distribution (runs every 24h)
-  const YIELD_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
-  setInterval(async () => {
+  // Daily yield distribution — midnight every day
+  cron.schedule('0 0 * * *', async () => {
     try {
       console.log('[STAKING CRON] Running daily yield distribution...');
       await distributeYield();
     } catch (err) {
       console.error('[STAKING CRON] Yield distribution failed:', err.message);
     }
-  }, YIELD_INTERVAL_MS);
-  console.log('📈 [STAKING CRON] Daily yield distribution scheduled (every 24h)');
+  });
+  console.log('📈 [STAKING CRON] Daily yield distribution scheduled (00:00)');
 });

@@ -5,7 +5,7 @@ import {
   Home, CreditCard, ArrowLeftRight, TrendingUp, Gift, Coins,
   Bot, Users, Activity, BarChart2, Compass, Briefcase, ArrowDownLeft,
   ArrowUpRight, Link as LinkIcon, MessageSquare, Replace,
-  Sun, Moon, Shield, Webhook, Landmark, BookOpen, BadgeCheck
+  Sun, Moon, Shield, Webhook, Landmark, BookOpen, BadgeCheck, ArrowLeft
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { Button } from "@/components/ui/button";
@@ -57,10 +57,23 @@ export function WebLayout({ children }: { children: React.ReactNode }) {
 
         {/* Left Side Header Nav */}
         <div className="flex items-center gap-6">
-          <Link to="/" className="flex items-center gap-2 mr-4">
-            <div className="w-8 h-8 bg-[#F0B90B] rounded-md flex items-center justify-center font-bold text-black text-xl">S</div>
-            <span className="text-xl font-bold tracking-tight text-white hidden sm:block">StableX</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            {location.pathname !== "/web/dashboard" && location.pathname !== "/dashboard" && location.pathname !== "/" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate(-1)}
+                className="text-white hover:bg-white/10 h-8 w-8 mr-2"
+                data-testid="button-back-web"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            )}
+            <Link to="/" className="flex items-center gap-2 mr-4">
+              <div className="w-8 h-8 bg-[#F0B90B] rounded-md flex items-center justify-center font-bold text-black text-xl">S</div>
+              <span className="text-xl font-bold tracking-tight text-white hidden sm:block">StableX</span>
+            </Link>
+          </div>
 
           <nav className="hidden lg:flex items-center text-sm font-medium text-muted-foreground gap-1">
 

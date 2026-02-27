@@ -24,6 +24,7 @@ import { SiVisa, SiMastercard, SiTether } from "react-icons/si";
 import { useNavigate } from "react-router-dom";
 import { useBalances } from "@/hooks/useBalances";
 import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Bank {
   Code: string;
@@ -36,6 +37,7 @@ export default function Withdraw() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: balancesData } = useBalances();
+  const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState("method_selection");
   const [selectedWallet, setSelectedWallet] = useState<WalletType>("NGN");
@@ -197,8 +199,17 @@ export default function Withdraw() {
           setAmount("");
           setAccountNumber("");
           setAccountName("");
+          toast({
+            title: "Withdrawal Sent",
+            description: `Successfully sent ₦${amount} to ${accountName}`
+          });
         } else {
           setErrorMessage(data.error || "Withdrawal failed. Please try again.");
+          toast({
+            title: "Withdrawal Failed",
+            description: data.error || "Transaction error",
+            variant: "destructive"
+          });
         }
       } else {
         // Crypto Withdrawal API Handler (Mocked/Future integration)
@@ -223,6 +234,10 @@ export default function Withdraw() {
           await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
           setSuccessRef(data.transactionRef || `TXN-${Date.now()}`);
           setShowSuccess(true);
+          toast({
+            title: "Withdrawal Sent",
+            description: `Successfully sent ${amount} ${selectedWallet} to your address.`
+          });
           setAmount("");
           setCryptoAddress("");
         } else {
@@ -233,13 +248,24 @@ export default function Withdraw() {
             setAmount("");
             setCryptoAddress("");
           } else {
-            setErrorMessage(data.error || data.message || "Crypto withdrawal failed.");
+            const errorMsg = data.error || data.message || "Crypto withdrawal failed.";
+            setErrorMessage(errorMsg);
+            toast({
+              title: "Withdrawal Failed",
+              description: errorMsg,
+              variant: "destructive"
+            });
           }
         }
       }
     } catch (error) {
       console.error("Withdraw error:", error);
       setErrorMessage("Network error. Please try again.");
+      toast({
+        title: "Network Error",
+        description: "Could not process withdrawal request.",
+        variant: "destructive"
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -290,12 +316,27 @@ export default function Withdraw() {
         setAccountNumber("");
         setAccountName("");
         setSelectedBank("");
+        toast({
+          title: "Payout Initiated",
+          description: `Korapay withdrawal for ₦${amount} sent.`
+        });
       } else {
-        setErrorMessage(data.message || "Korapay withdrawal failed.");
+        const errorMsg = data.message || "Korapay withdrawal failed.";
+        setErrorMessage(errorMsg);
+        toast({
+          title: "Payout Failed",
+          description: errorMsg,
+          variant: "destructive"
+        });
       }
     } catch (e) {
       console.error(e);
       setErrorMessage("Network error connecting to Korapay.");
+      toast({
+        title: "Network Error",
+        description: "Korapay connection failed.",
+        variant: "destructive"
+      });
     } finally {
       setIsProcessing(false);
     }

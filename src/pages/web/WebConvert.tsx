@@ -56,17 +56,45 @@ export default function WebConvert() {
     setSpendAmount(receiveAmount === "0.00" ? "" : receiveAmount);
   };
 
-  const handleTransaction = () => {
+  const handleTransaction = async () => {
     if (!spendAmount || Number(spendAmount) <= 0) return;
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Order Placed",
-        description: `Successfully swapped ${spendAmount} ${spendCurrency} for ${receiveAmount} ${receiveCurrency}.`,
+    try {
+      const res = await fetch("/api/transactions/swap", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fromCurrency: spendCurrency,
+          toCurrency: receiveCurrency,
+          amount: parseFloat(spendAmount)
+        })
       });
-      setSpendAmount("");
-    }, 1500);
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast({
+          title: "Swap Successful",
+          description: `Successfully swapped ${spendAmount} ${spendCurrency} for ${data.receivedAmount.toFixed(4)} ${receiveCurrency}.`,
+        });
+        setSpendAmount("");
+      } else {
+        toast({
+          title: "Swap Failed",
+          description: data.error || "A transaction error occurred.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Network Error",
+        description: "Could not connect to the server.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

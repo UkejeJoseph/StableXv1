@@ -11,6 +11,7 @@ const router = express.Router();
 
 import RefreshToken from '../models/refreshTokenModel.js';
 import { generateAuthTokens, generateAccessToken } from '../utils/tokenService.js';
+import { authLimiter } from '../middleware/rateLimiter.js';
 
 // ── Configure Passport Google Strategy ────────────────────────
 passport.use(new GoogleStrategy({
@@ -118,7 +119,7 @@ passport.deserializeUser(async (id, done) => {
 // ── Routes ────────────────────────────────────────────────────
 
 // Step 1: Redirect user to Google
-router.get('/google', passport.authenticate('google', {
+router.get('/google', authLimiter, passport.authenticate('google', {
     scope: ['profile', 'email'],
     session: false,
 }));

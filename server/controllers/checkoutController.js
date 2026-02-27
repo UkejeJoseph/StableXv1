@@ -51,7 +51,7 @@ export const initializeCheckout = async (req, res) => {
             expiresAt
         });
 
-        const baseUrl = process.env.APP_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:5000/web';
+        const baseUrl = process.env.APP_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
         const checkoutUrl = `${baseUrl}/checkout/${session.sessionId}`;
 
         res.status(201).json({
@@ -124,34 +124,42 @@ export const processInternalPayment = async (req, res) => {
         const { sessionId } = req.params;
         const customer = req.user; // User trying to pay with their balance
 
+        console.log(`[CHECKOUT_TRACE] Initiating internal payment for session: ${sessionId} by user: ${customer._id}`);
+
         const session = await CheckoutSession.findOne({ sessionId, status: 'pending' });
         if (!session) {
+            console.log(`[CHECKOUT_TRACE] Session ${sessionId} not found or not pending.`);
             return res.status(404).json({ success: false, error: 'Session not found or already completed/expired' });
         }
 
         if (session.expiresAt < new Date()) {
             session.status = 'expired';
             await session.save();
+            console.log(`[CHECKOUT_TRACE] Session ${sessionId} expired.`);
             return res.status(400).json({ success: false, error: 'Session has expired' });
         }
 
         // Prevent paying yourself
         if (session.merchantId.toString() === customer._id.toString()) {
+            console.log(`[CHECKOUT_TRACE] User ${customer._id} attempted to pay their own session ${sessionId}.`);
             return res.status(400).json({ success: false, error: 'You cannot pay your own checkout session' });
         }
 
         // Verify Balances
         const customerWallet = await Wallet.findOne({ user: customer._id, currency: session.currency });
         if (!customerWallet || customerWallet.balance < session.amount) {
+            console.log(`[CHECKOUT_TRACE] Insufficient balance for user ${customer._id} in ${session.currency} wallet for session ${sessionId}.`);
             return res.status(400).json({ success: false, error: `Insufficient ${session.currency} balance` });
         }
 
         const merchantWallet = await Wallet.findOne({ user: session.merchantId, currency: session.currency, walletType: 'merchant' });
         if (!merchantWallet) {
+            console.log(`[CHECKOUT_TRACE] Merchant wallet not found for merchant ${session.merchantId} and currency ${session.currency} for session ${sessionId}.`);
             return res.status(400).json({ success: false, error: 'Merchant wallet error' });
         }
 
         // Verify Balances + Deduct atomically to avoid race conditions
+        console.log(`[CHECKOUT_TRACE] Attempting to debit customer ${customer._id} wallet for ${session.amount} ${session.currency}.`);
         const updatedCustomerWallet = await Wallet.findOneAndUpdate(
             { _id: customerWallet._id, balance: { $gte: session.amount } },
             { $inc: { balance: -session.amount } },
@@ -159,20 +167,26 @@ export const processInternalPayment = async (req, res) => {
         );
 
         if (!updatedCustomerWallet) {
+            console.log(`[CHECKOUT_TRACE] Failed to debit customer ${customer._id} wallet for session ${sessionId}. Concurrent transaction or insufficient balance.`);
             return res.status(400).json({ success: false, error: `Insufficient ${session.currency} balance or concurrent transaction.` });
         }
+        console.log(`[CHECKOUT_TRACE] Successfully debited customer ${customer._id} wallet. New balance: ${updatedCustomerWallet.balance}`);
 
         // Calculate merchant fee
         const grossAmount = session.amount;
         const platformFee = grossAmount * MERCHANT_FEE_PERCENTAGE;
         const merchantReceives = grossAmount - platformFee;
 
+        console.log(`[CHECKOUT_TRACE] Calculated platform fee: ${platformFee} ${session.currency}. Merchant receives: ${merchantReceives} ${session.currency}.`);
+
         // Credit Merchant Atomically (minus fee)
+        console.log(`[CHECKOUT_TRACE] Attempting to credit merchant ${session.merchantId} wallet for ${merchantReceives} ${session.currency}.`);
         await Wallet.findOneAndUpdate(
             { _id: merchantWallet._id },
             { $inc: { balance: merchantReceives } },
             { new: true }
         );
+        console.log(`[CHECKOUT_TRACE] Successfully credited merchant ${session.merchantId} wallet.`);
 
         // Update Session with fee breakdown
         session.status = 'completed';

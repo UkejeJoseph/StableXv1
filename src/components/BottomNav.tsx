@@ -19,14 +19,12 @@ export function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 md:hidden" data-testid="bottom-nav">
       <div className="flex items-center justify-around py-2 max-w-lg mx-auto">
         {navItems.map((item) => {
-          const isWeb = location.pathname.startsWith('/web');
-          const finalPath = isWeb && !item.path.startsWith('/web') ? `/web${item.path}` : item.path;
-          const isActive = location.pathname === finalPath || location.pathname === item.path;
+          const isActive = location.pathname === item.path;
           const Icon = item.icon;
           return (
             <Link
               key={item.path}
-              to={finalPath}
+              to={item.path}
               className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${isActive
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"

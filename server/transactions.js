@@ -11,6 +11,8 @@ import Transaction from './models/transactionModel.js';
 import { creditUserWallet } from './services/walletService.js';
 
 const PLATFORM_FEE_WALLET_ID = process.env.PLATFORM_FEE_WALLET_ID;
+import { transferLimiter } from './middleware/rateLimiter.js';
+import { idempotency } from './middleware/idempotency.js';
 
 const router = express.Router();
 const ECPair = ECPairFactory(ecc);
@@ -22,12 +24,14 @@ const USDT_TRC20_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 
 // @desc    Internal transfer by username (0.1% fee, capped at 1 USDT equivalent)
 // @route   POST /api/transactions/transfer/internal
-router.post('/transfer/internal', protect, async (req, res) => {
+router.post('/transfer/internal', protect, transferLimiter, idempotency, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
     const { recipient_username, amount, currency } = req.body;
     const senderId = req.user._id;
+
+    console.log(`[TX_TRACE] Internal Transfer Initialized: From @${req.user.username} to @${recipient_username} | Amount: ${amount} ${currency}`);
 
     if (!recipient_username || !amount || !currency) {
       throw new Error("Missing required fields");
@@ -126,6 +130,7 @@ router.post('/transfer/internal', protect, async (req, res) => {
     }
 
     res.json({ success: true, message: 'Transfer completed successfully' });
+    console.log(`[TX_TRACE] Internal Transfer Success: ${txRef} | Sender: ${senderId} | Recipient: ${recipient._id}`);
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -493,12 +498,14 @@ router.post('/deposit-pending', protect, async (req, res) => {
 });
 
 // Crypto Withdrawal Endpoint (Automated Hot Wallet Transfer)
-router.post('/withdraw-crypto', protect, async (req, res) => {
+router.post('/withdraw-crypto', protect, transferLimiter, idempotency, async (req, res) => {
   const { amount, toAddress, currency, network } = req.body;
 
   if (!amount || !toAddress || !currency || !network) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
+
+  console.log(`[TX_TRACE] Crypto Withdrawal Requested: User ${req.user._id} | ${amount} ${currency} on ${network} to ${toAddress}`);
 
   // Supported networks and their fee structure (gas + platform margin)
   const FEES = {
@@ -790,6 +797,7 @@ router.post('/withdraw-crypto', protect, async (req, res) => {
         txHash,
         balance: updatedWallet.balance
       });
+      console.log(`[TX_TRACE] Crypto Withdrawal Broadcast Success: ${transactionRef} | Hash: ${txHash}`);
 
     } catch (broadcastError) {
       console.error("❌ Blockchain broadcast failed. Initiating automatic refund...", broadcastError.message);
@@ -824,6 +832,8 @@ router.post('/withdraw', protect, async (req, res) => {
   if (!amount || !accountNumber || !bankCode || !beneficiaryName) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
+
+  console.log(`[TX_TRACE] NGN Withdrawal Initialized: User ${req.user._id} | Amount: ₦${amount} to ${beneficiaryName} (${accountNumber})`);
 
   // 1. Transaction & Balance Logic (MongoDB)
   const session = await Transaction.startSession();
@@ -954,7 +964,7 @@ router.post('/withdraw', protect, async (req, res) => {
 });
 
 // 1. Define Spread Rates
-const SPREAD_PERCENTAGE = 0.01; // 1% Profit Margin
+const SPREAD_PERCENTAGE = 0.025; // 2.5% Profit Margin
 
 // GET /api/transactions/rates - Fetch live rates for frontend
 router.get('/rates', async (req, res) => {
@@ -995,6 +1005,8 @@ router.post('/swap', protect, async (req, res) => {
   if (!fromCurrency || !toCurrency || !amount) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
+
+  console.log(`[TX_TRACE] Swap Requested: User ${req.user._id} | ${amount} ${fromCurrency} -> ${toCurrency}`);
 
   // Fetch Live Rates
   const liveRates = await getLiveRates();
@@ -1188,6 +1200,7 @@ router.post('/swap', protect, async (req, res) => {
       receivedAmount,
       transaction: transaction[0]
     });
+    console.log(`[TX_TRACE] Swap Success: ${swapRef} | User ${user._id} | Net ${receiveAmount} ${toCurrency}`);
 
   } catch (error) {
     await session.abortTransaction();

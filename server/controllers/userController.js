@@ -145,13 +145,13 @@ const resendOtp = asyncHandler(async (req, res) => {
 
     console.log(`[Resend OTP] New OTP for ${email}: ${otp}`);
 
-    // Send OTP email
-    try {
-        await sendOtpEmail(email, otp);
-        console.log(`[Resend OTP] ✅ OTP email sent to ${email}`);
-    } catch (mailError) {
-        console.error(`[Resend OTP] ❌ Email failed:`, mailError.message);
-    }
+    // Send OTP email (non-blocking)
+    console.log(`[OTP_TRACE] ✉️ Resending OTP to: ${email}`);
+    sendOtpEmail(email, otp).then(() => {
+        console.log(`[OTP_TRACE] ✅ OTP successfully routed to: ${email}`);
+    }).catch(mailError => {
+        console.error(`[OTP_TRACE] ❌ Routing to ${email} failed:`, mailError.message);
+    });
 
     res.json({ message: 'A new verification code has been sent to your email' });
 });
@@ -160,7 +160,7 @@ const resendOtp = asyncHandler(async (req, res) => {
 // @route   POST /api/users
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-    const { email, password, name } = req.body;
+    const { email, password, name, phoneNumber, role, merchantProfile } = req.body;
 
     const userExists = await User.findOne({ email });
 
@@ -188,7 +188,9 @@ const registerUser = asyncHandler(async (req, res) => {
         name,
         email,
         password,
-        role: isAdmin ? 'admin' : 'user',
+        phoneNumber,
+        role: role || (isAdmin ? 'admin' : 'user'),
+        merchantProfile,
         kycLevel: 1,
         otp,
         otpExpires,
@@ -197,38 +199,36 @@ const registerUser = asyncHandler(async (req, res) => {
 
     console.log(`[DEV MODE] OTP for ${email}: ${otp}`);
 
-    // Send Real OTP Email
-    try {
-        await sendOtpEmail(email, otp);
-    } catch (mailError) {
-        console.warn("Mail sending failed, but user created (falling back to console):", mailError.message);
-    }
+    // Send Real OTP Email (non-blocking)
+    console.log(`[OTP_TRACE] 📬 Initializing OTP delivery for new user: ${email}`);
+    sendOtpEmail(email, otp).then(() => {
+        console.log(`[OTP_TRACE] ✅ Welcome OTP successfully routed to: ${email}`);
+    }).catch(mailError => {
+        console.warn("[OTP_TRACE] ⚠️ Mail delivery failed for recipient:", email, mailError.message);
+    });
 
+    console.log(`[REGISTRATION] 📝 Creating user record for ${user.email}...`);
     if (user) {
-        console.log(`✅ User created: ${user._id}. Starting wallet generation...`);
+        console.log(`[REGISTRATION] ✅ User created: ${user._id}. Starting wallet generation...`);
         // Generate Wallets
         try {
+            console.log(`[REGISTRATION] 🔑 Generating mnemonic...`);
             const mnemonic = generateMnemonic();
-            console.log(`🔑 Mnemonic generated. Deriving wallets...`);
 
-            // Get the next available derivation index (auto-increment)
-            const maxIndexUser = await User.findOne({ walletDerivationIndex: { $gte: 0 } })
-                .sort({ walletDerivationIndex: -1 })
-                .select('walletDerivationIndex')
-                .lean();
-            const nextIndex = maxIndexUser ? maxIndexUser.walletDerivationIndex + 1 : 0;
-            console.log(`📊 Assigned derivation index: ${nextIndex}`);
+            const derIndex = 0;
+            console.log(`[REGISTRATION] 📊 Deriving wallets for index: ${derIndex}...`);
 
-            const walletsData = await deriveWallets(mnemonic, nextIndex);
-            console.log(`💳 ${walletsData.length} wallets derived. Encrypting keys...`);
+            const walletsData = await deriveWallets(mnemonic, derIndex);
+            console.log(`[REGISTRATION] 💳 ${walletsData.length} wallets derived successfully.`);
 
-            // Encrypt and save the mnemonic phrase + derivation index to User record
+            // Encrypt and save the mnemonic
             const encryptedPhrase = encrypt(mnemonic);
             user.encryptedMnemonic = encryptedPhrase.encryptedData;
             user.mnemonicIv = encryptedPhrase.iv;
             user.mnemonicAuthTag = encryptedPhrase.authTag;
-            user.walletDerivationIndex = nextIndex;
+            user.walletDerivationIndex = derIndex;
             await user.save();
+            console.log(`[REGISTRATION] 💾 Mnemonic saved to user record.`);
 
             // Encrypt each wallet's private key and save
             const walletsToSave = walletsData.map(w => {
@@ -236,18 +236,21 @@ const registerUser = asyncHandler(async (req, res) => {
                 return {
                     user: user._id,
                     walletType: user.role === 'merchant' ? 'merchant' : 'user',
+                    network: w.currency,
                     currency: w.currency,
                     address: w.address,
                     encryptedPrivateKey: encryptedData,
-                    iv,
-                    authTag
+                    privateKeyIv: iv,
+                    privateKeyAuthTag: authTag
                 };
             });
 
+            console.log(`[REGISTRATION] 🗄️ Inserting ${walletsToSave.length} wallets into DB...`);
             await Wallet.insertMany(walletsToSave);
+            console.log(`[REGISTRATION] ✨ All wallets saved successfully.`);
 
         } catch (error) {
-            console.error("Wallet generation failed:", error);
+            console.error("[REGISTRATION] ❌ Wallet generation failed:", error.message);
         }
 
         res.status(201).json({
@@ -256,7 +259,8 @@ const registerUser = asyncHandler(async (req, res) => {
             role: user.role,
             message: 'Registration successful. Please verify your email with the OTP sent.',
         });
-    } else {
+    }
+    else {
         res.status(400);
         throw new Error('Invalid user data');
     }

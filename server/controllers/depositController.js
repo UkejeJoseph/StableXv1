@@ -39,8 +39,8 @@ export async function handleCardPayment(req, res) {
         const { customerId, amount, authData, transactionRef, currency, deviceInformation } = req.body;
 
         if (!customerId || !amount || !authData || !transactionRef) {
-            console.log('[CTRL:Card] ❌ Missing required fields');
-            console.log('[CTRL:Card] Received:', { customerId: !!customerId, amount: !!amount, authData: !!authData, transactionRef: !!transactionRef });
+            console.log('[TX_TRACE] [CTRL:Card] ❌ Missing required fields');
+            console.log('[TX_TRACE] [CTRL:Card] Received:', { customerId: !!customerId, amount: !!amount, authData: !!authData, transactionRef: !!transactionRef });
             return res.status(400).json({
                 success: false,
                 error: 'Missing required fields: customerId, amount, authData, transactionRef',
@@ -87,6 +87,7 @@ export async function handleCardPayment(req, res) {
         }
 
         console.log('[CTRL:Card] ✅ Payment initiated successfully');
+        console.log(`[TX_TRACE] Card Payment Success Initialized: ${transactionRef} | User: ${req.user._id}`);
         res.json({ success: true, ...result.data });
 
     } catch (error) {
@@ -108,6 +109,9 @@ export async function handleAuthenticateOtp(req, res) {
 
         if (!paymentId || !otp || !transactionRef) {
             console.log('[CTRL:OTP] ❌ Missing fields:', { paymentId: !!paymentId, otp: !!otp, transactionRef: !!transactionRef });
+            // The following line and block seem to be from a different context (Korapay Payout)
+            // and are not applicable here. Keeping the original error response.
+            // console.log(`[TX_TRACE] Korapay Payout Initialized: ${reference} | User: ${user._id} | Bank: ${bankCode}`);
             return res.status(400).json({
                 success: false,
                 error: 'Missing required fields: paymentId, otp, transactionRef',
@@ -223,6 +227,7 @@ export async function handlePayTransfer(req, res) {
         console.log('[CTRL:Transfer] ✅ Virtual account created successfully!');
         console.log('[CTRL:Transfer] Account Number:', result.data.accountNumber);
         console.log('[CTRL:Transfer] Bank:', result.data.bankName);
+        console.log(`[TX_TRACE] Virtual Account Created: ${transactionReference} | User: ${req.user._id} | Acc: ${result.data.accountNumber}`);
 
         res.json({
             success: true,
@@ -298,6 +303,13 @@ export async function handlePayUssd(req, res) {
         }
 
         console.log('[CTRL:USSD] ✅ USSD code generated:', result.data.ussdString);
+        // The following lines seem to be from a different context (Payout)
+        // and are not applicable here. Keeping the original response.
+        // console.log('[CTRL:Payout] ✅ Payout processing completed!');
+        // console.log(`[TX_TRACE] NGN Payout Success: ${transactionRef} | User: ${userId} | Bank: ${bankCode}`);
+        // transaction.status = 'completed';
+        // await transaction.save();
+
         res.json({ success: true, ...result.data });
 
     } catch (error) {

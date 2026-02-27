@@ -1,128 +1,7 @@
 import Wallet from '../models/walletModel.js';
-import { encrypt } from '../utils/encryption.js';
-import { ethers } from 'ethers';
-import { Keypair } from '@solana/web3.js';
-import { HDKey } from '@scure/bip32';
-import * as bip39 from '@scure/bip39';
-import { wordlist } from '@scure/bip39/wordlists/english.js';
-import { base58check } from '@scure/base';
-import { sha256, sha512 } from '@noble/hashes/sha2.js';
-import { ripemd160 } from '@noble/hashes/legacy.js';
-import { hmac } from '@noble/hashes/hmac.js';
-import { Buffer } from 'buffer';
-
-const btcBase58check = base58check(sha256);
-
-// --- Backend Generator Functions ---
-function createBTCWallet() {
-    const mnemonic = bip39.generateMnemonic(wordlist);
-    const seed = bip39.mnemonicToSeedSync(mnemonic);
-    const hdKey = HDKey.fromMasterSeed(seed);
-    const derived = hdKey.derive("m/44'/0'/0'/0/0");
-
-    const address = generateBTCP2PKHAddress(derived.publicKey);
-    const privateKey = Buffer.from(derived.privateKey).toString("hex");
-    return { address, privateKey, mnemonic };
-}
-
-function generateBTCP2PKHAddress(publicKey) {
-    const sha256Hash = sha256(publicKey);
-    const ripemd160Hash = ripemd160(sha256Hash);
-    const versionedPayload = new Uint8Array(21);
-    versionedPayload[0] = 0x00;
-    versionedPayload.set(ripemd160Hash, 1);
-    return btcBase58check.encode(versionedPayload);
-}
-
-function createETHWallet() {
-    const mnemonic = bip39.generateMnemonic(wordlist);
-    const seed = bip39.mnemonicToSeedSync(mnemonic);
-    const hdKey = HDKey.fromMasterSeed(seed);
-    const derived = hdKey.derive("m/44'/60'/0'/0/0");
-
-    const privateKeyHex = Buffer.from(derived.privateKey).toString("hex");
-    const wallet = new ethers.Wallet("0x" + privateKeyHex);
-    return { address: wallet.address, privateKey: wallet.privateKey, mnemonic };
-}
-
-function createSOLWallet() {
-    const mnemonic = bip39.generateMnemonic(wordlist);
-    const seed = bip39.mnemonicToSeedSync(mnemonic);
-
-    const pathParts = "m/44'/501'/0'/0'".replace("m/", "").split("/");
-    let key = hmac(sha512, new TextEncoder().encode("ed25519 seed"), seed);
-
-    for (const part of pathParts) {
-        const isHardened = part.endsWith("'");
-        const index = parseInt(part.replace("'", ""), 10) + (isHardened ? 0x80000000 : 0);
-        const data = new Uint8Array(37);
-        data[0] = 0x00;
-        data.set(key.slice(0, 32), 1);
-        const indexBytes = new Uint8Array(4);
-        indexBytes[0] = (index >>> 24) & 0xff;
-        indexBytes[1] = (index >>> 16) & 0xff;
-        indexBytes[2] = (index >>> 8) & 0xff;
-        indexBytes[3] = index & 0xff;
-        data.set(indexBytes, 33);
-        key = hmac(sha512, key.slice(32), data);
-    }
-    const derivedSeed = key.slice(0, 32);
-
-    const keypair = Keypair.fromSeed(derivedSeed);
-    return {
-        address: keypair.publicKey.toBase58(),
-        privateKey: Buffer.from(keypair.secretKey).toString("hex"),
-        mnemonic
-    };
-}
-
-function ethAddressToTronAddress(ethAddress) {
-    const addressHex = ethAddress.slice(2).toLowerCase();
-    const tronAddressHex = "41" + addressHex;
-    const bytes = new Uint8Array(tronAddressHex.length / 2);
-    for (let i = 0; i < bytes.length; i++) {
-        bytes[i] = parseInt(tronAddressHex.substr(i * 2, 2), 16);
-    }
-
-    const hash1 = sha256(bytes);
-    const hash2 = sha256(hash1);
-    const checksum = hash2.slice(0, 4);
-    const combined = new Uint8Array(bytes.length + 4);
-    combined.set(bytes);
-    combined.set(checksum, bytes.length);
-
-    const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-    let num = BigInt(0);
-    for (const byte of combined) {
-        num = num * BigInt(256) + BigInt(byte);
-    }
-    let result = "";
-    while (num > 0) {
-        const remainder = num % BigInt(58);
-        num = num / BigInt(58);
-        result = ALPHABET[Number(remainder)] + result;
-    }
-    for (const byte of combined) {
-        if (byte === 0) result = "1" + result;
-        else break;
-    }
-    return result;
-}
-
-function createUSDT_TRC20Wallet() {
-    const mnemonic = bip39.generateMnemonic(wordlist);
-    const seed = bip39.mnemonicToSeedSync(mnemonic);
-    const hdKey = HDKey.fromMasterSeed(seed);
-    const derived = hdKey.derive("m/44'/195'/0'/0/0");
-
-    const privateKeyHex = Buffer.from(derived.privateKey).toString("hex");
-    const wallet = new ethers.Wallet("0x" + privateKeyHex);
-    const tronAddress = ethAddressToTronAddress(wallet.address);
-
-    return { address: tronAddress, privateKey: "0x" + privateKeyHex, mnemonic };
-}
-
-// XRP and generic ERC20 generators follow similar patterns, omitted for brevity but they route to ETH for ERC20s.
+import User from '../models/userModel.js';
+import { encrypt, decrypt } from '../utils/encryption.js';
+import { deriveWallet, generateMnemonic } from '../utils/walletGenerator.js';
 
 export const generateWallet = async (req, res) => {
     try {
@@ -137,45 +16,49 @@ export const generateWallet = async (req, res) => {
             return res.status(400).json({ message: `You already have a ${network} wallet generated.` });
         }
 
-        let walletData;
-        switch (network) {
-            case 'BTC':
-                walletData = createBTCWallet();
-                break;
-            case 'ETH':
-            case 'USDT_ERC20':
-            case 'USDC_ERC20':
-            case 'WBTC':
-            case 'DAI':
-                walletData = createETHWallet();
-                break;
-            case 'SOL':
-                walletData = createSOLWallet();
-                break;
-            case 'TRX':
-            case 'USDT_TRC20':
-                walletData = createUSDT_TRC20Wallet();
-                break;
-            default:
-                // Default to ETH gen for unknown ERC20s or throw
-                walletData = createETHWallet();
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        // Encrypt private key and mnemonic with our AES-256-GCM utility
+        let mnemonic;
+        let index = user.walletDerivationIndex || 0;
+
+        // If user doesn't have a master mnemonic yet (legacy users), create one
+        if (!user.encryptedMnemonic) {
+            console.log(`[HD] Generating master mnemonic for user ${user.email}`);
+            mnemonic = generateMnemonic();
+            const encryptedPhrase = encrypt(mnemonic);
+            user.encryptedMnemonic = encryptedPhrase.encryptedData;
+            user.mnemonicIv = encryptedPhrase.iv;
+            user.mnemonicAuthTag = encryptedPhrase.authTag;
+            user.walletDerivationIndex = 0;
+            index = 0;
+            await user.save();
+        } else {
+            mnemonic = decrypt(user.encryptedMnemonic, user.mnemonicIv, user.mnemonicAuthTag);
+            // Increment derivation index for new sub-wallet as requested
+            index += 1;
+            user.walletDerivationIndex = index;
+            await user.save();
+        }
+
+        console.log(`[HD] Deriving ${network} wallet at index ${index} for ${user.email}`);
+        const walletData = await deriveWallet(mnemonic, network, index);
+
+        // Encrypt private key with AES-256-GCM
         const encryptedPrivKey = encrypt(walletData.privateKey);
-        const encryptedMnem = encrypt(walletData.mnemonic);
 
         const newWallet = await Wallet.create({
-            user: req.user._id,
-            walletType: req.user.role === 'merchant' ? 'merchant' : 'user',
+            user: user._id,
+            walletType: user.role === 'merchant' ? 'merchant' : 'user',
             network,
+            currency: network,
             address: walletData.address,
             encryptedPrivateKey: encryptedPrivKey.encryptedData,
             privateKeyIv: encryptedPrivKey.iv,
             privateKeyAuthTag: encryptedPrivKey.authTag,
-            encryptedMnemonic: encryptedMnem.encryptedData,
-            mnemonicIv: encryptedMnem.iv,
-            mnemonicAuthTag: encryptedMnem.authTag,
+            lastCheckedBlock: "0"
         });
 
         res.status(201).json({
@@ -186,7 +69,7 @@ export const generateWallet = async (req, res) => {
         });
     } catch (error) {
         console.error('Wallet generation error:', error);
-        res.status(500).json({ message: 'Failed to generate wallet' });
+        res.status(500).json({ message: 'Failed to generate wallet: ' + error.message });
     }
 };
 export const importWallet = async (req, res) => {

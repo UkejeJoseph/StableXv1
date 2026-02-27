@@ -15,6 +15,7 @@ import { ArrowDownUp, Info } from "lucide-react";
 import { SiBitcoin, SiEthereum, SiSolana, SiTether } from "react-icons/si";
 import { useBalances } from "@/hooks/useBalances";
 import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/components/ui/use-toast";
 
 const EXCHANGE_RATES = {
   NGN_USDT: 0.00062,
@@ -43,6 +44,7 @@ export default function Convert() {
   const queryClient = useQueryClient();
   const { data: balancesData } = useBalances();
 
+  const { toast } = useToast();
   const [fromCurrency, setFromCurrency] = useState("NGN");
   const [toCurrency, setToCurrency] = useState("USDT");
   const [amount, setAmount] = useState("");
@@ -121,7 +123,7 @@ export default function Convert() {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          },
+        },
         body: JSON.stringify({
           fromCurrency,
           toCurrency,
@@ -135,7 +137,10 @@ export default function Convert() {
         const toCurr = currencies.find(c => c.id === toCurrency);
         const displayDecimals = toCurrency === 'NGN' ? 2 : 6;
 
-        setSuccessMessage(`Successfully swapped ${amount} ${fromCurrency} to ${data.receivedAmount.toFixed(displayDecimals)} ${toCurrency}`);
+        toast({
+          title: "Swap Successful",
+          description: `Successfully swapped ${amount} ${fromCurrency} to ${data.receivedAmount.toFixed(displayDecimals)} ${toCurrency}`
+        });
 
         await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
 
@@ -143,10 +148,18 @@ export default function Convert() {
         setConvertedAmount("");
         fetchRates(); // Refresh rates
       } else {
-        setErrorMessage(data.error || "Swap failed");
+        toast({
+          title: "Swap Failed",
+          description: data.error || "Swap failed",
+          variant: "destructive"
+        });
       }
     } catch (error) {
-      setErrorMessage("Network error");
+      toast({
+        title: "Network Error",
+        description: "Network error",
+        variant: "destructive"
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -163,18 +176,6 @@ export default function Convert() {
         <p className="text-muted-foreground text-sm mb-6">
           Exchange between Naira and crypto at the best rates
         </p>
-
-        {errorMessage && (
-          <div className="mb-4 p-3 bg-red-100 text-red-600 rounded-lg text-sm">
-            {errorMessage}
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="mb-4 p-3 bg-green-100 text-green-600 rounded-lg text-sm">
-            {successMessage}
-          </div>
-        )}
 
         <Card className="p-4 mb-4">
           <Label className="text-sm text-muted-foreground mb-2 block">From</Label>

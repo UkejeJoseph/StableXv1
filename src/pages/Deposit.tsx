@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { SiVisa, SiMastercard, SiTether } from "react-icons/si";
 import { useWallets } from "@/hooks/useWallets";
+import { useToast } from "@/components/ui/use-toast";
 
 declare global {
   interface Window {
@@ -57,6 +58,7 @@ interface USSDBank {
 }
 
 export default function Deposit() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("checkout");
   const [selectedWallet, setSelectedWallet] = useState<WalletType>("NGN");
   const [amount, setAmount] = useState("");
@@ -379,13 +381,17 @@ export default function Deposit() {
     const ref = generateTransactionRef();
     setTransactionRef(ref);
     const amountInKobo = Math.round(parseFloat(amount) * 100);
+    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
 
     const checkoutConfig = {
       merchant_code: config.merchantCode,
-      pay_item_id: config.payItemId,
+      pay_item_name: "StableX Wallet Deposit",
       txn_ref: ref,
       amount: amountInKobo,
       currency: 566,
+      cust_name: userInfo.name || "StableX Customer",
+      cust_email: userInfo.email || "",
+      cust_id: userInfo._id || "",
       onComplete: async (response: any) => {
         console.log("Payment response:", response);
 
@@ -399,15 +405,35 @@ export default function Deposit() {
             if (verifyData.success && verifyData.ResponseCode === "00") {
               setShowSuccess(true);
               setAmount("");
+              toast({
+                title: "Payment Successful",
+                description: `₦${amount} has been deposited via card.`
+              });
             } else {
               // Fallback for demo if API fails
               setErrorMessage("Payment verification failed. Please click 'I have paid' if debited.");
+              toast({
+                title: "Payment Verification Failed",
+                description: "Payment verification failed. Please click 'I have paid' if debited.",
+                variant: "destructive"
+              });
             }
           } catch {
             setErrorMessage("Could not verify payment automatically. Please click 'I have paid'.");
+            toast({
+              title: "Payment Verification Error",
+              description: "Could not verify payment automatically. Please click 'I have paid'.",
+              variant: "destructive"
+            });
           }
         } else {
-          setErrorMessage(response.message || response.desc || "Payment failed. Please try again.");
+          const err = response.message || response.desc || "Payment failed. Please try again.";
+          setErrorMessage(err);
+          toast({
+            title: "Payment Failed",
+            description: err,
+            variant: "destructive"
+          });
         }
         setIsProcessing(false);
       },
@@ -457,17 +483,37 @@ export default function Deposit() {
 
       if (data.success && data.ussdCode) {
         setUssdCode(data.ussdCode);
+        setTransactionRef(data.transactionRef);
+        toast({
+          title: "USSD Code Generated",
+          description: "Please dial the code to complete your payment."
+        });
       } else {
         const bank = ussdBanks.find((b) => b.bankCode === selectedUssdBank);
         if (bank?.ussdCode) {
           setUssdCode(bank.ussdCode);
+          toast({
+            title: "USSD Code Generated",
+            description: "Please dial the code to complete your payment."
+          });
         } else {
-          setErrorMessage(data.error || "Failed to generate USSD code. Try another bank.");
+          const err = data.error || "Failed to generate USSD code.";
+          setErrorMessage(err);
+          toast({
+            title: "USSD Failed",
+            description: err,
+            variant: "destructive"
+          });
         }
       }
     } catch (error) {
       console.error("USSD error:", error);
       setErrorMessage("Network error. Please try again.");
+      toast({
+        title: "USSD Error",
+        description: "Network error. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsProcessing(false);
     }

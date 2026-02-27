@@ -4,10 +4,13 @@
 // After confirmation: credits DB balance + sweeps to hot wallet
 // ──────────────────────────────────────────────────────────────
 import Wallet from '../models/walletModel.js';
+import User from '../models/userModel.js';
 import Transaction from '../models/transactionModel.js';
 import { creditUserWallet } from '../services/walletService.js';
 import { estimateTronGas } from '../utils/gasEstimator.js';
 import { decrypt } from '../utils/encryption.js';
+import { queueWebhook } from '../services/webhookService.js';
+import { sendOperationalAlert } from '../utils/alerting.js';
 import fetch from 'node-fetch';
 import crypto from 'crypto';
 import * as ecc from 'tiny-secp256k1';
@@ -241,6 +244,16 @@ const checkPendingConfirmations = async () => {
                             updatedMetadata
                         );
                         updatedWallet = creditResult.wallet;
+
+                        const user = await User.findById(tx.user);
+                        if (user && user.webhookUrl) {
+                            await queueWebhook(user, 'deposit.confirmed', {
+                                txHash: tx.reference,
+                                amount: tx.amount,
+                                currency: tx.currency,
+                                network: 'TRC20'
+                            });
+                        }
                     } catch (err) {
                         console.error(`❌ Atomic credit failed for ${tx.reference}: ${err.message}`);
                     }
@@ -255,6 +268,13 @@ const checkPendingConfirmations = async () => {
                             }
                         } catch (sweepError) {
                             console.error(`❌ Sweep failed (will retry): ${sweepError.message}`);
+                            await sendOperationalAlert('SWEEP_FAILED', {
+                                network: 'TRC20',
+                                currency: tx.currency,
+                                amount: tx.amount,
+                                wallet: updatedWallet.address,
+                                error: sweepError.message
+                            });
                             try {
                                 const token = TRC20_TOKENS.find(t => t.symbol === tx.currency || t.key === updatedWallet.currency);
                                 await SweepQueue.create({
@@ -358,6 +378,17 @@ export const sweepToHotWallet = async (wallet, token, amount, depositTxHash) => 
     const sweepTxHash = triggerData.transaction.txID;
     console.log(`[SWEEP] ✅ Swept ${amount} ${token.symbol} to hot wallet!`);
     console.log(`[SWEEP] Sweep TxHash: ${sweepTxHash}`);
+
+    const user = await User.findById(wallet.user);
+    if (user && user.webhookUrl) {
+        await queueWebhook(user, 'sweep.completed', {
+            sweepTxHash,
+            depositTxHash,
+            amount,
+            currency: token.symbol,
+            network: 'TRC20'
+        });
+    }
 
     // 5. Record the sweep transaction
     await Transaction.create({

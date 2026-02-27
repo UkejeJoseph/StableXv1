@@ -3,7 +3,15 @@ import { WebLayout } from "@/components/WebSidebar";
 import { Search, TrendingUp, TrendingDown, Circle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SiBitcoin, SiEthereum, SiSolana, SiTether } from "react-icons/si";
+import { PriceChart } from "@/components/PriceChart";
 
 interface Coin {
   id: string;
@@ -26,6 +34,8 @@ const coins: Coin[] = [
 
 export default function WebTrade() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCoin, setSelectedCoin] = useState<Coin | null>(null);
+  const [showChart, setShowChart] = useState(false);
 
   const filteredCoins = coins.filter(
     (coin) =>
@@ -75,24 +85,56 @@ export default function WebTrade() {
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-medium text-foreground">
-                    {coin.price.toLocaleString()} USD
-                  </p>
-                  <div className={`flex items-center gap-1 text-xs ${coin.change >= 0 ? "text-success" : "text-destructive"
-                    }`}>
-                    {coin.change >= 0 ? (
-                      <TrendingUp className="w-3 h-3" />
-                    ) : (
-                      <TrendingDown className="w-3 h-3" />
-                    )}
-                    {Math.abs(coin.change)}%
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="font-medium text-foreground">
+                      {coin.price.toLocaleString()} USD
+                    </p>
+                    <div className={`flex items-center gap-1 text-xs justify-end ${coin.change >= 0 ? "text-success" : "text-destructive"
+                      }`}>
+                      {coin.change >= 0 ? (
+                        <TrendingUp className="w-3 h-3" />
+                      ) : (
+                        <TrendingDown className="w-3 h-3" />
+                      )}
+                      {Math.abs(coin.change)}%
+                    </div>
                   </div>
+                  {coin.symbol !== "USDT" && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedCoin(coin);
+                        setShowChart(true);
+                      }}
+                    >
+                      <TrendingUp className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </Card>
             );
           })}
         </div>
+
+        <Dialog open={showChart} onOpenChange={setShowChart}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {selectedCoin && (
+                  <>
+                    <selectedCoin.IconComponent className={`w-5 h-5 ${selectedCoin.iconColor}`} />
+                    {selectedCoin.name} ({selectedCoin.symbol}) Price Chart
+                  </>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            {selectedCoin && <PriceChart symbol={selectedCoin.symbol} />}
+          </DialogContent>
+        </Dialog>
       </div>
     </WebLayout>
   );

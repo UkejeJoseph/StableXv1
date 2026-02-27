@@ -1,105 +1,131 @@
 import * as bip39 from 'bip39';
-
 import * as bitcoin from 'bitcoinjs-lib';
 import { ethers } from 'ethers';
 import { Keypair } from '@solana/web3.js';
 import * as tinysecp from 'tiny-secp256k1';
 import { BIP32Factory } from 'bip32';
+import { derivePath } from 'ed25519-hd-key';
 
 const bip32algo = BIP32Factory(tinysecp);
 
-// Helper to generate a new mnemonic
+// ──────────────────────────────────────────────────────────────
+// HD Wallet Generator (BIP44)
+// ──────────────────────────────────────────────────────────────
+
+/**
+ * Generate a new master BIP39 mnemonic (24 words for high security)
+ */
 export const generateMnemonic = () => {
-    return bip39.generateMnemonic();
+    return bip39.generateMnemonic(256); // 256 bits = 24 words
 };
 
-// Helper to derive wallets from mnemonic using a per-user derivation index
-export const deriveWallets = async (mnemonic, derivationIndex = 0) => {
+/**
+ * Derive a single wallet for a specific network and index
+ * @param {string} mnemonic - The master mnemonic
+ * @param {string} network - BTC, ETH, SOL, TRON
+ * @param {number} index - Derivation index
+ */
+export const deriveWallet = async (mnemonic, network, index = 0) => {
     const seed = await bip39.mnemonicToSeed(mnemonic);
     const root = bip32algo.fromSeed(seed);
 
-    const wallets = [];
+    switch (network) {
+        case 'BTC': {
+            const path = `m/44'/0'/0'/0/${index}`;
+            const child = root.derivePath(path);
+            const { address } = bitcoin.payments.p2pkh({
+                pubkey: child.publicKey,
+                network: bitcoin.networks.bitcoin,
+            });
+            return {
+                currency: 'BTC',
+                address,
+                privateKey: child.toWIF()
+            };
+        }
 
-    // 1. Bitcoin (Segwit P2WPKH) - Path m/84'/0'/0'/0/{index}
-    const btcPath = `m/84'/0'/0'/0/${derivationIndex}`;
-    const btcChild = root.derivePath(btcPath);
-    const { address: btcAddress } = bitcoin.payments.p2wpkh({
-        pubkey: btcChild.publicKey,
-        network: bitcoin.networks.bitcoin,
-    });
-    wallets.push({
-        currency: 'BTC',
-        address: btcAddress,
-        privateKey: btcChild.toWIF(),
-    });
+        case 'ETH':
+        case 'USDT_ERC20': {
+            const path = `m/44'/60'/0'/0/${index}`;
+            const child = root.derivePath(path);
+            const privateKey = '0x' + Buffer.from(child.privateKey).toString('hex');
+            const wallet = new ethers.Wallet(privateKey);
+            return {
+                currency: network,
+                address: wallet.address,
+                privateKey: wallet.privateKey
+            };
+        }
 
-    // 2. Ethereum (ERC20 uses same address) - Path m/44'/60'/0'/0/{index}
-    const ethPath = `m/44'/60'/0'/0/${derivationIndex}`;
-    const ethSeed = await bip39.mnemonicToSeed(mnemonic);
-    const ethRoot = bip32algo.fromSeed(ethSeed);
-    const ethChild = ethRoot.derivePath(ethPath);
-    const ethPrivKey = '0x' + ethChild.privateKey.toString('hex');
-    const ethWallet = new (await import('ethers')).ethers.Wallet(ethPrivKey);
-    wallets.push({
-        currency: 'ETH',
-        address: ethWallet.address,
-        privateKey: ethWallet.privateKey,
-    });
-    // USDT ERC20 (same address as ETH)
-    wallets.push({
-        currency: 'USDT_ERC20',
-        address: ethWallet.address,
-        privateKey: ethWallet.privateKey,
-    });
+        case 'SOL': {
+            const path = `m/44'/501'/0'/0/${index}'`; // standard SOL path
+            const derivedSeed = derivePath(path, seed.toString('hex')).key;
+            const keypair = Keypair.fromSeed(derivedSeed);
+            return {
+                currency: 'SOL',
+                address: keypair.publicKey.toBase58(),
+                privateKey: Buffer.from(keypair.secretKey).toString('hex')
+            };
+        }
 
-    // 3. Solana - Path m/44'/501'/{index}'/0'
-    const { derivePath } = await import('ed25519-hd-key');
-    const solDerivationPath = `m/44'/501'/${derivationIndex}'/0'`;
-    const derivedSeed = derivePath(solDerivationPath, seed.toString('hex')).key;
-    const solKeypair = Keypair.fromSeed(derivedSeed);
-    wallets.push({
-        currency: 'SOL',
-        address: solKeypair.publicKey.toBase58(),
-        privateKey: Buffer.from(solKeypair.secretKey).toString('hex'),
-    });
+        case 'TRON':
+        case 'USDT_TRC20': {
+            const path = `m/44'/195'/0'/0/${index}`;
+            const child = root.derivePath(path);
+            const privateKey = Buffer.from(child.privateKey).toString('hex');
 
-    // 4. TRON (USDT TRC20, TRX, etc.) - Derived from ETH key at same index
-    const TronWebModule = await import('tronweb');
-    const TronWeb = TronWebModule.TronWeb;
-    const tronWeb = new TronWeb({
-        fullHost: 'https://api.trongrid.io',
-        privateKey: ethWallet.privateKey.replace('0x', '')
-    });
+            // Derive TRON address from private key
+            const { TronWeb } = await import('tronweb');
+            const tronWeb = new TronWeb({ fullHost: 'https://api.trongrid.io' });
+            const address = tronWeb.address.fromPrivateKey(privateKey);
 
-    const tronAddress = tronWeb.address.fromPrivateKey(ethWallet.privateKey.replace('0x', ''));
+            return {
+                currency: network,
+                address,
+                privateKey: '0x' + privateKey
+            };
+        }
 
-    wallets.push({
-        currency: 'TRX',
-        address: tronAddress,
-        privateKey: ethWallet.privateKey,
-    });
-    wallets.push({
-        currency: 'USDT_TRC20',
-        address: tronAddress,
-        privateKey: ethWallet.privateKey,
-    });
-    wallets.push({
-        currency: 'ETH_TRC20',
-        address: tronAddress,
-        privateKey: ethWallet.privateKey,
-    });
-    wallets.push({
-        currency: 'SOL_TRC20',
-        address: tronAddress,
-        privateKey: ethWallet.privateKey,
-    });
+        default:
+            throw new Error(`Unsupported network: ${network}`);
+    }
+};
 
-    // 5. Fiat (Nigerian Naira - NGN)
-    wallets.push({
+/**
+ * Derive all standard wallets at once (used during registration)
+ */
+export const deriveWallets = async (mnemonic, index = 0) => {
+    const networks = ['BTC', 'ETH', 'SOL', 'USDT_TRC20'];
+    const results = await Promise.all(networks.map(n => deriveWallet(mnemonic, n, index)));
+
+    // Add USDT_ERC20 (same as ETH)
+    const eth = results.find(r => r.currency === 'ETH');
+    results.push({ ...eth, currency: 'USDT_ERC20' });
+
+    // Add Fiat
+    results.push({
         currency: 'NGN',
         address: "INTERNAL_NGN",
         privateKey: "N/A"
     });
 
-    return wallets;
+    return results;
+};
+
+/**
+ * Re-derives a private key on demand without storing it
+ */
+export const regeneratePrivateKey = async (userId, network) => {
+    const User = (await import('../models/userModel.js')).default;
+    const { decrypt } = await import('./encryption.js');
+
+    const user = await User.findById(userId);
+    if (!user || !user.encryptedMnemonic) {
+        throw new Error('User mnemonic not found');
+    }
+
+    const mnemonic = decrypt(user.encryptedMnemonic, user.mnemonicIv, user.mnemonicAuthTag);
+    const walletData = await deriveWallet(mnemonic, network, user.walletDerivationIndex || 0);
+
+    return walletData.privateKey;
 };

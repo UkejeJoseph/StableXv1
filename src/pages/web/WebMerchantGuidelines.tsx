@@ -97,6 +97,23 @@ export default function WebMerchantGuidelines() {
                     </p>
                 </Card>
 
+                {/* Webhook Security */}
+                <Card className="bg-card/50 border-border/30 p-6 space-y-4">
+                    <h2 className="text-xl font-semibold flex items-center gap-2">
+                        <Webhook className="w-5 h-5 text-[#F0B90B]" /> Webhook Security
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                        All webhooks are signed with an <strong>HMAC-SHA512</strong> signature sent in the <code>X-StableX-Signature</code> header.
+                    </p>
+                    <div className="bg-[#0d1117] rounded-xl p-4 text-sm font-mono overflow-x-auto">
+                        <p className="text-green-400">// Example verification (Node.js)</p>
+                        <p className="text-slate-300">const signature = req.headers['x-stablex-signature'];</p>
+                        <p className="text-slate-300">const hmac = crypto.createHmac('sha512', YOUR_WEBHOOK_SECRET);</p>
+                        <p className="text-slate-300">const digest = hmac.update(JSON.stringify(req.body)).digest('hex');</p>
+                        <p className="text-slate-300">const isValid = signature === digest;</p>
+                    </div>
+                </Card>
+
                 {/* Supported Currencies */}
                 <Card className="bg-card/50 border-border/30 p-6 space-y-4">
                     <h2 className="text-xl font-semibold">Supported Currencies</h2>

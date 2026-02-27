@@ -8,6 +8,9 @@ const userSchema = mongoose.Schema({
         unique: true,
         match: [/^\S+@\S+\.\S+$/, 'Please use a valid email address'],
     },
+    name: {
+        type: String,
+    },
     username: {
         type: String,
         unique: true,
@@ -68,6 +71,7 @@ const userSchema = mongoose.Schema({
         secretKey: { type: String, default: null, index: true },
     },
     webhookUrl: { type: String, default: null },
+    webhookSecret: { type: String, default: null },
 }, {
     timestamps: true,
 });
@@ -83,10 +87,6 @@ userSchema.pre('save', async function () {
 userSchema.methods.matchPassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
-
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
-userSchema.index({ googleId: 1 }, { sparse: true });
 
 const User = mongoose.model('User', userSchema);
 export default User;

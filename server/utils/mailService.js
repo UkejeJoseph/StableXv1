@@ -46,7 +46,7 @@ export const sendOtpEmail = async (email, otp) => {
     };
 
     const info = await mailTransporter.sendMail(mailOptions);
-    console.log(`✉️ OTP Email sent via Gmail to ${email}. Message ID: ${info.messageId}`);
+    console.log(`✉️ OTP Email sent via Gmail TO: [${email}] FROM: [${process.env.MAIL_USER}]. Message ID: ${info.messageId}`);
     return info;
 
   } catch (error) {

@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { SiVisa, SiMastercard, SiTether } from "react-icons/si";
 import { useWallets } from "@/hooks/useWallets";
+import { useToast } from "@/components/ui/use-toast";
 
 declare global {
   interface Window {
@@ -58,6 +59,7 @@ interface USSDBank {
 }
 
 export default function WebDeposit() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("checkout");
   const [selectedWallet, setSelectedWallet] = useState<WalletType>("NGN");
   const [amount, setAmount] = useState("");
@@ -314,8 +316,17 @@ export default function WebDeposit() {
           setErrorMessage("");
           setShowSuccess(true);
           setAmount("");
+          toast({
+            title: "Deposit Initiated",
+            description: "Waiting for blockchain confirmation.",
+          });
         } else {
           setErrorMessage(data.message || "Failed to record deposit");
+          toast({
+            title: "Deposit Failed",
+            description: data.message || "Failed to record deposit.",
+            variant: "destructive",
+          });
         }
       } else {
         // ── FIAT DEPOSIT (NGN): Status remains PENDING until webhook ──
@@ -340,22 +351,40 @@ export default function WebDeposit() {
             // Updated behavior: don't auto-credit locally based on manual "sent" click
             setShowSuccess(true);
             setAmount("");
+            toast({
+              title: "Deposit Confirmation Sent",
+              description: "We'll verify your payment shortly.",
+            });
           } else {
             const currentBalances = JSON.parse(localStorage.getItem("stablex_balances") || '{"NGN": 0, "USDT_ERC20": 0, "USDT": 0}');
             currentBalances.NGN = data.balance;
             localStorage.setItem("stablex_balances", JSON.stringify(currentBalances));
             setShowSuccess(true);
             setAmount("");
+            toast({
+              title: "Deposit Successful",
+              description: `₦${amount} has been deposited to your wallet.`,
+            });
           }
           setUssdCode("");
           setDynamicAccount(null);
         } else {
           setErrorMessage(data.message || "Deposit failed");
+          toast({
+            title: "Deposit Failed",
+            description: data.message || "Deposit failed.",
+            variant: "destructive",
+          });
         }
       }
     } catch (error) {
       console.error("Deposit error:", error);
       setErrorMessage("Failed to process payment confirmation.");
+      toast({
+        title: "Error",
+        description: "Failed to process payment confirmation.",
+        variant: "destructive",
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -365,14 +394,29 @@ export default function WebDeposit() {
   const handleCardPayment = () => {
     if (!amount || parseFloat(amount) <= 0) {
       setErrorMessage("Please enter a valid amount");
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid amount.",
+        variant: "destructive",
+      });
       return;
     }
     if (parseFloat(amount) < 100) {
       setErrorMessage("Minimum deposit amount is ₦100");
+      toast({
+        title: "Minimum Amount",
+        description: "Minimum deposit amount is ₦100.",
+        variant: "destructive",
+      });
       return;
     }
     if (!config) {
       setErrorMessage("Payment system is still loading. Please wait.");
+      toast({
+        title: "Payment System Unavailable",
+        description: "Payment system is still loading. Please wait.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -403,15 +447,35 @@ export default function WebDeposit() {
             if (verifyData.success && verifyData.ResponseCode === "00") {
               setShowSuccess(true);
               setAmount("");
+              toast({
+                title: "Payment Successful",
+                description: `₦${amount} has been deposited via card.`
+              });
             } else {
               // Fallback for demo if API fails
               setErrorMessage("Payment verification failed. Please click 'I have paid' if debited.");
+              toast({
+                title: "Payment Verification Failed",
+                description: "Payment verification failed. Please click 'I have paid' if debited.",
+                variant: "destructive"
+              });
             }
           } catch {
             setErrorMessage("Could not verify payment automatically. Please click 'I have paid'.");
+            toast({
+              title: "Verification Error",
+              description: "Could not verify payment automatically. Please click 'I have paid'.",
+              variant: "destructive"
+            });
           }
         } else {
-          setErrorMessage(response.message || response.desc || "Payment failed. Please try again.");
+          const err = response.message || response.desc || "Payment failed. Please try again.";
+          setErrorMessage(err);
+          toast({
+            title: "Payment Failed",
+            description: err,
+            variant: "destructive"
+          });
         }
         setIsProcessing(false);
       },
@@ -424,6 +488,11 @@ export default function WebDeposit() {
     } else {
       setErrorMessage("Payment system is loading. Please try again in a moment.");
       setIsProcessing(false);
+      toast({
+        title: "Payment System Error",
+        description: "Payment system is loading. Please try again in a moment.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -431,10 +500,20 @@ export default function WebDeposit() {
   const handleUssdPayment = async () => {
     if (!amount || parseFloat(amount) < 100) {
       setErrorMessage("Minimum deposit amount is ₦100");
+      toast({
+        title: "Minimum Amount",
+        description: "Minimum deposit amount is ₦100.",
+        variant: "destructive",
+      });
       return;
     }
     if (!selectedUssdBank) {
       setErrorMessage("Please select a bank");
+      toast({
+        title: "Bank Not Selected",
+        description: "Please select a bank.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -461,17 +540,38 @@ export default function WebDeposit() {
 
       if (data.success && data.ussdCode) {
         setUssdCode(data.ussdCode);
+        setTransactionRef(data.transactionRef);
+        toast({
+          title: "USSD Code Generated",
+          description: "Please dial the code to complete your payment."
+        });
       } else {
         const bank = ussdBanks.find((b) => b.bankCode === selectedUssdBank);
         if (bank?.ussdCode) {
           setUssdCode(bank.ussdCode);
+          setTransactionRef(ref); // Use the generated ref if backend didn't return one
+          toast({
+            title: "USSD Code Generated",
+            description: "Please dial the code to complete your payment."
+          });
         } else {
-          setErrorMessage(data.error || "Failed to generate USSD code. Try another bank.");
+          const err = data.error || "Failed to generate USSD code. Try another bank.";
+          setErrorMessage(err);
+          toast({
+            title: "USSD Failed",
+            description: err,
+            variant: "destructive"
+          });
         }
       }
     } catch (error) {
       console.error("USSD error:", error);
       setErrorMessage("Network error. Please try again.");
+      toast({
+        title: "Network Error",
+        description: "Network error. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsProcessing(false);
     }

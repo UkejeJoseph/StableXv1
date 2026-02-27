@@ -7,16 +7,15 @@ const KORA_BASE_URL = 'https://api.korapay.com/merchant/api/v1';
 
 class KorapayService {
     constructor() {
-        if (process.env.NODE_ENV === 'production') {
-            if (!process.env.KORA_SECRET_KEY || process.env.KORA_SECRET_KEY === 'sk_test_placeholder_key') {
-                throw new Error(
-                    'FATAL: KORA_SECRET_KEY is not set. Server cannot start in production without real KoraPay credentials.'
-                );
-            }
+        if (!process.env.KORA_SECRET_KEY || process.env.KORA_SECRET_KEY === 'sk_test_placeholder_key') {
+            console.warn(
+                '⚠️  [KoraPay] Running with placeholder keys. ' +
+                'NGN deposits and virtual accounts will not work. ' +
+                'Add real KORA_SECRET_KEY to enable NGN features.'
+            );
+            this.enabled = false;
         } else {
-            if (!process.env.KORA_SECRET_KEY || process.env.KORA_SECRET_KEY === 'sk_test_placeholder_key') {
-                console.warn('⚠️  KoraPay: Running with placeholder keys. Payouts and Virtual Accounts will not work.');
-            }
+            this.enabled = true;
         }
 
         this.headers = {
@@ -26,6 +25,9 @@ class KorapayService {
     }
 
     async createVirtualAccount(user, accountReference, permanent = false) {
+        if (!this.enabled) {
+            throw new Error('NGN deposits are not available. KoraPay credentials not configured.');
+        }
         const url = `${KORA_BASE_URL}/virtual-bank-account`;
 
         const payload = {
@@ -53,6 +55,9 @@ class KorapayService {
     }
 
     async initializeCheckoutCharge(amount, email, name, reference, redirectUrl) {
+        if (!this.enabled) {
+            throw new Error('NGN deposits are not available. KoraPay credentials not configured.');
+        }
         const url = `${KORA_BASE_URL}/charges/initialize`;
 
         const payload = {
@@ -79,6 +84,9 @@ class KorapayService {
     }
 
     async queryCharge(reference) {
+        if (!this.enabled) {
+            throw new Error('NGN deposits are not available. KoraPay credentials not configured.');
+        }
         const url = `${KORA_BASE_URL}/charges/${reference}`;
 
         const response = await fetch(url, {
@@ -94,6 +102,9 @@ class KorapayService {
     }
 
     async listBanks() {
+        if (!this.enabled) {
+            throw new Error('NGN deposits are not available. KoraPay credentials not configured.');
+        }
         const url = `${KORA_BASE_URL}/misc/banks`;
 
         const response = await fetch(url, {
@@ -109,6 +120,9 @@ class KorapayService {
     }
 
     async disburseToBankAccount(amount, bankCode, accountNumber, accountName, reference, narration = 'Withdrawal from StableX') {
+        if (!this.enabled) {
+            throw new Error('NGN deposits are not available. KoraPay credentials not configured.');
+        }
         const url = `${KORA_BASE_URL}/transactions/disburse`;
 
         const payload = {

@@ -8,7 +8,7 @@ import { ethers } from 'ethers';
 import { Connection, PublicKey } from '@solana/web3.js';
 import axios from 'axios';
 import { TronWeb } from 'tronweb';
-import { rateLimit } from 'express-rate-limit';
+import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 
 // @desc    Get all users with basic wallet/balance info
 // @route   GET /api/admin/users
@@ -605,5 +605,5 @@ export const treasuryLimiter = rateLimit({
     message: { message: 'Too many treasury administrative actions. Please wait an hour.' },
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => req.user?._id || req.ip // Rate limit per admin user
+    keyGenerator: (req, res) => ipKeyGenerator(req) // Rate limit per IP using helper for IPv6 support
 });

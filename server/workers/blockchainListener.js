@@ -58,7 +58,7 @@ const checkDeposits = async () => {
 
         if (wallets.length === 0) return;
 
-        // console.log(`[POLL] 🔍 Scanning ${wallets.length} wallets for deposits...`);
+        console.log(`[POLL] 🔍 Scanning ${wallets.length} wallets for deposits...`);
 
         // Use a simple concurrency pool (batch size of 10)
         // This prevents the O(N) sequential bottleneck while also avoiding 

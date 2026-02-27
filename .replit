@@ -1,0 +1,59 @@
+modules = ["nodejs-20", "web"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["node", "./dist/index.cjs"]
+build = ["npm", "run", "build"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 3001
+externalPort = 3001
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 5001
+externalPort = 3000
+
+[userenv]
+
+[userenv.shared]
+INTERSWITCH_CLIENT_ID = "IKIAB23A4E2756605C1ABC33CE3C287E27267F660D61"
+INTERSWITCH_CLIENT_SECRET = "secret"
+INTERSWITCH_CARD_CLIENT_ID = "IKIA9DC7B77B846A36B6F2FD31C857C7D23BB327A98D"
+INTERSWITCH_CARD_SECRET = "2D44E25BD727850A3774628CEE6D7D96C2594E63"
+INTERSWITCH_MERCHANT_CODE = "MX6072"
+INTERSWITCH_PAY_ITEM_ID = "9405967"
+INTERSWITCH_CARD_MERCHANT_CODE = "MX21696"
+INTERSWITCH_CARD_PAY_ITEM_ID = "4177785"

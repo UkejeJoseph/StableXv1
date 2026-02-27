@@ -1,0 +1,48 @@
+Great question! Here are the best resources to learn the technologies used in this project:
+
+Node.js & Backend Development
+Official Resources:
+
+Node.js Official Docs: https://nodejs.org/en/learn - Start here for Node.js basics
+Express.js Guide: https://expressjs.com/en/guide/routing.html - For building REST APIs
+Free Courses:
+
+freeCodeCamp Node.js Course (YouTube): Search "freeCodeCamp Node.js Full Course" - 8 hour comprehensive tutorial
+The Odin Project: https://www.theodinproject.com/paths/full-stack-javascript - Free full curriculum
+ethers.js (Ethereum/ERC20 Transactions)
+Official Documentation:
+
+ethers.js Docs: https://docs.ethers.org/v6/ - Very well written, start with "Getting Started"
+Key Topics to Learn:
+
+Creating wallets and signing transactions
+Connecting to providers (like LlamaRPC, Infura)
+Interacting with smart contracts (ERC20 transfers)
+Gas estimation and fee data
+Tutorials:
+
+Search "ethers.js tutorial" on YouTube - Patrick Collins has excellent content
+https://ethereum.org/en/developers/docs/ - Official Ethereum developer docs
+Bitcoin Development (bitcoinjs-lib)
+Resources:
+
+bitcoinjs-lib GitHub: https://github.com/bitcoinjs/bitcoinjs-lib - Check the examples folder
+Learn Me A Bitcoin: https://learnmeabitcoin.com - Best visual guide to how Bitcoin works
+Mastering Bitcoin (free book): https://github.com/bitcoinbook/bitcoinbook
+Key Concepts:
+
+UTXOs (Unspent Transaction Outputs)
+PSBT (Partially Signed Bitcoin Transactions)
+Transaction signing with private keys
+Solana Development (@solana/web3.js)
+Solana Cookbook: https://solanacookbook.com - Practical examples
+Solana Docs: https://docs.solana.com/developing/clients/javascript-api
+Tron/TRC20
+TronWeb Docs: https://developers.tron.network/docs/tronweb
+TronGrid API: https://developers.tron.network/reference/background
+Recommended Learning Path
+Week 1-2: Node.js + Express basics (build simple APIs)
+Week 3-4: Learn ethers.js - send test ETH on Sepolia testnet
+Week 5-6: Understand Bitcoin UTXOs and transactions
+Week 7+: Build your own wallet app combining everything
+Pro Tip: Always practice on testnets first (Sepolia for ETH, Bitcoin Testnet) before mainnet to avoid losing real money!

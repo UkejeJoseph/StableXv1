@@ -1,0 +1,190 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ─── Light Mode: Soft Premium Emerald ─── */
+    --background: 210 30% 99%;
+    --foreground: 220 30% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 30% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 30% 10%;
+
+    --primary: 162 82% 28%;
+    /* Premium Emerald */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 220 30% 10%;
+
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 15% 45%;
+
+    --accent: 162 82% 28%;
+    --accent-foreground: 0 0% 100%;
+
+    --success: 162 82% 28%;
+    --success-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 20% 92%;
+    --input: 214 20% 92%;
+    --ring: 162 82% 28%;
+
+    --radius: 0.75rem;
+
+    --navy: 162 82% 28%;
+    --navy-light: 162 70% 38%;
+    --navy-dark: 162 90% 20%;
+  }
+
+  /* ─── Dark Mode: Space Green ─── */
+  .dark {
+    --background: 220 35% 3%;
+    --foreground: 0 0% 98%;
+
+    --card: 220 30% 6%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 220 30% 6%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 162 75% 42%;
+    /* Deep Forest Emerald */
+    --primary-foreground: 220 35% 3%;
+
+    --secondary: 220 20% 10%;
+    --secondary-foreground: 0 0% 92%;
+
+    --muted: 220 20% 12%;
+    --muted-foreground: 215 15% 60%;
+
+    --accent: 162 75% 42%;
+    --accent-foreground: 220 35% 3%;
+
+    --success: 162 75% 42%;
+    --success-foreground: 220 35% 3%;
+
+    --destructive: 0 80% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 20% 12%;
+    --input: 220 20% 10%;
+    --ring: 162 75% 42%;
+
+    --navy: 162 75% 42%;
+    --navy-light: 162 60% 50%;
+    --navy-dark: 162 85% 25%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    overflow-x: hidden;
+  }
+}
+
+@layer utilities {
+  .bg-navy {
+    background-color: hsl(var(--navy));
+  }
+
+  .bg-navy-light {
+    background-color: hsl(var(--navy-light));
+  }
+
+  .bg-navy-dark {
+    background-color: hsl(var(--navy-dark));
+  }
+
+  .text-navy {
+    color: hsl(var(--navy));
+  }
+
+  .bg-accent-gradient {
+    background: linear-gradient(135deg, hsl(170 75% 45%) 0%, hsl(170 75% 30%) 100%);
+  }
+
+  /* ─── Glassmorphism ─── */
+  .glass {
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  .dark .glass {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(79, 209, 197, 0.1);
+  }
+
+  /* ─── Splash Screen ─── */
+  .splash-bg {
+    background: radial-gradient(ellipse at center, hsl(220 25% 8%) 0%, hsl(220 25% 2%) 100%);
+  }
+
+  /* ─── Glow Effects ─── */
+  .glow-teal {
+    box-shadow: 0 0 20px rgba(79, 209, 197, 0.15);
+  }
+
+  .dark .glow-teal {
+    box-shadow: 0 0 25px rgba(79, 209, 197, 0.25);
+  }
+
+  /* ─── Premium Light Mode Cards ─── */
+  .card-elevated {
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.04),
+      0 4px 12px rgba(0, 0, 0, 0.06),
+      0 8px 24px rgba(0, 0, 0, 0.04);
+  }
+
+  .dark .card-elevated {
+    box-shadow:
+      0 0 0 1px rgba(79, 209, 197, 0.08),
+      0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  /* ─── Responsive Utilities ─── */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+}
+
+/* ─── Scrollbar Styling ─── */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}

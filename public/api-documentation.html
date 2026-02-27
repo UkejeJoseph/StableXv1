@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StableX - Backend & API Documentation</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      line-height: 1.6; 
+      color: #333; 
+      max-width: 1000px; 
+      margin: 0 auto; 
+      padding: 40px 20px;
+      background: #fff;
+    }
+    h1 { 
+      color: #1a2f5a; 
+      font-size: 28px; 
+      margin-bottom: 10px; 
+      border-bottom: 3px solid #22c55e; 
+      padding-bottom: 10px;
+    }
+    h2 { 
+      color: #1a2f5a; 
+      font-size: 20px; 
+      margin: 30px 0 15px; 
+      background: #f0f9ff; 
+      padding: 10px 15px; 
+      border-left: 4px solid #22c55e;
+    }
+    h3 { 
+      color: #1e40af; 
+      font-size: 16px; 
+      margin: 20px 0 10px;
+    }
+    .subtitle { color: #666; font-size: 14px; margin-bottom: 30px; }
+    .tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: bold;
+      margin-left: 8px;
+    }
+    .tag-free { background: #dcfce7; color: #166534; }
+    .tag-paid { background: #fef3c7; color: #92400e; }
+    .tag-secret { background: #fce7f3; color: #9d174d; }
+    .tag-mainnet { background: #dbeafe; color: #1e40af; }
+    .api-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 15px 0;
+    }
+    .api-card h4 {
+      color: #1a2f5a;
+      font-size: 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .api-card .endpoint {
+      background: #1e293b;
+      color: #22c55e;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+    .api-card .description {
+      color: #555;
+      font-size: 14px;
+      margin: 10px 0;
+    }
+    .api-card table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      font-size: 12px;
+    }
+    .api-card th, .api-card td {
+      border: 1px solid #e2e8f0;
+      padding: 8px;
+      text-align: left;
+    }
+    .api-card th { background: #f1f5f9; }
+    .code-block {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+    .code-block .comment { color: #64748b; }
+    .code-block .string { color: #22c55e; }
+    .code-block .keyword { color: #f472b6; }
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 13px;
+    }
+    .summary-table th, .summary-table td {
+      border: 1px solid #e2e8f0;
+      padding: 10px;
+      text-align: left;
+    }
+    .summary-table th { background: #1a2f5a; color: white; }
+    .summary-table tr:nth-child(even) { background: #f8fafc; }
+    .section-intro {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 15px 0;
+      font-size: 14px;
+    }
+    .warning-box {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    .warning-box h4 { color: #92400e; margin-bottom: 8px; }
+    .file-location {
+      color: #64748b;
+      font-size: 12px;
+      font-style: italic;
+    }
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+    }
+    @media print {
+      body { padding: 20px; }
+      .api-card { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>StableX - Backend & API Documentation</h1>
+<p class="subtitle">Complete compilation of all backend functionalities, integrations, and external API calls</p>
+
+<h2>Quick Reference - All APIs Summary</h2>
+
+<table class="summary-table">
+  <tr>
+    <th>API / Service</th>
+    <th>Purpose</th>
+    <th>Type</th>
+    <th>Rate Limits</th>
+  </tr>
+  <tr>
+    <td>Blockstream API</td>
+    <td>Bitcoin balance, UTXOs, broadcast TX</td>
+    <td><span class="tag tag-free">FREE</span></td>
+    <td>No strict limits</td>
+  </tr>
+  <tr>
+    <td>LlamaRPC (Ethereum)</td>
+    <td>ETH/ERC20 balance, send TX</td>
+    <td><span class="tag tag-free">FREE</span></td>
+    <td>Generous free tier</td>
+  </tr>
+  <tr>
+    <td>Solana Mainnet RPC</td>
+    <td>SOL balance, send TX</td>
+    <td><span class="tag tag-free">FREE</span></td>
+    <td>Rate limited</td>
+  </tr>
+  <tr>
+    <td>TronGrid API</td>
+    <td>TRC20 balance, smart contracts</td>
+    <td><span class="tag tag-free">FREE</span></td>
+    <td>1000 req/day free</td>
+  </tr>
+  <tr>
+    <td>CoinGecko API</td>
+    <td>Live crypto prices</td>
+    <td><span class="tag tag-free">FREE</span></td>
+    <td>10-50 req/min</td>
+  </tr>
+  <tr>
+    <td>Interswitch API</td>
+    <td>Card payments (Nigeria)</td>
+    <td><span class="tag tag-paid">PAID</span><span class="tag tag-secret">API KEY</span></td>
+    <td>Per transaction</td>
+  </tr>
+</table>
+
+<h2>1. Blockchain APIs (Balance & Transactions)</h2>
+
+<div class="section-intro">
+  These APIs are used to fetch wallet balances and broadcast transactions on mainnet. All are FREE with no API keys required.
+</div>
+
+<!-- Bitcoin API -->
+<div class="api-card">
+  <h4>
+    Bitcoin - Blockstream API
+    <span class="tag tag-free">FREE</span>
+    <span class="tag tag-mainnet">MAINNET</span>
+  </h4>
+  <p class="file-location">Used in: src/lib/blockchain.ts, src/lib/transactions.ts, server/transactions.js</p>
+  
+  <div class="endpoint">Base URL: https://blockstream.info/api</div>
+  
+  <p class="description">Public Bitcoin blockchain API for address info, UTXOs, and transaction broadcasting.</p>
+  
+  <table>
+    <tr><th>Endpoint</th><th>Method</th><th>Purpose</th></tr>
+    <tr><td>/address/{address}</td><td>GET</td><td>Get address balance and stats</td></tr>
+    <tr><td>/address/{address}/utxo</td><td>GET</td><td>Get unspent transaction outputs</td></tr>
+    <tr><td>/tx/{txid}/hex</td><td>GET</td><td>Get raw transaction hex</td></tr>
+    <tr><td>/tx</td><td>POST</td><td>Broadcast signed transaction</td></tr>
+  </table>
+  
+  <h4 style="margin-top:15px;">Code Example:</h4>
+  <div class="code-block">
+<span class="comment">// Get BTC balance</span>
+<span class="keyword">const</span> response = <span class="keyword">await</span> fetch(<span class="string">`https://blockstream.info/api/address/${address}`</span>);
+<span class="keyword">const</span> data = <span class="keyword">await</span> response.json();
+<span class="keyword">const</span> balance = (data.chain_stats.funded_txo_sum - data.chain_stats.spent_txo_sum) / 100000000;
+
+<span class="comment">// Get UTXOs for spending</span>
+<span class="keyword">const</span> utxos = <span class="keyword">await</span> fetch(<span class="string">`https://blockstream.info/api/address/${address}/utxo`</span>);
+
+<span class="comment">// Broadcast transaction</span>
+<span class="keyword">await</span> fetch(<span class="string">'https://blockstream.info/api/tx'</span>, {
+  method: <span class="string">'POST'</span>,
+  body: signedTxHex
+});
+  </div>
+  
+  <p><strong>Rate Limits:</strong> No strict limits, but be reasonable. For production, consider running your own node.</p>
+  <p><strong>Documentation:</strong> https://github.com/Blockstream/esplora/blob/master/API.md</p>
+</div>
+
+<!-- Ethereum API -->
+<div class="api-card">
+  <h4>
+    Ethereum - LlamaRPC
+    <span class="tag tag-free">FREE</span>
+    <span class="tag tag-mainnet">MAINNET</span>
+  </h4>
+  <p class="file-location">Used in: src/lib/blockchain.ts, src/lib/transactions.ts</p>
+  
+  <div class="endpoint">RPC URL: https://eth.llamarpc.com</div>
+  
+  <p class="description">Free Ethereum JSON-RPC endpoint. Used with ethers.js for balance queries and transaction sending.</p>
+  
+  <table>
+    <tr><th>Method</th><th>Purpose</th></tr>
+    <tr><td>eth_getBalance</td><td>Get ETH balance</td></tr>
+    <tr><td>eth_call</td><td>Call contract (e.g., balanceOf for ERC20)</td></tr>
+    <tr><td>eth_sendRawTransaction</td><td>Broadcast signed transaction</td></tr>
+    <tr><td>eth_gasPrice</td><td>Get current gas price</td></tr>
+    <tr><td>eth_estimateGas</td><td>Estimate gas for transaction</td></tr>
+  </table>
+  
+  <h4 style="margin-top:15px;">Code Example:</h4>
+  <div class="code-block">
+<span class="keyword">import</span> { ethers } <span class="keyword">from</span> <span class="string">"ethers"</span>;
+
+<span class="comment">// Create provider</span>
+<span class="keyword">const</span> provider = <span class="keyword">new</span> ethers.JsonRpcProvider(<span class="string">"https://eth.llamarpc.com"</span>);
+
+<span class="comment">// Get ETH balance</span>
+<span class="keyword">const</span> balance = <span class="keyword">await</span> provider.getBalance(address);
+console.log(ethers.formatEther(balance));
+
+<span class="comment">// Send ETH transaction</span>
+<span class="keyword">const</span> wallet = <span class="keyword">new</span> ethers.Wallet(privateKey, provider);
+<span class="keyword">const</span> tx = <span class="keyword">await</span> wallet.sendTransaction({
+  to: toAddress,
+  value: ethers.parseEther(<span class="string">"0.1"</span>)
+});
+
+<span class="comment">// Get ERC20 balance (USDT)</span>
+<span class="keyword">const</span> contract = <span class="keyword">new</span> ethers.Contract(USDT_ADDRESS, ERC20_ABI, provider);
+<span class="keyword">const</span> usdtBalance = <span class="keyword">await</span> contract.balanceOf(address);
+  </div>
+  
+  <p><strong>Rate Limits:</strong> Generous free tier. For high volume, use Alchemy or Infura (paid).</p>
+  <p><strong>Alternatives (Paid):</strong></p>
+  <ul>
+    <li>Alchemy: https://alchemy.com (300M compute units/month free)</li>
+    <li>Infura: https://infura.io (100K requests/day free)</li>
+    <li>QuickNode: https://quicknode.com</li>
+  </ul>
+</div>
+
+<!-- Solana API -->
+<div class="api-card">
+  <h4>
+    Solana - Mainnet RPC
+    <span class="tag tag-free">FREE</span>
+    <span class="tag tag-mainnet">MAINNET</span>
+  </h4>
+  <p class="file-location">Used in: src/lib/blockchain.ts, src/lib/transactions.ts</p>
+  
+  <div class="endpoint">RPC URL: https://api.mainnet-beta.solana.com</div>
+  
+  <p class="description">Official Solana mainnet RPC. Used with @solana/web3.js for balance and transactions.</p>
+  
+  <table>
+    <tr><th>Method</th><th>Purpose</th></tr>
+    <tr><td>getBalance</td><td>Get SOL balance in lamports</td></tr>
+    <tr><td>sendTransaction</td><td>Send signed transaction</td></tr>
+    <tr><td>getSignatureStatus</td><td>Check transaction status</td></tr>
+  </table>
+  
+  <h4 style="margin-top:15px;">Code Example:</h4>
+  <div class="code-block">
+<span class="keyword">import</span> { Connection, PublicKey, LAMPORTS_PER_SOL } <span class="keyword">from</span> <span class="string">"@solana/web3.js"</span>;
+
+<span class="keyword">const</span> connection = <span class="keyword">new</span> Connection(<span class="string">"https://api.mainnet-beta.solana.com"</span>);
+
+<span class="comment">// Get SOL balance</span>
+<span class="keyword">const</span> balance = <span class="keyword">await</span> connection.getBalance(<span class="keyword">new</span> PublicKey(address));
+console.log(balance / LAMPORTS_PER_SOL);
+
+<span class="comment">// Send SOL</span>
+<span class="keyword">const</span> signature = <span class="keyword">await</span> sendAndConfirmTransaction(connection, transaction, [keypair]);
+  </div>
+  
+  <p><strong>Rate Limits:</strong> Rate limited. For production, use:</p>
+  <ul>
+    <li>Helius: https://helius.xyz (free tier available)</li>
+    <li>QuickNode Solana: https://quicknode.com</li>
+  </ul>
+</div>
+
+<!-- Tron API -->
+<div class="api-card">
+  <h4>
+    Tron - TronGrid API
+    <span class="tag tag-free">FREE</span>
+    <span class="tag tag-mainnet">MAINNET</span>
+  </h4>
+  <p class="file-location">Used in: src/lib/blockchain.ts, server/transactions.js</p>
+  
+  <div class="endpoint">Base URL: https://api.trongrid.io</div>
+  
+  <p class="description">Official Tron blockchain API for TRC20 tokens and smart contract interactions.</p>
+  
+  <table>
+    <tr><th>Endpoint</th><th>Method</th><th>Purpose</th></tr>
+    <tr><td>/v1/accounts/{address}/tokens</td><td>GET</td><td>Get TRC20 token balances</td></tr>
+    <tr><td>/wallet/triggersmartcontract</td><td>POST</td><td>Create smart contract transaction</td></tr>
+    <tr><td>/wallet/broadcasttransaction</td><td>POST</td><td>Broadcast signed transaction</td></tr>
+  </table>
+  
+  <h4 style="margin-top:15px;">Code Example:</h4>
+  <div class="code-block">
+<span class="comment">// Get TRC20 USDT balance</span>
+<span class="keyword">const</span> USDT_CONTRACT = <span class="string">"TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"</span>;
+<span class="keyword">const</span> response = <span class="keyword">await</span> fetch(
+  <span class="string">`https://api.trongrid.io/v1/accounts/${address}/tokens?token_id=${USDT_CONTRACT}`</span>
+);
+
+<span class="comment">// Create TRC20 transfer</span>
+<span class="keyword">const</span> tx = <span class="keyword">await</span> fetch(<span class="string">"https://api.trongrid.io/wallet/triggersmartcontract"</span>, {
+  method: <span class="string">"POST"</span>,
+  headers: { <span class="string">"Content-Type"</span>: <span class="string">"application/json"</span> },
+  body: JSON.stringify({
+    owner_address: fromAddress,
+    contract_address: USDT_CONTRACT,
+    function_selector: <span class="string">"transfer(address,uint256)"</span>,
+    parameter: encodedParams,
+    fee_limit: 100000000
+  })
+});
+  </div>
+  
+  <p><strong>Rate Limits:</strong> 1,000 requests/day free. For more, get API key from https://www.trongrid.io/</p>
+</div>
+
+<h2>2. Market Data APIs</h2>
+
+<div class="api-card">
+  <h4>
+    CoinGecko API
+    <span class="tag tag-free">FREE</span>
+  </h4>
+  <p class="file-location">Used in: src/lib/marketData.ts, src/lib/transactions.ts</p>
+  
+  <div class="endpoint">Base URL: https://api.coingecko.com/api/v3</div>
+  
+  <p class="description">Free cryptocurrency market data API for live prices, market caps, and trending coins.</p>
+  
+  <table>
+    <tr><th>Endpoint</th><th>Purpose</th></tr>
+    <tr><td>/simple/price</td><td>Get current price for specific coins</td></tr>
+    <tr><td>/coins/markets</td><td>Get market data with 24h changes</td></tr>
+    <tr><td>/search/trending</td><td>Get trending coins</td></tr>
+  </table>
+  
+  <h4 style="margin-top:15px;">Code Example:</h4>
+  <div class="code-block">
+<span class="comment">// Get ETH price in USD</span>
+<span class="keyword">const</span> response = <span class="keyword">await</span> fetch(
+  <span class="string">"https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"</span>
+);
+<span class="keyword">const</span> data = <span class="keyword">await</span> response.json();
+console.log(data.ethereum.usd); <span class="comment">// e.g., 3000</span>
+
+<span class="comment">// Get market data for multiple coins</span>
+<span class="keyword">const</span> markets = <span class="keyword">await</span> fetch(
+  <span class="string">"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana"</span>
+);
+  </div>
+  
+  <p><strong>Rate Limits:</strong> 10-50 requests/minute (varies). For more, use Pro API (paid).</p>
+  <p><strong>Documentation:</strong> https://www.coingecko.com/api/documentation</p>
+</div>
+
+<h2>3. Payment Gateway APIs</h2>
+
+<div class="warning-box">
+  <h4>Important: API Keys Required</h4>
+  <p>Payment gateway APIs require authentication and are typically PAID services with per-transaction fees. Store credentials securely in environment variables.</p>
+</div>
+
+<div class="api-card">
+  <h4>
+    Interswitch Payment Gateway
+    <span class="tag tag-paid">PAID</span>
+    <span class="tag tag-secret">API KEY REQUIRED</span>
+  </h4>
+  <p class="file-location">Used in: server/interswitch.js, src/lib/interswitch.ts</p>
+  
+  <div class="endpoint">Base URL: https://qa.interswitchng.com (Sandbox)<br>
+  Production: https://saturn.interswitchng.com</div>
+  
+  <p class="description">Nigerian payment gateway for card payments (Visa, Mastercard, Verve). Requires merchant account.</p>
+  
+  <table>
+    <tr><th>Endpoint</th><th>Method</th><th>Purpose</th></tr>
+    <tr><td>/passport/oauth/token</td><td>POST</td><td>Generate access token</td></tr>
+    <tr><td>/api/v3/purchases</td><td>POST</td><td>Initiate card purchase</td></tr>
+    <tr><td>/api/v3/purchases/otps/auths</td><td>POST</td><td>Verify OTP</td></tr>
+    <tr><td>/api/v3/purchases/otps/resend</td><td>POST</td><td>Resend OTP</td></tr>
+    <tr><td>/api/v3/purchases</td><td>GET</td><td>Check transaction status</td></tr>
+  </table>
+  
+  <h4 style="margin-top:15px;">Environment Variables Required:</h4>
+  <div class="code-block">
+INTERSWITCH_CLIENT_ID=your_client_id
+INTERSWITCH_CLIENT_SECRET=your_client_secret
+INTERSWITCH_CARD_CLIENT_ID=your_card_client_id
+INTERSWITCH_CARD_SECRET=your_card_secret
+  </div>
+  
+  <h4 style="margin-top:15px;">Code Example:</h4>
+  <div class="code-block">
+<span class="comment">// Generate access token</span>
+<span class="keyword">const</span> credentials = Buffer.from(<span class="string">`${CLIENT_ID}:${CLIENT_SECRET}`</span>).toString(<span class="string">'base64'</span>);
+<span class="keyword">const</span> tokenResponse = <span class="keyword">await</span> fetch(<span class="string">'https://qa.interswitchng.com/passport/oauth/token'</span>, {
+  method: <span class="string">'POST'</span>,
+  headers: {
+    <span class="string">'Authorization'</span>: <span class="string">`Basic ${credentials}`</span>,
+    <span class="string">'Content-Type'</span>: <span class="string">'application/x-www-form-urlencoded'</span>
+  },
+  body: <span class="string">'grant_type=client_credentials'</span>
+});
+
+<span class="comment">// Initiate card purchase</span>
+<span class="keyword">const</span> purchaseResponse = <span class="keyword">await</span> fetch(<span class="string">'https://qa.interswitchng.com/api/v3/purchases'</span>, {
+  method: <span class="string">'POST'</span>,
+  headers: {
+    <span class="string">'Authorization'</span>: <span class="string">`Bearer ${accessToken}`</span>,
+    <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>
+  },
+  body: JSON.stringify({
+    customerId: <span class="string">"customer@email.com"</span>,
+    amount: 10000, <span class="comment">// in kobo (NGN 100)</span>
+    transactionRef: <span class="string">"unique_ref_123"</span>,
+    currency: <span class="string">"NGN"</span>,
+    authData: encryptedCardData
+  })
+});
+  </div>
+  
+  <p><strong>Test Cards:</strong></p>
+  <ul>
+    <li>Verve: 5060990580000217499 (Exp: 03/50, CVV: 111, PIN: 1111)</li>
+    <li>Visa: 4000000000002503 (Exp: 01/25, CVV: 111)</li>
+    <li>Mastercard: 5123450000000008 (Exp: 01/39, CVV: 100)</li>
+  </ul>
+  
+  <p><strong>Pricing:</strong> Per-transaction fees (contact Interswitch for rates)</p>
+  <p><strong>Documentation:</strong> https://developer.interswitchgroup.com/</p>
+</div>
+
+<h2>4. Backend Server Routes</h2>
+
+<div class="section-intro">
+  Internal API routes served by the Express.js backend on port 3001.
+</div>
+
+<div class="api-card">
+  <h4>Transaction Routes</h4>
+  <p class="file-location">File: server/transactions.js</p>
+  
+  <table>
+    <tr><th>Endpoint</th><th>Method</th><th>Purpose</th></tr>
+    <tr><td>/api/transactions/btc</td><td>POST</td><td>Sign and broadcast BTC transaction</td></tr>
+    <tr><td>/api/transactions/trc20</td><td>POST</td><td>Sign and broadcast TRC20 transaction</td></tr>
+  </table>
+  
+  <h4 style="margin-top:15px;">Request Body (BTC):</h4>
+  <div class="code-block">
+{
+  <span class="string">"fromAddress"</span>: <span class="string">"1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"</span>,
+  <span class="string">"toAddress"</span>: <span class="string">"3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy"</span>,
+  <span class="string">"amount"</span>: <span class="string">"0.001"</span>,
+  <span class="string">"privateKey"</span>: <span class="string">"your_private_key_hex"</span>
+}
+  </div>
+</div>
+
+<div class="api-card">
+  <h4>Interswitch Routes</h4>
+  <p class="file-location">File: server/interswitch.js</p>
+  
+  <table>
+    <tr><th>Endpoint</th><th>Method</th><th>Purpose</th></tr>
+    <tr><td>/api/interswitch/token</td><td>GET</td><td>Generate access token</td></tr>
+    <tr><td>/api/interswitch/purchase</td><td>POST</td><td>Initiate card payment</td></tr>
+    <tr><td>/api/interswitch/verify-otp</td><td>POST</td><td>Verify OTP</td></tr>
+    <tr><td>/api/interswitch/resend-otp</td><td>POST</td><td>Resend OTP</td></tr>
+    <tr><td>/api/interswitch/transaction-status</td><td>GET</td><td>Check transaction status</td></tr>
+  </table>
+</div>
+
+<h2>5. Libraries & Smart Contracts</h2>
+
+<table class="summary-table">
+  <tr>
+    <th>Library</th>
+    <th>Version</th>
+    <th>Purpose</th>
+    <th>Docs</th>
+  </tr>
+  <tr>
+    <td>ethers.js</td>
+    <td>v6.x</td>
+    <td>Ethereum wallet & transactions</td>
+    <td>docs.ethers.org</td>
+  </tr>
+  <tr>
+    <td>@solana/web3.js</td>
+    <td>latest</td>
+    <td>Solana wallet & transactions</td>
+    <td>solana.com/docs</td>
+  </tr>
+  <tr>
+    <td>bitcoinjs-lib</td>
+    <td>latest</td>
+    <td>Bitcoin transaction building</td>
+    <td>github.com/bitcoinjs</td>
+  </tr>
+  <tr>
+    <td>tiny-secp256k1</td>
+    <td>latest</td>
+    <td>Elliptic curve cryptography</td>
+    <td>npm package</td>
+  </tr>
+  <tr>
+    <td>ecpair</td>
+    <td>latest</td>
+    <td>Bitcoin key pairs</td>
+    <td>npm package</td>
+  </tr>
+  <tr>
+    <td>@scure/bip32</td>
+    <td>latest</td>
+    <td>HD wallet derivation</td>
+    <td>npm package</td>
+  </tr>
+</table>
+
+<h4>Smart Contract Addresses (Mainnet):</h4>
+<table class="summary-table">
+  <tr>
+    <th>Token</th>
+    <th>Network</th>
+    <th>Contract Address</th>
+  </tr>
+  <tr>
+    <td>USDT</td>
+    <td>Ethereum (ERC20)</td>
+    <td><code>0xdAC17F958D2ee523a2206206994597C13D831ec7</code></td>
+  </tr>
+  <tr>
+    <td>USDT</td>
+    <td>Tron (TRC20)</td>
+    <td><code>TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t</code></td>
+  </tr>
+</table>
+
+<h2>6. Block Explorers</h2>
+
+<table class="summary-table">
+  <tr>
+    <th>Network</th>
+    <th>Explorer</th>
+    <th>TX URL Format</th>
+  </tr>
+  <tr>
+    <td>Bitcoin</td>
+    <td>Blockstream</td>
+    <td>https://blockstream.info/tx/{txHash}</td>
+  </tr>
+  <tr>
+    <td>Ethereum</td>
+    <td>Etherscan</td>
+    <td>https://etherscan.io/tx/{txHash}</td>
+  </tr>
+  <tr>
+    <td>Solana</td>
+    <td>Solscan</td>
+    <td>https://solscan.io/tx/{txHash}</td>
+  </tr>
+  <tr>
+    <td>Tron</td>
+    <td>Tronscan</td>
+    <td>https://tronscan.org/#/transaction/{txHash}</td>
+  </tr>
+</table>
+
+<div class="footer">
+  <p>StableX Backend & API Documentation | Generated February 2026</p>
+  <p>To save as PDF: Press Ctrl+P (or Cmd+P on Mac) and select "Save as PDF"</p>
+</div>
+
+</body>
+</html>

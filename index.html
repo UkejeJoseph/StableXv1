@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StableX - Elite Crypto Wallet & Exchange</title>
+  <meta name="description"
+    content="StableX - The world's most advanced custodial & self-custody bridge. Buy, swap, and manage BTC, ETH, SOL, and USDT with institutional security." />
+  <meta name="author" content="StableX" />
+
+  <!-- Branding & Favicon -->
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/favicon.png" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://buck-swap-demo-production.up.railway.app/" />
+  <meta property="og:title" content="StableX - Elite Crypto Wallet & Exchange" />
+  <meta property="og:description"
+    content="Institutional-grade crypto management. Instant swaps, automated sweeps, and multi-chain support. Secure your future with StableX." />
+  <meta property="og:image" content="/logo.png" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://buck-swap-demo-production.up.railway.app/" />
+  <meta name="twitter:title" content="StableX - Elite Crypto Wallet & Exchange" />
+  <meta name="twitter:description"
+    content="Institutional-grade crypto management. Instant swaps, automated sweeps, and multi-chain support." />
+  <meta name="twitter:image" content="/logo.png" />
+
+  <!-- Enforce Dark Mode Default -->
+  <script>
+    (function () {
+      try {
+        // Force dark mode for everyone to show off the new UI, unless they explicitly set it to light *after* this update
+        const theme = localStorage.getItem('stablex_theme');
+        // If they don't have a theme or if we haven't forced the dark mode update yet
+        if (!localStorage.getItem('stablex_theme_v2_migration')) {
+          localStorage.setItem('stablex_theme', 'dark');
+          localStorage.setItem('stablex_theme_v2_migration', 'true');
+          document.documentElement.classList.add('dark');
+        } else if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } catch (_) { }
+    })();
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script src="https://newwebpay.qa.interswitchng.com/inline-checkout.js"></script>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>

@@ -1,0 +1,3 @@
+## https://docs.interswitchgroup.com/docs/web-checkout#confirming-transaction-statusConfirming Transaction Status
+
+You need to make a server-side request to get the transaction status and amount that was paid before giving value. You make the request using your merchantCode, the relevant transaction reference and amount. Please confirm the amount returned by our server matches your original transaction amount before giving value.

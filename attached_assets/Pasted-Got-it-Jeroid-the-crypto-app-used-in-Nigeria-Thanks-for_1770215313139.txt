@@ -1,0 +1,198 @@
+Got it — **Jeroid**, the **crypto app used in Nigeria**. Thanks for correcting that.
+
+Below is a **clear, structured breakdown** of **Jeroid’s features**, with **crypto-critical features first**, then the **remaining/supporting features**. I’ll keep this **practical and Nigeria-specific**, not generic crypto talk.
+
+---
+
+## Jeroid — What it is
+
+**Jeroid** is a Nigerian-focused **crypto platform** designed mainly for:
+
+* Buying & selling crypto
+* Fast **naira (₦) withdrawals**
+* Simple crypto usage for everyday users (not heavy trading)
+
+It is positioned more as a **crypto utility & exchange app**, not a complex trading terminal like Binance.
+
+---
+
+# 🔴 CORE (CRITICAL) CRYPTO FEATURES
+
+These are the **main reasons people use Jeroid**.
+
+---
+
+## 1. Buy & Sell Cryptocurrency (₦ ⇄ Crypto)
+
+* Buy crypto directly with **Nigerian Naira**
+* Sell crypto and receive **instant ₦ payout**
+* No need for foreign cards or offshore banks
+
+**Commonly supported coins:**
+
+* Bitcoin (BTC)
+* Ethereum (ETH)
+* USDT / USDC (stablecoins)
+* Other popular altcoins (varies by update)
+
+---
+
+## 2. Naira Wallet (Local Banking Focus)
+
+* Dedicated **₦ wallet**
+* Linked to Nigerian bank accounts
+* Supports:
+
+  * Bank transfers
+  * Withdrawals to local banks
+* Built to work smoothly with Nigerian payment rails
+
+---
+
+## 3. Crypto Wallet (Custodial)
+
+* In-app crypto wallet
+* Handles:
+
+  * Receiving crypto
+  * Sending crypto to external wallets
+* User does **not manage private keys manually** (custodial model)
+
+---
+
+## 4. Fast Withdrawals (Major Selling Point)
+
+* Quick ₦ withdrawals compared to P2P platforms
+* No need to find buyers like Binance P2P
+* Fixed-rate conversion (less price negotiation stress)
+
+---
+
+## 5. Simple Exchange Rates (Beginner-Friendly)
+
+* Clear **buy rate** and **sell rate**
+* No order books
+* No complex charts
+* Designed for **speed, not trading strategy**
+
+---
+
+# 🟠 IMPORTANT SUPPORTING FEATURES
+
+These make the app usable and safe.
+
+---
+
+## 6. KYC & Identity Verification
+
+* BVN / ID verification (standard in Nigeria)
+* Required for:
+
+  * Higher limits
+  * Withdrawals
+* Helps reduce fraud and comply with regulations
+
+---
+
+## 7. Transaction History & Records
+
+* View:
+
+  * Buy history
+  * Sell history
+  * Withdrawals
+  * Crypto transfers
+* Useful for tracking funds and proof of payment
+
+---
+
+## 8. Security Features
+
+* Login protection
+* OTP / email verification
+* Withdrawal confirmation checks
+* Device-based security controls
+
+---
+
+## 9. Customer Support
+
+* In-app or WhatsApp/email support
+* Focus on:
+
+  * Failed transfers
+  * Delayed withdrawals
+  * Account verification issues
+
+---
+
+# 🟡 REMAINING / NON-CORE FEATURES
+
+Nice to have, but not the main attraction.
+
+---
+
+## 10. Crypto Transfers Between Users
+
+* Send crypto to other wallets
+* Useful for:
+
+  * Payments
+  * Remittances
+  * Personal transfers
+
+---
+
+## 11. Price Monitoring
+
+* Basic price view for supported coins
+* Not meant for technical analysis
+* No advanced indicators
+
+---
+
+## 12. Promotions & Bonuses (Occasional)
+
+* Referral rewards
+* Transaction-based bonuses
+* Campaigns (not always active)
+
+---
+
+# ❌ WHAT JEROID IS **NOT**
+
+Important so expectations are correct:
+
+* ❌ No advanced trading (futures, margin, leverage)
+* ❌ No order-book trading
+* ❌ No DeFi tools
+* ❌ No self-custody wallet control
+* ❌ Not designed for professional traders
+
+---
+
+# 🧠 SIMPLE SUMMARY
+
+**Jeroid is best for:**
+
+* Nigerians who want **fast ₦ ⇄ crypto**
+* Simple buying and selling
+* Quick withdrawals without P2P stress
+
+**Jeroid is not for:**
+
+* Day traders
+* Technical analysis
+* On-chain DeFi users
+
+---
+
+If you want, I can:
+
+* Compare **Jeroid vs Binance P2P**
+* Explain **fees & rates**
+* Explain **how safe it is**
+* Walk through **step-by-step usage**
+* Help you decide **if it fits your use case**
+
+Just tell me 👍

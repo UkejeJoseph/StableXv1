@@ -1,0 +1,155 @@
+
+
+# Card Payments API
+
+Card payment APIs allow businesses to accept card payments online and in mobile apps. They provide a secure and efficient way to process payments and can be integrated with various payment methods.
+
+It also allows you to manage the payment flow from end to end. This means that you can build your own user interfaces and customer experiences.
+
+> 📘 You must have a PCI DSS compliance certificate to use the Card Payments API.
+
+## Getting started with the Card Payments API
+
+> 📘 Get Your Token
+>
+> To make an API call to the Card Payments API, you must first generate an access token. Please follow the link below to generate your token:
+>
+> [Generate your Token: Click here to generate your access token](/docs/authentication#how-to-generate-my-access-token)
+
+To get started with the Card Payments API, you will need to
+
+### 1- Make a purchase request
+
+Once you have an access token, make a `POST` request to the following endpoint:
+
+```text
+<https://qa.interswitchng.com/api/v3/purchases>
+```
+
+In the Authorization header, set the value to `Bearer <access_token>`, where `<access_token>` is the access token you generated in step 1.
+
+In the request body, include the following parameters:
+
+* **customerId:** The ID of the customer making the purchase.
+* **amount:** The purchase amount in Nigerian naira (NGN).
+* **currency:** The currency of the purchase which must be NGN.
+* **authData:** The encrypted card details of the customer's card. You can generate one from [here](https://docs.interswitchgroup.com/v1.1/reference/how-to-generate-auth-data)
+* **transactionRef:** A unique reference for the transaction.\
+  If the purchase is successful, you will receive a JSON response containing the transaction details.
+
+**Respones:**
+
+```javascript
+{
+  "transactionRef": "fhfgrgte",
+  "paymentId": "474552283",
+  "message": "Kindly enter the OTP sent to 234805***1111",
+  "amount": "10000.00",
+  "responseCode": "T0",
+  "plainTextSupportMessage": "Didn't get the OTP? Dial *723*0# on your phone (MTN,Etisalat,Airtel) Glo,use *805*0#."
+}
+```
+
+For more information, see the [Interswitch Purchase API documentation](https://docs.interswitchgroup.com/v1.1/reference/card-payment-api)
+
+### 2- Handle authentication requirements
+
+> 📘 **T0** indicates Verve/Mastercard, and the response **S0** is gotten when it is a cardinal transaction. This occurs when using visa cards. Click [here](https://docs.interswitchgroup.com/docs/visa-transactions) to read more about visa transactions.
+
+Depending on the configuration tied to the card and your business profile, the purchase request may result in two scenarios:
+
+**a. Immediate Authorization:**\
+If the card is configured for immediate authorization, you will receive a response indicating whether the transaction was successful or failed. You can then proceed to check the transaction status.
+
+**b. Authentication Required:**\
+If authentication is needed, you will receive a response code indicating whether an OTP has been sent to the customer's phone (T0) or 3D Secure authentication is required (S0).
+
+If the response code is T0, the customer must provide the OTP to complete the transaction. You can then call the Interswitch Authenticate OTP API to authenticate the OTP by making `POST` request to the following endpoint:
+
+```text
+https://qa.interswitchng.com/api/v3/purchases/otps/auths
+```
+
+In the request body, include the following parameters:
+
+* **paymentId:** This typically represents a unique identifier associated with a payment or transaction.
+* **otp:** This stands for **One-Time Password**. It is a temporary, unique code used for authentication or verification purposes.
+* **transactionId:** This is a unique identifier assigned to a specific transaction. It serves as a reference code for that transaction and is used to retrieve and track transaction details.
+* **eciFlag:** The Electronic Commerce Indicator (ECI) Flag e.g Visa:07 (**Optional**)
+
+**Response:**
+
+```javascript
+{
+  "transactionRef": "fhfgrgte",
+  "message": "Approved by Financial Institution",
+  "transactionIdentifier": "FBN|API|MX6072|10-10-2023|474552283|723413",
+  "amount": "10000.00",
+  "responseCode": "00",
+  "retrievalReferenceNumber": "000106923853",
+  "stan": "000008",
+  "terminalId": "3PXM0001",
+  "bankCode": "011"
+}
+```
+
+If the response code is S0, the customer must complete 3D Secure authentication. Once the authentication is complete, you can call the Interswitch Authorize Transaction (3D Secure) API to authorize the transaction.
+
+For more information, see the Interswitch[ Authenticate OTP API documentation](https://docs.interswitchgroup.com/v1.1/reference/authenticate-otp)
+
+### 3- Confirm the status of the transaction
+
+Once you have made the purchase request and handled any authentication requirements, you should confirm the transaction status.
+
+You can make a `GET` request to the following endpoint:
+
+```text
+https://qa.interswitchng.com/collections/api/v1/gettransaction
+```
+
+In the Authorization header, set the value to `Bearer <access_token>`, where `<access_token>` is the access token you generated in step 1.
+
+In the request query path, include the following parameters:
+
+* **merchantcode:** The unique code identifying the merchant associated with the transaction.
+* **transactionreference:** The reference code that uniquely identifies the transaction you want to retrieve.
+* **amount:** The transaction amount for additional verification.
+
+If the transaction is successful, you will receive a JSON response containing the transaction details.
+
+**Response:**
+
+```javascript
+{
+    "Amount": 9108,
+    "CardNumber": "506099*********7499",
+    "MerchantReference": "202311301354481LIFJ",
+    "PaymentReference": "FBN|API|MX6072|30-11-2023|474568251|335432",
+    "RetrievalReferenceNumber": "000106923853",
+    "Stan": "000008",
+    "Channel": "API",
+    "TerminalId": "3PXM0001",
+    "SplitAccounts": [],
+    "TransactionDate": "2023-11-30T01:55:09",
+    "ResponseCode": "00",
+    "ResponseDescription": "Approved by Financial Institution",
+    "BankCode": "011",
+    "PaymentId": 474568251,
+    "RemittanceAmount": 0
+}
+
+```
+
+For more information, see the Interswitch [Transaction Status API documentation](https://docs.interswitchgroup.com/v1.1/reference/get-a-particulartransactions)
+
+> 📘 Resend OTP
+>
+> Sometimes, you might need to resend the OTP, make call to [Resend OTP](https://docs.interswitchgroup.com/reference/resend-otp)
+
+For more information, see the Interswitch [Transaction Status API documentation](https://docs.interswitchgroup.com/v1.1/reference/get-a-particulartransactions)
+
+> 📘 Resend OTP
+>
+> Sometimes, you might need to resend the OTP, make call to [Resend OTP](https://docs.interswitchgroup.com/reference/resend-otp)
+
+![](https://files.readme.io/c091b12-cardpayments.png "cardpayments.png")

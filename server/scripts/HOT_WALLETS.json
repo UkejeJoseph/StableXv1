@@ -1,0 +1,25 @@
+{
+  "BTC": {
+    "address": "bc1qttpdp7ppspwx4zyq9fenrxvp783we4w0xm7g55",
+    "privateKey": "KwwV2eEJF2rQKXcUGqVrNmsv3kSCTaRmBYyJfhu8RWzVi3M8Tfjx",
+    "mnemonic": "cheap iron debris wait nasty label nature forest remove grab poem buzz surprise genuine divert defy damp fog surface odor city weather disagree crucial",
+    "network": "Bitcoin Mainnet (Segwit/Bech32)"
+  },
+  "ETH": {
+    "address": "0xE8485f5eF2c769025593617915C6658b3E653197",
+    "privateKey": "0x5e548cb0aa02bf7f27ec5b60892185a46632a0572c8d47035e00958e6b06e0cc",
+    "mnemonic": "glance tired team suit trim grain predict ensure health rural scare thunder",
+    "network": "Ethereum Mainnet (ERC20)"
+  },
+  "TRON": {
+    "address": "TU3dtEoqJjewYvosYsLBp4UakZaNUcxwEF",
+    "privateKey": "5ca4687a998ad89245881bb4e32e338f4a9487cd331c50fecf03231022e7d4a0",
+    "network": "TRON Mainnet (TRC20) - also serves USDT TRC20 and TRX"
+  },
+  "SOL": {
+    "address": "CgLHQEioek9vWXA5byRqhFh5pLQq7XzYzpv68wQ1mHbm",
+    "privateKey": "0711ba25803cd9b36330383df583006596f1be00cc619c98b2516884293948d5ad8402c67604a9aed0a934e5c07e1b4f8da86ae0bab1b403371054f7fecbe060",
+    "network": "Solana Mainnet"
+  },
+  "envBlock": "# --- BTC HOT WALLET (Generated) ---\nSTABLEX_HOT_WALLET_BTC=bc1qttpdp7ppspwx4zyq9fenrxvp783we4w0xm7g55\nSTABLEX_HOT_WALLET_BTC_PRIVATE_KEY=KwwV2eEJF2rQKXcUGqVrNmsv3kSCTaRmBYyJfhu8RWzVi3M8Tfjx\n\n# --- ETH HOT WALLET (Generated) ---\nSTABLEX_HOT_WALLET_ETH=0xE8485f5eF2c769025593617915C6658b3E653197\nSTABLEX_HOT_WALLET_ETH_PRIVATE_KEY=0x5e548cb0aa02bf7f27ec5b60892185a46632a0572c8d47035e00958e6b06e0cc\n\n# --- TRON / USDT TRC20 HOT WALLET (Generated) ---\nSTABLEX_HOT_WALLET_TRC20=TU3dtEoqJjewYvosYsLBp4UakZaNUcxwEF\nSTABLEX_HOT_WALLET_TRC20_PRIVATE_KEY=5ca4687a998ad89245881bb4e32e338f4a9487cd331c50fecf03231022e7d4a0\nSTABLEX_TREASURY_TRC20_PRIVATE_KEY=5ca4687a998ad89245881bb4e32e338f4a9487cd331c50fecf03231022e7d4a0\n\n# --- SOL HOT WALLET (Generated) ---\nSTABLEX_HOT_WALLET_SOL=CgLHQEioek9vWXA5byRqhFh5pLQq7XzYzpv68wQ1mHbm\nSTABLEX_HOT_WALLET_SOL_PRIVATE_KEY=0711ba25803cd9b36330383df583006596f1be00cc619c98b2516884293948d5ad8402c67604a9aed0a934e5c07e1b4f8da86ae0bab1b403371054f7fecbe060"
+}

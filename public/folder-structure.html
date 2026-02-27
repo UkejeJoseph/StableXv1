@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StableX - Complete Codebase Structure</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      line-height: 1.6; 
+      color: #333; 
+      max-width: 1100px; 
+      margin: 0 auto; 
+      padding: 40px 20px;
+      background: #fff;
+    }
+    h1 { 
+      color: #1a2f5a; 
+      font-size: 28px; 
+      margin-bottom: 10px; 
+      border-bottom: 3px solid #22c55e; 
+      padding-bottom: 10px;
+    }
+    h2 { 
+      color: #1a2f5a; 
+      font-size: 20px; 
+      margin: 30px 0 15px; 
+      background: #f0f9ff; 
+      padding: 10px 15px; 
+      border-left: 4px solid #22c55e;
+    }
+    h3 { 
+      color: #1e40af; 
+      font-size: 16px; 
+      margin: 20px 0 10px;
+    }
+    .subtitle { color: #666; font-size: 14px; margin-bottom: 30px; }
+    .folder-tree {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      line-height: 1.8;
+    }
+    .folder { color: #60a5fa; font-weight: bold; }
+    .file { color: #a5b4fc; }
+    .comment { color: #64748b; font-style: italic; }
+    .important { color: #22c55e; }
+    .config { color: #f472b6; }
+    .component { color: #fbbf24; }
+    .file-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0;
+    }
+    .file-card h4 { color: #1a2f5a; font-size: 14px; margin-bottom: 8px; }
+    .file-card p { font-size: 13px; color: #555; }
+    .file-card code {
+      background: #e2e8f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 10px;
+      text-align: left;
+    }
+    th { background: #1a2f5a; color: white; }
+    tr:nth-child(even) { background: #f8fafc; }
+    .setup-box {
+      background: #dcfce7;
+      border: 1px solid #22c55e;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    .setup-box h4 { color: #166534; margin-bottom: 10px; }
+    .code-block {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+    }
+    @media print {
+      body { padding: 20px; font-size: 11px; }
+      .folder-tree { font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>StableX - Complete Codebase Structure</h1>
+<p class="subtitle">Detailed folder organization for local development and understanding</p>
+
+<h2>Complete Folder Tree</h2>
+
+<div class="folder-tree">
+<span class="folder">stablex/</span>
+├── <span class="config">package.json</span>              <span class="comment"># Dependencies & scripts</span>
+├── <span class="config">package-lock.json</span>         <span class="comment"># Lock file (auto-generated)</span>
+├── <span class="config">vite.config.ts</span>            <span class="comment"># Vite bundler configuration</span>
+├── <span class="config">tailwind.config.ts</span>        <span class="comment"># Tailwind CSS configuration</span>
+├── <span class="config">postcss.config.js</span>         <span class="comment"># PostCSS for Tailwind</span>
+├── <span class="config">tsconfig.json</span>             <span class="comment"># TypeScript configuration</span>
+├── <span class="config">tsconfig.app.json</span>         <span class="comment"># App-specific TS config</span>
+├── <span class="config">tsconfig.node.json</span>        <span class="comment"># Node-specific TS config</span>
+├── <span class="config">eslint.config.js</span>          <span class="comment"># ESLint code linting</span>
+├── <span class="config">components.json</span>           <span class="comment"># shadcn/ui config</span>
+├── <span class="config">.gitignore</span>                <span class="comment"># Git ignore rules</span>
+├── <span class="file">index.html</span>                <span class="comment"># Main HTML entry point</span>
+├── <span class="file">README.md</span>                 <span class="comment"># Project readme</span>
+├── <span class="file">replit.md</span>                 <span class="comment"># Replit-specific docs</span>
+│
+├── <span class="folder">public/</span>                   <span class="comment"># Static assets (served as-is)</span>
+│   ├── <span class="file">learning-guide.html</span>   <span class="comment"># Learning resources PDF</span>
+│   ├── <span class="file">api-documentation.html</span> <span class="comment"># API docs PDF</span>
+│   └── <span class="file">folder-structure.html</span> <span class="comment"># This file</span>
+│
+├── <span class="folder important">server/</span>                   <span class="comment"># ═══ BACKEND (Node.js/Express) ═══</span>
+│   ├── <span class="file">index.js</span>              <span class="comment"># Express server entry point</span>
+│   ├── <span class="file">transactions.js</span>       <span class="comment"># BTC & TRC20 transaction signing</span>
+│   └── <span class="file">interswitch.js</span>        <span class="comment"># Interswitch payment gateway</span>
+│
+└── <span class="folder important">src/</span>                      <span class="comment"># ═══ FRONTEND (React/TypeScript) ═══</span>
+    ├── <span class="file">main.tsx</span>              <span class="comment"># React entry point</span>
+    ├── <span class="file">App.tsx</span>               <span class="comment"># Main app with routing</span>
+    ├── <span class="file">App.css</span>               <span class="comment"># App-specific styles</span>
+    ├── <span class="file">index.css</span>             <span class="comment"># Global styles + Tailwind</span>
+    ├── <span class="file">marquee.css</span>           <span class="comment"># Ticker animation styles</span>
+    ├── <span class="file">vite-env.d.ts</span>         <span class="comment"># Vite type declarations</span>
+    │
+    ├── <span class="folder">pages/</span>                <span class="comment"># ─── PAGE COMPONENTS ───</span>
+    │   │
+    │   │ <span class="comment">// BOTTOM NAVIGATION PAGES</span>
+    │   ├── <span class="component">Home.tsx</span>          <span class="comment"># Dashboard with balance & actions</span>
+    │   ├── <span class="component">Convert.tsx</span>       <span class="comment"># NGN ↔ USDT ↔ Crypto exchange</span>
+    │   ├── <span class="component">QRCode.tsx</span>        <span class="comment"># QR generate & scan payments</span>
+    │   ├── <span class="component">Withdraw.tsx</span>      <span class="comment"># Withdraw to Nigerian banks</span>
+    │   ├── <span class="component">Account.tsx</span>       <span class="comment"># User profile & settings</span>
+    │   │
+    │   │ <span class="comment">// HEADER ACCESS PAGES</span>
+    │   ├── <span class="component">Trade.tsx</span>         <span class="comment"># Coin listing with prices</span>
+    │   ├── <span class="component">Wallet.tsx</span>        <span class="comment"># Wallet management + balances</span>
+    │   ├── <span class="component">Giftcard.tsx</span>      <span class="comment"># Buy/sell gift cards</span>
+    │   ├── <span class="component">Earn.tsx</span>          <span class="comment"># Staking & earning</span>
+    │   │
+    │   │ <span class="comment">// TRANSACTION PAGES</span>
+    │   ├── <span class="component">Deposit.tsx</span>       <span class="comment"># Card & bank deposits (Interswitch)</span>
+    │   ├── <span class="component">Transfer.tsx</span>      <span class="comment"># Send crypto (all 5 networks)</span>
+    │   ├── <span class="component">CreateWallet.tsx</span>  <span class="comment"># Wallet creation/import flow</span>
+    │   │
+    │   │ <span class="comment">// UTILITY PAGES</span>
+    │   ├── <span class="component">Index.tsx</span>         <span class="comment"># Landing/redirect</span>
+    │   ├── <span class="component">NotFound.tsx</span>      <span class="comment"># 404 page</span>
+    │   ├── <span class="component">Swap.tsx</span>          <span class="comment"># Token swap (legacy)</span>
+    │   ├── <span class="component">QRPay.tsx</span>         <span class="comment"># QR payment processing</span>
+    │   └── <span class="component">Merchant.tsx</span>      <span class="comment"># Merchant features</span>
+    │
+    ├── <span class="folder">components/</span>           <span class="comment"># ─── REUSABLE COMPONENTS ───</span>
+    │   │
+    │   │ <span class="comment">// LAYOUT COMPONENTS</span>
+    │   ├── <span class="component">Header.tsx</span>        <span class="comment"># Top header with logo & icons</span>
+    │   ├── <span class="component">BottomNav.tsx</span>     <span class="comment"># Bottom navigation bar</span>
+    │   ├── <span class="component">Navigation.tsx</span>    <span class="comment"># Side navigation (legacy)</span>
+    │   │
+    │   │ <span class="comment">// HOME PAGE COMPONENTS</span>
+    │   ├── <span class="component">BalanceDisplay.tsx</span> <span class="comment"># Total balance with hide/show</span>
+    │   ├── <span class="component">BalanceCard.tsx</span>   <span class="comment"># Individual balance card</span>
+    │   ├── <span class="component">QuickActions.tsx</span>  <span class="comment"># Deposit/Transfer/Buy/Sell buttons</span>
+    │   ├── <span class="component">ServicesList.tsx</span>  <span class="comment"># Services grid</span>
+    │   │
+    │   │ <span class="comment">// MARKET DATA COMPONENTS</span>
+    │   ├── <span class="component">MarqueeTicker.tsx</span> <span class="comment"># Scrolling price ticker</span>
+    │   ├── <span class="component">TrendingTokens.tsx</span> <span class="comment"># Trending coins list</span>
+    │   ├── <span class="component">TransactionHistory.tsx</span> <span class="comment"># TX history display</span>
+    │   │
+    │   │ <span class="comment">// UTILITY COMPONENTS</span>
+    │   ├── <span class="component">ThemeProvider.tsx</span> <span class="comment"># Dark/Light mode toggle</span>
+    │   ├── <span class="component">WalletConnect.tsx</span> <span class="comment"># External wallet connection</span>
+    │   │
+    │   └── <span class="folder">ui/</span>               <span class="comment"># ─── SHADCN/UI BASE COMPONENTS ───</span>
+    │       ├── <span class="file">button.tsx</span>    <span class="comment"># Button component</span>
+    │       ├── <span class="file">card.tsx</span>      <span class="comment"># Card component</span>
+    │       ├── <span class="file">input.tsx</span>     <span class="comment"># Input component</span>
+    │       ├── <span class="file">dialog.tsx</span>    <span class="comment"># Modal dialogs</span>
+    │       ├── <span class="file">select.tsx</span>    <span class="comment"># Dropdown select</span>
+    │       ├── <span class="file">tabs.tsx</span>      <span class="comment"># Tab navigation</span>
+    │       ├── <span class="file">toast.tsx</span>     <span class="comment"># Toast notifications</span>
+    │       ├── <span class="file">toaster.tsx</span>   <span class="comment"># Toast container</span>
+    │       ├── <span class="file">form.tsx</span>      <span class="comment"># Form components</span>
+    │       ├── <span class="file">label.tsx</span>     <span class="comment"># Form labels</span>
+    │       ├── <span class="file">badge.tsx</span>     <span class="comment"># Badge/tag component</span>
+    │       ├── <span class="file">avatar.tsx</span>    <span class="comment"># User avatar</span>
+    │       ├── <span class="file">switch.tsx</span>    <span class="comment"># Toggle switch</span>
+    │       ├── <span class="file">progress.tsx</span>  <span class="comment"># Progress bar</span>
+    │       ├── <span class="file">skeleton.tsx</span>  <span class="comment"># Loading skeleton</span>
+    │       ├── <span class="file">separator.tsx</span> <span class="comment"># Divider line</span>
+    │       ├── <span class="file">scroll-area.tsx</span> <span class="comment"># Scrollable container</span>
+    │       └── <span class="file">... (50+ more)</span> <span class="comment"># Full shadcn library</span>
+    │
+    ├── <span class="folder important">lib/</span>                  <span class="comment"># ─── CORE BUSINESS LOGIC ───</span>
+    │   ├── <span class="file important">wallet.ts</span>         <span class="comment"># Wallet generation (BIP44)</span>
+    │   ├── <span class="file important">blockchain.ts</span>     <span class="comment"># Live balance fetching</span>
+    │   ├── <span class="file important">transactions.ts</span>   <span class="comment"># Crypto transaction sending</span>
+    │   ├── <span class="file important">interswitch.ts</span>    <span class="comment"># Payment gateway client</span>
+    │   ├── <span class="file important">marketData.ts</span>     <span class="comment"># CoinGecko price fetching</span>
+    │   └── <span class="file">utils.ts</span>          <span class="comment"># Utility functions</span>
+    │
+    ├── <span class="folder">hooks/</span>                <span class="comment"># ─── CUSTOM REACT HOOKS ───</span>
+    │   ├── <span class="file">use-toast.ts</span>      <span class="comment"># Toast notification hook</span>
+    │   └── <span class="file">use-mobile.tsx</span>    <span class="comment"># Mobile detection hook</span>
+    │
+    ├── <span class="folder">contexts/</span>             <span class="comment"># ─── REACT CONTEXT PROVIDERS ───</span>
+    │   └── <span class="file">WalletContext.tsx</span> <span class="comment"># Wallet state management</span>
+    │
+    ├── <span class="folder">config/</span>               <span class="comment"># ─── APP CONFIGURATION ───</span>
+    │   └── <span class="file">constants.ts</span>      <span class="comment"># App-wide constants</span>
+    │
+    └── <span class="folder">types/</span>                <span class="comment"># ─── TYPESCRIPT DEFINITIONS ───</span>
+        └── <span class="file">bitcoin.d.ts</span>      <span class="comment"># Bitcoin library types</span>
+</div>
+
+<h2>Backend Server Files (server/)</h2>
+
+<div class="file-card">
+  <h4>server/index.js - Express Server Entry</h4>
+  <p>Main server file that initializes Express and mounts all API routes.</p>
+  <p><strong>Port:</strong> 3001 (backend API)</p>
+</div>
+
+<div class="file-card">
+  <h4>server/transactions.js - Crypto Transaction Signing</h4>
+  <p>Handles BTC and TRC20 transactions that require Node.js environment due to WASM compatibility.</p>
+  <p><strong>Routes:</strong></p>
+  <ul>
+    <li><code>POST /api/transactions/btc</code> - Sign and broadcast Bitcoin transactions</li>
+    <li><code>POST /api/transactions/trc20</code> - Sign and broadcast TRC20 USDT transactions</li>
+  </ul>
+  <p><strong>Libraries:</strong> bitcoinjs-lib, tiny-secp256k1, ecpair</p>
+</div>
+
+<div class="file-card">
+  <h4>server/interswitch.js - Payment Gateway Integration</h4>
+  <p>Interswitch API integration for Nigerian card payments.</p>
+  <p><strong>Routes:</strong></p>
+  <ul>
+    <li><code>GET /api/interswitch/token</code> - Generate access token</li>
+    <li><code>POST /api/interswitch/purchase</code> - Initiate card payment</li>
+    <li><code>POST /api/interswitch/verify-otp</code> - Verify OTP</li>
+    <li><code>POST /api/interswitch/resend-otp</code> - Resend OTP</li>
+    <li><code>GET /api/interswitch/transaction-status</code> - Check transaction</li>
+  </ul>
+  <p><strong>Requires:</strong> Environment variables (API keys)</p>
+</div>
+
+<h2>Core Library Files (src/lib/)</h2>
+
+<table>
+  <tr>
+    <th>File</th>
+    <th>Purpose</th>
+    <th>Key Functions</th>
+  </tr>
+  <tr>
+    <td><code>wallet.ts</code></td>
+    <td>Wallet generation & management</td>
+    <td>createWallet(), importWallet(), deriveAddress()</td>
+  </tr>
+  <tr>
+    <td><code>blockchain.ts</code></td>
+    <td>Fetch live balances</td>
+    <td>getBalance(), getExplorerUrl(), getAddressExplorerUrl()</td>
+  </tr>
+  <tr>
+    <td><code>transactions.ts</code></td>
+    <td>Send crypto transactions</td>
+    <td>sendCryptoTransaction(), estimateGas(), validateAddress()</td>
+  </tr>
+  <tr>
+    <td><code>interswitch.ts</code></td>
+    <td>Payment gateway client</td>
+    <td>initiateCardPurchase(), verifyOTP(), checkTransactionStatus()</td>
+  </tr>
+  <tr>
+    <td><code>marketData.ts</code></td>
+    <td>Crypto price data</td>
+    <td>getMarketData(), getTrendingCoins()</td>
+  </tr>
+  <tr>
+    <td><code>utils.ts</code></td>
+    <td>Helper functions</td>
+    <td>cn() - classname merger</td>
+  </tr>
+</table>
+
+<h2>Page Components (src/pages/)</h2>
+
+<h3>Bottom Navigation Pages (Main Tabs)</h3>
+<table>
+  <tr><th>Page</th><th>Route</th><th>Description</th></tr>
+  <tr><td>Home.tsx</td><td>/</td><td>Dashboard with balance, quick actions, services</td></tr>
+  <tr><td>Convert.tsx</td><td>/convert</td><td>Currency exchange (NGN ↔ USDT ↔ Crypto)</td></tr>
+  <tr><td>QRCode.tsx</td><td>/qr</td><td>Generate & scan QR codes for payments</td></tr>
+  <tr><td>Withdraw.tsx</td><td>/withdraw</td><td>Withdraw to Nigerian bank accounts</td></tr>
+  <tr><td>Account.tsx</td><td>/account</td><td>User profile, KYC status, settings</td></tr>
+</table>
+
+<h3>Header Access Pages</h3>
+<table>
+  <tr><th>Page</th><th>Route</th><th>Description</th></tr>
+  <tr><td>Trade.tsx</td><td>/trade</td><td>Coin listing with live prices</td></tr>
+  <tr><td>Wallet.tsx</td><td>/wallet</td><td>Wallet management with live balances</td></tr>
+  <tr><td>Giftcard.tsx</td><td>/giftcard</td><td>Buy and sell gift cards</td></tr>
+  <tr><td>Earn.tsx</td><td>/earn</td><td>Staking and earning features</td></tr>
+</table>
+
+<h3>Transaction Pages</h3>
+<table>
+  <tr><th>Page</th><th>Route</th><th>Description</th></tr>
+  <tr><td>Deposit.tsx</td><td>/deposit</td><td>Card payments & bank transfers (Interswitch)</td></tr>
+  <tr><td>Transfer.tsx</td><td>/transfer</td><td>Send crypto on all 5 networks</td></tr>
+  <tr><td>CreateWallet.tsx</td><td>/create-wallet</td><td>Create new wallet or import existing</td></tr>
+</table>
+
+<h2>Local Development Setup</h2>
+
+<div class="setup-box">
+  <h4>Step 1: Download & Extract</h4>
+  <div class="code-block">
+# Download from Replit (3-dot menu → Download as ZIP)
+# Extract to your local machine
+cd stablex
+  </div>
+</div>
+
+<div class="setup-box">
+  <h4>Step 2: Install Dependencies</h4>
+  <div class="code-block">
+npm install
+  </div>
+</div>
+
+<div class="setup-box">
+  <h4>Step 3: Set Environment Variables</h4>
+  <p>Create a <code>.env</code> file in the root directory:</p>
+  <div class="code-block">
+# Interswitch Payment Gateway (OPTIONAL - for card payments)
+INTERSWITCH_CLIENT_ID=your_client_id
+INTERSWITCH_CLIENT_SECRET=your_client_secret
+INTERSWITCH_CARD_CLIENT_ID=your_card_client_id
+INTERSWITCH_CARD_SECRET=your_card_secret
+  </div>
+</div>
+
+<div class="setup-box">
+  <h4>Step 4: Run the App</h4>
+  <div class="code-block">
+npm run dev
+  </div>
+  <p>App will be available at <code>http://localhost:5000</code></p>
+</div>
+
+<div class="setup-box">
+  <h4>Step 5: Build for Production</h4>
+  <div class="code-block">
+npm run build
+# Output will be in the dist/ folder
+  </div>
+</div>
+
+<h2>Key Files to Edit</h2>
+
+<table>
+  <tr>
+    <th>What You Want To Do</th>
+    <th>File To Edit</th>
+  </tr>
+  <tr>
+    <td>Change app branding/colors</td>
+    <td><code>src/index.css</code>, <code>tailwind.config.ts</code></td>
+  </tr>
+  <tr>
+    <td>Add new page</td>
+    <td>Create in <code>src/pages/</code>, add route in <code>src/App.tsx</code></td>
+  </tr>
+  <tr>
+    <td>Modify exchange rates</td>
+    <td><code>src/pages/Convert.tsx</code> (EXCHANGE_RATES object)</td>
+  </tr>
+  <tr>
+    <td>Add new blockchain network</td>
+    <td><code>src/lib/wallet.ts</code>, <code>src/lib/blockchain.ts</code></td>
+  </tr>
+  <tr>
+    <td>Change API endpoints</td>
+    <td><code>src/lib/blockchain.ts</code> (RPC_ENDPOINTS)</td>
+  </tr>
+  <tr>
+    <td>Modify transaction logic</td>
+    <td><code>src/lib/transactions.ts</code>, <code>server/transactions.js</code></td>
+  </tr>
+  <tr>
+    <td>Update payment gateway</td>
+    <td><code>src/lib/interswitch.ts</code>, <code>server/interswitch.js</code></td>
+  </tr>
+  <tr>
+    <td>Change navigation</td>
+    <td><code>src/components/BottomNav.tsx</code>, <code>src/components/Header.tsx</code></td>
+  </tr>
+</table>
+
+<h2>Technology Stack Summary</h2>
+
+<table>
+  <tr><th>Layer</th><th>Technology</th><th>Version</th></tr>
+  <tr><td>Frontend Framework</td><td>React</td><td>18.x</td></tr>
+  <tr><td>Language</td><td>TypeScript</td><td>5.x</td></tr>
+  <tr><td>Build Tool</td><td>Vite</td><td>5.x</td></tr>
+  <tr><td>Styling</td><td>Tailwind CSS</td><td>3.x</td></tr>
+  <tr><td>UI Components</td><td>shadcn/ui</td><td>latest</td></tr>
+  <tr><td>State Management</td><td>TanStack Query</td><td>5.x</td></tr>
+  <tr><td>Routing</td><td>React Router DOM</td><td>6.x</td></tr>
+  <tr><td>Backend</td><td>Express.js</td><td>4.x</td></tr>
+  <tr><td>Blockchain (ETH)</td><td>ethers.js</td><td>6.x</td></tr>
+  <tr><td>Blockchain (SOL)</td><td>@solana/web3.js</td><td>latest</td></tr>
+  <tr><td>Blockchain (BTC)</td><td>bitcoinjs-lib</td><td>latest</td></tr>
+</table>
+
+<div class="footer">
+  <p>StableX Folder Structure Guide | Generated February 2026</p>
+  <p>To save as PDF: Press Ctrl+P (or Cmd+P on Mac) and select "Save as PDF"</p>
+</div>
+
+</body>
+</html>

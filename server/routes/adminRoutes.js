@@ -7,7 +7,6 @@ import {
     getSystemBalances,
     updateHotWalletConfig,
     getHotWalletConfigDetail,
-    getHotWalletConfigDetail,
     getUserStats,
     creditTreasury,
     debitTreasury,

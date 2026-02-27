@@ -2,6 +2,7 @@ import Wallet from '../models/walletModel.js';
 import User from '../models/userModel.js';
 import { encrypt, decrypt } from '../utils/encryption.js';
 import { deriveWallet, generateMnemonic } from '../utils/walletGenerator.js';
+import { validateCryptoAddress } from '../utils/addressValidator.js';
 
 export const generateWallet = async (req, res) => {
     try {
@@ -78,6 +79,12 @@ export const importWallet = async (req, res) => {
         if (!network || !importMethod || !importValue) {
             return res.status(400).json({ message: 'Network, method, and value are required' });
         }
+
+        // 1. Validate address/mnemonic format if it's mnemonic or if we want to ensure format
+        // If importMethod is 'privateKey', we might want to validate even if it's not a public address yet.
+        // However, the task specifically asks to add validateCryptoAddress check.
+        // If it's a private key, we don't have the address yet until re-derivation below.
+        // So we'll validate the re-derived address after it's produced.
 
         const existingWallet = await Wallet.findOne({ user: req.user._id, network });
         if (existingWallet) {
@@ -172,6 +179,14 @@ export const importWallet = async (req, res) => {
             }
         } catch (err) {
             return res.status(400).json({ message: 'Invalid ' + importMethod });
+        }
+
+        // Validate re-derived address
+        const addressCheck = validateCryptoAddress(walletData.address, network);
+        if (!addressCheck.valid) {
+            return res.status(400).json({
+                message: `Imported address is invalid for ${network}: ${addressCheck.error}`
+            });
         }
 
         const encryptedPrivKey = encrypt(walletData.privateKey);

@@ -51,6 +51,16 @@ export async function handleAccountInquiry(req, res) {
             return res.status(400).json({ success: false, error: 'Missing required query params: bankCode, accountId' });
         }
 
+        // Bank account validation
+        const accountRegex = /^\d{10}$/;
+        if (!accountRegex.test(accountId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Bank account number must be exactly 10 digits',
+                field: 'accountId'
+            });
+        }
+
         const result = await verifyBankAccount(bankCode, accountId);
 
         if (!result.ok) {
@@ -85,6 +95,24 @@ export async function handlePayoutTransfer(req, res) {
 
         if (!amount || !accountNumber || !bankCode || !beneficiaryName || !transactionRef) {
             return res.status(400).json({ success: false, error: 'Missing required fields for payout' });
+        }
+
+        // Bank account validation
+        const accountRegex = /^\d{10}$/;
+        if (!accountRegex.test(accountNumber)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Bank account number must be exactly 10 digits',
+                field: 'accountNumber'
+            });
+        }
+
+        if (!bankCode || bankCode.trim() === '') {
+            return res.status(400).json({
+                success: false,
+                message: 'Bank code is required',
+                field: 'bankCode'
+            });
         }
 
         const payoutAmount = parseFloat(amount);

@@ -9,6 +9,7 @@ import { protect } from './middleware/authMiddleware.js';
 import Wallet from './models/walletModel.js';
 import Transaction from './models/transactionModel.js';
 import { creditUserWallet } from './services/walletService.js';
+import { validateCryptoAddress } from './utils/addressValidator.js';
 
 const PLATFORM_FEE_WALLET_ID = process.env.PLATFORM_FEE_WALLET_ID;
 import { transferLimiter } from './middleware/rateLimiter.js';
@@ -501,6 +502,16 @@ router.post('/deposit-pending', protect, async (req, res) => {
 // Crypto Withdrawal Endpoint (Automated Hot Wallet Transfer)
 router.post('/withdraw-crypto', protect, transferLimiter, idempotency, async (req, res) => {
   const { amount, toAddress, currency, network } = req.body;
+
+  // 1. Validate address FIRST before touching balance or starting session
+  const addressCheck = validateCryptoAddress(toAddress, network);
+  if (!addressCheck.valid) {
+    return res.status(400).json({
+      success: false,
+      message: `Invalid ${network} address: ${addressCheck.error}`,
+      field: 'toAddress'
+    });
+  }
 
   if (!amount || !toAddress || !currency || !network) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });

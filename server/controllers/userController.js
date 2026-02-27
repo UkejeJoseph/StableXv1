@@ -155,7 +155,9 @@ const resendOtp = asyncHandler(async (req, res) => {
     user.otpExpires = otpExpires;
     await user.save();
 
-    console.log(`[Resend OTP] New OTP for ${email}: ${otp}`);
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`[Resend OTP] New OTP for ${email}: ${otp}`);
+    }
 
     // Send OTP email (Blocking)
     try {
@@ -210,7 +212,9 @@ const registerUser = asyncHandler(async (req, res) => {
         isVerified: false
     });
 
-    console.log(`[DEV MODE] OTP for ${email}: ${otp}`);
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`[DEV MODE] OTP for ${email}: ${otp}`);
+    }
 
     // Send Real OTP Email (Blocking)
     try {

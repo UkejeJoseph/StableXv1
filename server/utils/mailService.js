@@ -12,11 +12,20 @@ const getTransporter = () => {
     }
 
     transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,       // Use purely secure SSL/TLS
+      secure: true,    // Force secure connection
       auth: {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASS
-      }
+      },
+      // Failsafe strict timeouts (prevent eternal hanging on cloud providers)
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 8000,
+      // Debug logging to help identify why railway might be dropping it
+      logger: process.env.NODE_ENV !== 'production',
+      debug: process.env.NODE_ENV !== 'production'
     });
   }
   return transporter;

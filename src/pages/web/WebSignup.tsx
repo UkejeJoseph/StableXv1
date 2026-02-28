@@ -67,10 +67,15 @@ export default function Signup() {
 
         setIsLoading(true);
 
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+
         try {
             const res = await fetch("/api/users", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                signal: controller.signal,
                 body: JSON.stringify({
                     email: formData.email,
                     password: formData.password,
@@ -83,12 +88,14 @@ export default function Signup() {
                 }),
             });
 
+            clearTimeout(timeout);
             const data = await res.json();
 
             if (res.ok) {
                 toast({
-                    title: "Account Created",
-                    description: "Please verify your email address.",
+                    title: "Check your email! 📧",
+                    description: `We sent a 6-digit verification code to ${formData.email}`,
+                    duration: 5000,
                 });
                 navigate("/web/verify", {
                     state: {
@@ -100,10 +107,15 @@ export default function Signup() {
                 throw new Error(data.message || data.error || "Signup failed");
             }
         } catch (error: any) {
+            clearTimeout(timeout);
+            const errorMsg = error.name === 'AbortError'
+                ? 'Request timed out. Please try again.'
+                : (error.message || 'Connection error. Please try again.');
+
             toast({
                 variant: "destructive",
                 title: "Signup Failed",
-                description: error.message,
+                description: errorMsg,
             });
         } finally {
             setIsLoading(false);

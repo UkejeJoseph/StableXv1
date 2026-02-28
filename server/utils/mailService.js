@@ -23,6 +23,8 @@ const getTransporter = () => {
       connectionTimeout: 8000,
       greetingTimeout: 8000,
       socketTimeout: 8000,
+      // Force IPv4 to prevent ENETUNREACH issues on cloud providers (like Railway)
+      family: 4,
       // Debug logging forced ON to identify why railway might be dropping it
       logger: true,
       debug: true

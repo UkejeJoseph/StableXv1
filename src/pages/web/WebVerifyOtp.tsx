@@ -56,8 +56,9 @@ export default function VerifyOtp() {
 
             if (res.ok) {
                 toast({
-                    title: "Code Resent",
-                    description: data.message || "A new verification code has been sent to your email.",
+                    title: "Code resent! 📧",
+                    description: "Check your inbox and spam folder",
+                    duration: 4000,
                 });
                 setResendCooldown(60); // 60 second cooldown
             } else {
@@ -161,15 +162,31 @@ export default function VerifyOtp() {
                             <Mail className="w-6 h-6 text-primary" />
                         </div>
 
-                        {!emailSent && (
-                            <Alert variant="destructive" className="mb-6 bg-destructive/10 text-destructive border-destructive/20 transition-all animate-in fade-in slide-in-from-top-4">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertTitle>Email Delivery Delayed</AlertTitle>
-                                <AlertDescription>
-                                    We couldn't deliver the OTP to <span className="font-bold underline">{email}</span>.
-                                    Please wait a moment or click <strong>Resend Code</strong> below.
-                                </AlertDescription>
-                            </Alert>
+                        {emailSent ? (
+                            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 mb-6 text-center animate-in fade-in slide-in-from-top-4">
+                                <p className="text-emerald-400 font-medium">
+                                    ✉️ Verification code sent
+                                </p>
+                                <p className="text-sm text-gray-400 mt-1">
+                                    We sent a 6-digit code to
+                                </p>
+                                <p className="text-white font-medium mt-1">
+                                    {email}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-2">
+                                    Check your spam folder if you don't see it
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-6 text-center animate-in fade-in slide-in-from-top-4">
+                                <p className="text-yellow-400 font-medium">
+                                    ⚠️ Email delivery delayed
+                                </p>
+                                <p className="text-sm text-gray-400 mt-1">
+                                    We could not send your code automatically.
+                                    Click Resend Code below to try again.
+                                </p>
+                            </div>
                         )}
 
                         <h2 className="text-3xl font-bold mb-2">Verify Your Email</h2>

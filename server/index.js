@@ -22,6 +22,18 @@ if (process.env.SENTRY_DSN) {
   console.log('🛡️ Sentry initialized.');
 }
 
+// ── Global Error Hardening (Fail-Safe) ────────────────────────
+// Prevent Redis errors or other unhandled promises from crashing the process
+process.on('unhandledRejection', (reason, promise) => {
+  if (reason?.message?.includes('Connection is closed') ||
+    reason?.message?.includes('Redis') ||
+    reason?.message?.includes('ECONNRESET')) {
+    console.warn('[Redis] Unhandled rejection swallowed (Resilience Mode):', reason.message);
+    return;
+  }
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 // ── Environment Hardening (Fail-Fast) ─────────────────────────
 const CRITICAL_VARS = [
   'JWT_SECRET',
@@ -47,6 +59,13 @@ if (missing.length > 0 || insecure.length > 0) {
   if (insecure.length > 0) console.error(`   Insecure/Placeholder: ${insecure.join(', ')}`);
   console.error('   Server shutdown to protect user funds.');
   process.exit(1);
+}
+
+// ── Email Config Check ──────────────────────────────
+if (process.env.MAIL_USER && process.env.MAIL_PASS) {
+  console.log(`✅ [EMAIL] Mail config loaded for: ${process.env.MAIL_USER}`);
+} else {
+  console.warn('⚠️ [EMAIL] MAIL_USER or MAIL_PASS not set. OTP emails will fail.');
 }
 
 if (!process.env.NODE_ENV) {
@@ -83,6 +102,7 @@ import korapayRoutes from './routes/korapayRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 
 // Apply global rate limiter to all /api routes
+// Note: apiLimiter is now configured to fail-open inside its own middleware
 app.use('/api', apiLimiter);
 
 app.use('/api/interswitch', interswitchRoutes);

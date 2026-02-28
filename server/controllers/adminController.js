@@ -605,5 +605,9 @@ export const treasuryLimiter = rateLimit({
     message: { message: 'Too many treasury administrative actions. Please wait an hour.' },
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req, res) => ipKeyGenerator(req) // Rate limit per IP using helper for IPv6 support
+    skip: (req, res) => false,
+    handler: (req, res, next, options) => {
+        res.status(429).json(options.message);
+    },
+    keyGenerator: (req, res) => ipKeyGenerator(req)
 });

@@ -25,12 +25,8 @@ export default function AuthCallback() {
                 const userData = JSON.parse(decodeURIComponent(data));
                 console.log("[AUTH CALLBACK] ✅ Google auth successful");
 
-                // Store in localStorage — only non-sensitive display data
-                localStorage.setItem("userInfo", JSON.stringify({
-                    email: userData.email,
-                    name: userData.firstName || userData.name,
-                    role: userData.role,
-                }));
+                // User data is now managed by the backend session cookie
+                // No need to store in localStorage
 
                 // Redirect to dashboard
                 navigate("/web/dashboard");

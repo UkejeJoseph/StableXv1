@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, ArrowLeft, Mail } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { BackButton } from "@/components/BackButton";
 
 import { useUser } from "@/contexts/UserContext";
@@ -21,6 +22,7 @@ export default function VerifyOtp() {
     const { toast } = useToast();
 
     const email = location.state?.email || "";
+    const emailSent = location.state?.emailSent ?? true;
 
     // Cooldown timer for resend button
     useEffect(() => {
@@ -86,7 +88,7 @@ export default function VerifyOtp() {
         setIsLoading(true);
 
         try {
-            const res = await fetch("/api/users/verify", {
+            const res = await fetch("/api/users/verify-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, otp }),
@@ -95,13 +97,20 @@ export default function VerifyOtp() {
 
             const data = await res.json();
 
-            if (res.ok) {
-                setUser(data);
+            if (res.status === 201) {
+                setUser(data.user);
                 toast({
                     title: "Verification Successful",
                     description: "Welcome to StableX!",
                 });
                 navigate("/web/dashboard");
+            } else if (res.status === 400 && data.expired) {
+                // OTP expired — send back to register
+                navigate("/web/signup", {
+                    state: {
+                        message: data.message || "Your session expired. Please register again."
+                    }
+                });
             } else {
                 throw new Error(data.message || "Verification failed");
             }
@@ -151,6 +160,18 @@ export default function VerifyOtp() {
                         <div className="inline-flex lg:hidden items-center justify-center w-12 h-12 rounded-xl bg-primary/10 mb-6">
                             <Mail className="w-6 h-6 text-primary" />
                         </div>
+
+                        {!emailSent && (
+                            <Alert variant="destructive" className="mb-6 bg-destructive/10 text-destructive border-destructive/20 transition-all animate-in fade-in slide-in-from-top-4">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>Email Delivery Delayed</AlertTitle>
+                                <AlertDescription>
+                                    We couldn't deliver the OTP to <span className="font-bold underline">{email}</span>.
+                                    Please wait a moment or click <strong>Resend Code</strong> below.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+
                         <h2 className="text-3xl font-bold mb-2">Verify Your Email</h2>
                         <p className="text-muted-foreground">
                             We sent a verification code to <span className="font-medium text-foreground">{email}</span>

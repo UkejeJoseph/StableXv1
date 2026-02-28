@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,8 @@ export default function Signup() {
     const [isLoading, setIsLoading] = useState(false);
 
     const navigate = useNavigate();
+    const location = useLocation();
+    const { message } = (location.state as any) || {};
     const { toast } = useToast();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,7 +90,12 @@ export default function Signup() {
                     title: "Account Created",
                     description: "Please verify your email address.",
                 });
-                navigate("/web/verify", { state: { email: formData.email } });
+                navigate("/web/verify", {
+                    state: {
+                        email: formData.email,
+                        emailSent: data.emailSent
+                    }
+                });
             } else {
                 throw new Error(data.message || data.error || "Signup failed");
             }
@@ -135,6 +142,11 @@ export default function Signup() {
             <div className="flex-1 flex flex-col items-center justify-center p-8 lg:p-12 relative z-10 bg-background/95 backdrop-blur-sm overflow-y-auto w-full">
                 <div className="w-full max-w-md py-8">
                     <div className="mb-8">
+                        {message && (
+                            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4 text-sm text-red-400 animate-in fade-in slide-in-from-top-2">
+                                {message}
+                            </div>
+                        )}
                         <h1 className="text-3xl font-bold mb-2">Create Account</h1>
                         <p className="text-muted-foreground">Join StableX Web today</p>
                     </div>

@@ -1,11 +1,16 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
+import { Loader2 } from 'lucide-react';
 
 const ProtectedAdminRoute = () => {
     const { user, isLoading } = useUser();
 
     if (isLoading) {
-        return null;
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+            </div>
+        );
     }
 
     if (!user) {

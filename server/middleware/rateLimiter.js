@@ -1,81 +1,80 @@
 import { rateLimit } from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
-import Redis from 'ioredis';
-import dotenv from 'dotenv';
+import redisClient from '../config/redis.js';
 
-dotenv.config();
+const sendCommandMock = (command, windowMs) => {
+    // console.warn(`[RateLimit] Using mock for command: ${command}`);
+    if (command === 'SCRIPT') return "mock_sha";
+    return [1, windowMs || 60000];
+};
 
-const redisClient = new Redis(process.env.REDIS_URL, {
-    tls: {
-        rejectUnauthorized: false,
-    },
-    maxRetriesPerRequest: 3,
-    retryStrategy(times) {
-        if (times > 3) {
-            console.error('[Redis] Max retries reached. Giving up.');
-            return null;
-        }
-        return Math.min(times * 200, 1000);
-    },
-    lazyConnect: false,
-});
+const createWrappedStore = (prefix, windowMs) => {
+    return new RedisStore({
+        sendCommand: async function (...args) {
+            // Defensively handle command extraction
+            if (!args || args.length === 0) return [1, windowMs || 60000];
 
-redisClient.on('error', (err) => {
-    console.error('[Redis] Connection error:', err.message);
-});
+            const cmd = args[0];
+            try {
+                if (redisClient.status === 'ready' || redisClient.status === 'connecting') {
+                    return await redisClient.call(...args);
+                }
+            } catch (err) {
+                // Silently fail-open
+            }
 
-redisClient.on('connect', () => {
-    console.log('[Redis] Connected to Upstash successfully.');
-});
+            return sendCommandMock(cmd, windowMs);
+        },
+        prefix: `rl:${prefix}:`
+    });
+};
+
+const createWrappedLimiter = ({ windowMs, max, message, prefix }) => {
+    return rateLimit({
+        windowMs,
+        max,
+        message: message || { error: 'Too many requests, please slow down.' },
+        standardHeaders: true,
+        legacyHeaders: false,
+        skip: (req) => {
+            // Fix 4: Remove ALL rate limiting from /api/users/profile specifically
+            return req.originalUrl && req.originalUrl.includes('/api/users/profile');
+        },
+        handler: (req, res, next, options) => {
+            res.status(429).json(options.message);
+        },
+        store: createWrappedStore(prefix, windowMs),
+    });
+};
 
 // Tier 1: Auth endpoints (strictest)
-export const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // 10 attempts per 15 mins
+export const authLimiter = createWrappedLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
     message: { error: 'Too many attempts, please try again in 15 minutes' },
-    standardHeaders: true,
-    legacyHeaders: false,
-    store: new RedisStore({
-        sendCommand: (...args) => redisClient.call(...args),
-        prefix: 'rl:auth:'
-    }),
+    prefix: 'auth',
 });
 
 // Tier 2: General API (standard)
-export const apiLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 60, // 60 requests per minute
+export const apiLimiter = createWrappedLimiter({
+    windowMs: 60 * 1000,
+    max: 60,
     message: { error: 'Rate limit exceeded. Max 60 requests per minute.' },
-    standardHeaders: true,
-    legacyHeaders: false,
-    store: new RedisStore({
-        sendCommand: (...args) => redisClient.call(...args),
-        prefix: 'rl:api:'
-    }),
+    prefix: 'api',
 });
 
 // Tier 3: Withdrawal/Transfer endpoints (extra strict)
-export const transferLimiter = rateLimit({
+export const transferLimiter = createWrappedLimiter({
     windowMs: 60 * 1000,
-    max: 10, // 10 transfers per minute max
+    max: 10,
     message: { error: 'Transfer rate limit exceeded.' },
-    standardHeaders: true,
-    legacyHeaders: false,
-    store: new RedisStore({
-        sendCommand: (...args) => redisClient.call(...args),
-        prefix: 'rl:transfer:'
-    }),
+    prefix: 'transfer',
 });
 
 // Tier 4: Merchant/Developer API (higher limits)
-export const merchantLimiter = rateLimit({
+export const merchantLimiter = createWrappedLimiter({
     windowMs: 60 * 1000,
-    max: 120, // 120 requests per minute
+    max: 120,
     message: { error: 'Merchant rate limit exceeded.' },
-    standardHeaders: true,
-    legacyHeaders: false,
-    store: new RedisStore({
-        sendCommand: (...args) => redisClient.call(...args),
-        prefix: 'rl:merchant:'
-    }),
+    prefix: 'merchant',
 });

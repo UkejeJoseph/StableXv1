@@ -53,11 +53,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (error) {
             console.error("Logout failed:", error);
         } finally {
-            // Clear everything regardless of API result
-            localStorage.removeItem('userInfo');
-            localStorage.removeItem('webUserInfo');
-            localStorage.removeItem('stablex_secure_balances');
-            localStorage.removeItem('stablex_theme');
+            // Clear identity-related state
             sessionStorage.clear();
             setUser(null);
 

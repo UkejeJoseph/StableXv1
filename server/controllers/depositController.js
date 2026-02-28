@@ -8,7 +8,8 @@ import { createVirtualAccount } from '../services/transferDepositService.js';
 import { initiateUssdPayment, getUssdBanks } from '../services/ussdDepositService.js';
 import { getTransactionStatus } from '../services/transactionService.js';
 import Transaction from '../models/transactionModel.js';
-import { creditUserWallet } from '../services/walletService.js';
+import * as PayoutService from '../services/payoutService.js';
+import { trackApiCall } from '../utils/apiTracker.js';
 
 // ── GET /config ─────────────────────────────────────────────
 export async function handleGetConfig(req, res) {

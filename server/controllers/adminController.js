@@ -1,9 +1,9 @@
 import asyncHandler from 'express-async-handler';
 import User from '../models/userModel.js';
+import { creditUserWallet } from '../services/walletService.js';
+import { getApiStats } from '../utils/apiTracker.js';
 import Wallet from '../models/walletModel.js';
 import Transaction from '../models/transactionModel.js';
-import fs from 'fs';
-import path from 'path';
 import { ethers } from 'ethers';
 import { Connection, PublicKey } from '@solana/web3.js';
 import axios from 'axios';
@@ -141,11 +141,6 @@ export const getSystemBalances = asyncHandler(async (req, res) => {
 
     if (isSuperAdmin) {
         try {
-            const hotWalletPath = path.join(process.cwd(), 'server', 'scripts', 'HOT_WALLETS.json');
-            if (fs.existsSync(hotWalletPath)) {
-                hotWallets = JSON.parse(fs.readFileSync(hotWalletPath, 'utf8'));
-            }
-
             const ethProvider = new ethers.JsonRpcProvider(process.env.ETH_RPC_URL || "https://ethereum-rpc.publicnode.com");
             const solConnection = new Connection(process.env.SOL_RPC_URL || "https://api.mainnet-beta.solana.com");
 
@@ -183,6 +178,50 @@ export const getSystemBalances = asyncHandler(async (req, res) => {
             console.error("Live balance fetch error:", err.message);
         }
     }
+    // ── Computed Stats for Response ──
+    const totalUsers = await User.countDocuments({ role: 'user' });
+    const totalMerchants = await User.countDocuments({ role: 'merchant' });
+
+    const liabilityAgg = await Wallet.aggregate([
+        { $match: { walletType: { $in: ['user', 'merchant'] } } },
+        { $group: { _id: '$currency', total: { $sum: '$balance' } } }
+    ]);
+    const liabilities = liabilityAgg.reduce((acc, item) => {
+        acc[item._id] = item.total;
+        return acc;
+    }, {});
+
+    const startOfDayCurrent = new Date();
+    startOfDayCurrent.setHours(0, 0, 0, 0);
+    const volumeAgg = await Transaction.aggregate([
+        {
+            $match: {
+                createdAt: { $gte: startOfDayCurrent },
+                status: 'completed'
+            }
+        },
+        { $group: { _id: '$currency', total: { $sum: '$amount' } } }
+    ]);
+    const volumeToday = volumeAgg.reduce((acc, item) => {
+        acc[item._id] = item.total;
+        return acc;
+    }, {});
+
+    const platformWallets = {
+        BTC: process.env.STABLEX_HOT_WALLET_BTC || null,
+        ETH: process.env.STABLEX_HOT_WALLET_ETH || null,
+        TRON: process.env.STABLEX_HOT_WALLET_TRC20 || null,
+        SOL: process.env.STABLEX_HOT_WALLET_SOL || null,
+    };
+
+    const stakingAgg = await Wallet.aggregate([
+        { $match: { walletType: 'staking' } },
+        { $group: { _id: '$currency', total: { $sum: '$balance' } } }
+    ]);
+    const stakingStats = stakingAgg.reduce((acc, item) => {
+        acc[item._id] = item.total;
+        return acc;
+    }, {});
 
     res.json({
         success: true,
@@ -197,26 +236,27 @@ export const getSystemBalances = asyncHandler(async (req, res) => {
             platformWallets,
             liabilities,
             stakingStats,
-            users: { total: userCount, merchants: merchantCount },
+            users: { total: totalUsers, merchants: totalMerchants },
             hotWallets: isSuperAdmin ? {
                 BTC: {
-                    address: hotWallets.BTC?.address || process.env.STABLEX_HOT_WALLET_BTC || 'Not configured',
+                    address: process.env.STABLEX_HOT_WALLET_BTC || 'Not configured',
                     balance: liveBalances.BTC || 0
                 },
                 ETH: {
-                    address: hotWallets.ETH?.address || process.env.STABLEX_HOT_WALLET_ETH || 'Not configured',
+                    address: process.env.STABLEX_HOT_WALLET_ETH || 'Not configured',
                     balance: liveBalances.ETH || 0
                 },
                 TRC20: {
-                    address: hotWallets.TRX?.address || process.env.STABLEX_HOT_WALLET_TRC20 || 'Not configured',
+                    address: process.env.STABLEX_HOT_WALLET_TRC20 || 'Not configured',
                     balance: liveBalances.TRX || 0
                 },
                 SOL: {
-                    address: hotWallets.SOL?.address || process.env.STABLEX_HOT_WALLET_SOL || 'Not configured',
+                    address: process.env.STABLEX_HOT_WALLET_SOL || 'Not configured',
                     balance: liveBalances.SOL || 0
                 },
             } : null,
             volumeToday,
+            apiCallBudgets: getApiStats(),
         }
     });
 });
@@ -229,6 +269,7 @@ export const updateHotWalletConfig = asyncHandler(async (req, res) => {
         res.status(403);
         throw new Error('Restricted: Only the Super Admin can modify hot wallets.');
     }
+
     const { currency, address, privateKey } = req.body;
 
     if (!currency || !address) {
@@ -236,29 +277,25 @@ export const updateHotWalletConfig = asyncHandler(async (req, res) => {
         throw new Error('Currency and address are required');
     }
 
-    // In a real prod environment, we would save this to a secure vault or encrypted DB field.
-    // For this dashboard, we will update the HOT_WALLETS.json file which sweep bots use.
-    const hotWalletPath = path.join(process.cwd(), 'server', 'scripts', 'HOT_WALLETS.json');
-    let configs = {};
+    // Hot wallet config is managed via Railway environment variables.
+    // This endpoint now returns instructions instead of writing to disk.
+    // The filesystem is ephemeral on Railway — file writes do not persist.
 
-    if (fs.existsSync(hotWalletPath)) {
-        configs = JSON.parse(fs.readFileSync(hotWalletPath, 'utf8'));
-    }
+    const envKeyAddress = `STABLEX_HOT_WALLET_${currency}`;
+    const envKeyPrivate = `STABLEX_HOT_WALLET_${currency}_PRIVATE_KEY`;
 
-    configs[currency] = {
-        address,
-        privateKey: privateKey || configs[currency]?.privateKey,
-        updatedAt: new Date().toISOString()
-    };
-
-    fs.writeFileSync(hotWalletPath, JSON.stringify(configs, null, 2));
-
-    console.log(`🔐 [ADMIN] Updated hot wallet config for ${currency}: ${address}`);
+    console.log(`[ADMIN] Hot wallet update requested for ${currency}: ${address}`);
 
     res.json({
         success: true,
-        message: `Hot wallet for ${currency} updated successfully`,
-        config: { currency, address }
+        message: `To update the ${currency} hot wallet, set these Railway environment variables and redeploy:`,
+        instructions: {
+            [envKeyAddress]: address,
+            [envKeyPrivate]: privateKey
+                ? '(provided — add to Railway env vars)'
+                : '(not provided — keep existing)',
+            note: 'Go to Railway → Your Project → Variables → Add/update these keys → Redeploy'
+        }
     });
 });
 
@@ -270,23 +307,20 @@ export const getHotWalletConfigDetail = asyncHandler(async (req, res) => {
         res.status(403);
         throw new Error('Restricted: Only the Super Admin can view hot wallet details.');
     }
+
     const { currency } = req.params;
 
-    const hotWalletPath = path.join(process.cwd(), 'server', 'scripts', 'HOT_WALLETS.json');
-    if (!fs.existsSync(hotWalletPath)) {
-        return res.json({ success: true, config: {} });
-    }
-
-    const configs = JSON.parse(fs.readFileSync(hotWalletPath, 'utf8'));
-    const config = configs[currency] || {};
+    const envKeyAddress = `STABLEX_HOT_WALLET_${currency}`;
+    const address = process.env[envKeyAddress];
 
     res.json({
         success: true,
         config: {
             currency,
-            address: config.address || process.env[`STABLEX_HOT_WALLET_${currency}`],
-            privateKey: config.privateKey || 'Managed by environment variable',
-            isEnv: !config.privateKey && !!process.env[`STABLEX_HOT_WALLET_${currency}`]
+            address: address || 'Not configured',
+            privateKey: 'Managed by Railway environment variable — not exposed via API',
+            isEnv: !!address,
+            source: 'environment_variable'
         }
     });
 });

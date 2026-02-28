@@ -1,11 +1,15 @@
 import { ethers } from 'ethers';
 import Wallet from '../models/walletModel.js';
+import User from '../models/userModel.js';
 import Transaction from '../models/transactionModel.js';
 import { creditUserWallet } from '../services/walletService.js';
 import { decrypt } from '../utils/encryption.js';
 import SweepQueue from '../models/sweepQueueModel.js';
 
 import { withRetry } from '../utils/retry.js';
+import { queueWebhook } from '../services/webhookService.js';
+import { sendOperationalAlert } from '../utils/alerting.js';
+import { trackApiCall } from '../utils/apiTracker.js';
 
 const ETH_RPC = process.env.ETH_RPC_URL || "https://ethereum-rpc.publicnode.com";
 const USDT_ERC20_CONTRACT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
@@ -23,10 +27,8 @@ const ERC20_ABI = [
 ];
 
 const RPC_URLS = [
-    'https://lb.drpc.live/ethereum/Aj0ag2yiJEfWo3zCvW8aHOtPF89TFHcR8ZsQtuZZzRRv',
     process.env.ETH_RPC_URL,
     'https://eth.llamarpc.com',
-    'https://rpc.ankr.com/eth',
     'https://cloudflare-eth.com',
     'https://ethereum-rpc.publicnode.com',
     process.env.ETH_RPC_ALCHEMY_URL,
@@ -39,8 +41,7 @@ const initProvider = async () => {
         try {
             const p = new ethers.JsonRpcProvider(url, undefined, {
                 staticNetwork: true,
-                polling: true,
-                pollingInterval: 10000,
+                polling: false, // Disabling ethers internal polling to rely on manual pollBlocks
                 timeout: 30000
             });
             const blockNumber = await p.getBlockNumber();
@@ -48,7 +49,7 @@ const initProvider = async () => {
             ethProvider = p;
             return p;
         } catch (err) {
-            console.warn(`[ETH] RPC failed, trying next: ${url}`);
+            console.warn(`[ETH] ⚠️ RPC FAILOVER: Provider ${url} failed to respond. Trying next URL in pool...`);
         }
     }
     console.error('[ETH] All RPC providers failed. ETH deposits disabled.');
@@ -58,8 +59,15 @@ const initProvider = async () => {
 export const startEthListener = async () => {
     await initProvider();
     console.log(`🔗 [ETH] Listener Started | Auto-Sweep: ${ENABLE_SWEEP ? 'ENABLED' : 'DISABLED'} | Hot Wallet: ${HOT_WALLET}`);
-    setInterval(pollBlocks, POLL_INTERVAL);
+
+    // Switch to recursive polling for better stability
+    checkDepositsRecursive();
     setInterval(checkConfirmations, POLL_INTERVAL * 2);
+};
+
+const checkDepositsRecursive = async () => {
+    await pollBlocks();
+    setTimeout(checkDepositsRecursive, POLL_INTERVAL);
 };
 
 /**
@@ -76,8 +84,10 @@ const pollBlocks = async () => {
     let currentBlock;
     try {
         currentBlock = await ethProvider.getBlockNumber();
+        console.log(`[ETH-POLL] 🔍 Polling Block: ${currentBlock}`);
+        trackApiCall('infura');
     } catch (err) {
-        console.error('[ETH] Poll Blocks Error (Network):', err.message);
+        console.error(`[ETH-POLL] ❌ NETWORK ERROR: ${err.message}. Marking provider for rotation...`);
         ethProvider = null; // force reinit on next cycle
         return;
     }
@@ -88,7 +98,18 @@ const pollBlocks = async () => {
             address: { $ne: 'FIAT_ACCOUNT' }
         });
 
-        for (const wallet of wallets) {
+        // Deduplicate wallets by address to prevent double-scanning if one address has multiple records
+        const uniqueWallets = [];
+        const seenAddresses = new Set();
+        for (const w of wallets) {
+            if (!seenAddresses.has(w.address)) {
+                seenAddresses.add(w.address);
+                uniqueWallets.push(w);
+            }
+        }
+
+        for (const wallet of uniqueWallets) {
+            console.log(`[ETH-SCAN] 🔍 Scanning Wallet: ${wallet.address}`);
             const lastBlock = parseInt(wallet.lastCheckedBlock || "0");
             if (lastBlock === 0) {
                 // Initialize for new wallets to current block - 100 to catch recent deposits
@@ -114,17 +135,25 @@ const pollBlocks = async () => {
             // Check for USDT ERC20 Transfer events
             const usdtContract = new ethers.Contract(USDT_ERC20_CONTRACT, ERC20_ABI, ethProvider);
             const filter = usdtContract.filters.Transfer(null, wallet.address);
+            console.log(`[ETH-FETCH] 📜 Querying USDT Transfer events for ${wallet.address}...`);
             const events = await withRetry(() => usdtContract.queryFilter(filter, lastBlock + 1, currentBlock));
+            console.log(`[ETH-RES] ✅ OK: Found ${events.length} USDT events for ${wallet.address}`);
 
             for (const event of events) {
                 const amount = parseFloat(ethers.formatUnits(event.args.value, USDT_DECIMALS));
                 await handleDetectedDeposit(wallet, amount, 'USDT_ERC20', event.blockNumber, event.transactionHash);
             }
 
-            // Update last checked block
-            wallet.lastCheckedBlock = String(currentBlock);
-            wallet.lastKnownBalance = balance;
-            await wallet.save();
+            // Update ALL wallet records for this address to keep checkpoints in sync
+            await Wallet.updateMany(
+                { address: wallet.address },
+                {
+                    $set: {
+                        lastCheckedBlock: String(currentBlock),
+                        lastKnownBalance: balance
+                    }
+                }
+            );
 
             // Sequential delay to avoid RPC rate limits
             await new Promise(r => setTimeout(r, 200));
@@ -172,7 +201,7 @@ const checkConfirmations = async () => {
     try {
         currentBlock = await ethProvider.getBlockNumber();
     } catch (err) {
-        console.error('[ETH] Confirmation Check Error (Network):', err.message);
+        console.error(`[ETH-CONF] ❌ NETWORK ERROR: ${err.message}. Marking provider for rotation...`);
         ethProvider = null;
         return;
     }
@@ -227,7 +256,7 @@ export const sweepToHotWallet = async (wallet, currency, amount, depositTxHash) 
         if (!ethProvider) return;
     }
     try {
-        console.log(`🔄 [ETH] Sweeping ${amount} ${currency} from ${wallet.address}...`);
+        console.log(`[ETH-SWEEP] 🔄 Sweeping ${amount} ${currency} from ${wallet.address}...`);
         const privateKey = decrypt(wallet.encryptedPrivateKey, wallet.iv, wallet.authTag);
         const signer = new ethers.Wallet(privateKey, ethProvider);
 
@@ -246,7 +275,7 @@ export const sweepToHotWallet = async (wallet, currency, amount, depositTxHash) 
                 gasPrice,
                 gasLimit
             });
-            console.log(`🚀 [ETH] Native sweep broadcasted: ${tx.hash}`);
+            console.log(`[ETH-SWEEP] 🚀 Native sweep broadcasted: ${tx.hash}`);
             await recordSweep(wallet, currency, parseFloat(ethers.formatEther(sweepAmountWei)), tx.hash, depositTxHash);
 
             const user = await User.findById(wallet.user);
@@ -276,7 +305,7 @@ export const sweepToHotWallet = async (wallet, currency, amount, depositTxHash) 
             const usdtContract = new ethers.Contract(USDT_ERC20_CONTRACT, ERC20_ABI, signer);
             const amountRaw = ethers.parseUnits(String(amount), USDT_DECIMALS);
             const tx = await usdtContract.transfer(HOT_WALLET, amountRaw, { gasPrice, gasLimit });
-            console.log(`🚀 [ETH] USDT sweep broadcasted: ${tx.hash}`);
+            console.log(`[ETH-SWEEP] 🚀 USDT sweep broadcasted: ${tx.hash}`);
             await recordSweep(wallet, currency, amount, tx.hash, depositTxHash);
         }
     } catch (err) {

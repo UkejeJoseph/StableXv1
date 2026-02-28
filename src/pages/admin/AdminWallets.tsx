@@ -258,22 +258,22 @@ export default function AdminWallets() {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div className="space-y-1">
                                     <p className="font-bold border-b border-primary/20 mb-1 pb-1">TRON (TRC20)</p>
-                                    <p className="text-[10px] font-mono break-all">{hotWallets.TRON?.address || 'TU3dtEoqJjewYvosYsLBp4UakZaNUcxwEF'}</p>
+                                    <p className="text-[10px] font-mono break-all">{hotWallets.TRON?.address || 'Address not set'}</p>
                                     <p className="text-[10px] text-muted-foreground">Min: 500 USDT / 100 TRX</p>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="font-bold border-b border-primary/20 mb-1 pb-1">Ethereum (ERC20)</p>
-                                    <p className="text-[10px] font-mono break-all">{hotWallets.ETH?.address || '0xE8485f5eF2c769025593617915C6658b3E653197'}</p>
+                                    <p className="text-[10px] font-mono break-all">{hotWallets.ETH?.address || 'Address not set'}</p>
                                     <p className="text-[10px] text-muted-foreground">Min: 0.5 ETH / 500 USDT</p>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="font-bold border-b border-primary/20 mb-1 pb-1">Bitcoin</p>
-                                    <p className="text-[10px] font-mono break-all">{hotWallets.BTC?.address || 'bc1qttpdp7ppspwx4zyq9fenrxvp783we4w0xm7g55'}</p>
+                                    <p className="text-[10px] font-mono break-all">{hotWallets.BTC?.address || 'Address not set'}</p>
                                     <p className="text-[10px] text-muted-foreground">Min: 0.01 BTC</p>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="font-bold border-b border-primary/20 mb-1 pb-1">Solana</p>
-                                    <p className="text-[10px] font-mono break-all">{hotWallets.SOL?.address || 'CgLHQEioek9vWXA5byRqhFh5pLQq7XzYzpv68wQ1mHbm'}</p>
+                                    <p className="text-[10px] font-mono break-all">{hotWallets.SOL?.address || 'Address not set'}</p>
                                     <p className="text-[10px] text-muted-foreground">Min: 2 SOL</p>
                                 </div>
                             </div>

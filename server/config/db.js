@@ -3,13 +3,14 @@ import mongoose from 'mongoose';
 const connectDB = async () => {
     try {
         const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/stablex_db', {
-            serverSelectionTimeoutMS: 30000,
-            socketTimeoutMS: 45000,
-            connectTimeoutMS: 30000,
-            maxPoolSize: 10,
+            serverSelectionTimeoutMS: 60000,
+            socketTimeoutMS: 60000,
+            connectTimeoutMS: 60000,
+            heartbeatFrequencyMS: 10000,
             retryWrites: true,
             retryReads: true,
-            heartbeatFrequencyMS: 10000,
+            maxPoolSize: 10,
+            family: 4, // Force IPv4 if needed
         });
         console.log(`MongoDB Connected: ${conn.connection.host}`);
     } catch (error) {

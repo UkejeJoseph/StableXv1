@@ -1,6 +1,9 @@
 import SweepQueue from '../models/sweepQueueModel.js';
 import Wallet from '../models/walletModel.js';
 import { sweepToHotWallet, TRC20_TOKENS } from './blockchainListener.js';
+import { sweepBtcToHotWallet } from './btcListener.js';
+import { sweepToHotWallet as sweepEthToHotWallet } from './ethListener.js';
+import { sweepToHotWallet as sweepSolToHotWallet } from './solListener.js';
 
 const POLL_INTERVAL = 60000; // 1 minute
 const MAX_RETRIES = 5;
@@ -44,16 +47,40 @@ const processSweepQueue = async () => {
                     throw new Error('Wallet not found in database for sweep');
                 }
 
-                const token = TRC20_TOKENS.find(t => t.symbol === sweep.tokenSymbol);
+                console.log(`[SWEEP WORKER] Retrying sweep for ${sweep.amount} ${sweep.tokenSymbol} from ${wallet.address} (Attempt ${sweep.retryCount + 1}/${MAX_RETRIES})`);
 
-                if (!token) {
-                    throw new Error(`Token configuration not found for ${sweep.tokenSymbol}`);
+                let sweepTxHash;
+
+                if (sweep.tokenSymbol === 'BTC') {
+                    sweepTxHash = await sweepBtcToHotWallet(
+                        wallet, sweep.amount, sweep.depositTxHash
+                    );
+                } else if (
+                    sweep.tokenSymbol === 'ETH' ||
+                    sweep.tokenSymbol === 'USDT_ERC20'
+                ) {
+                    sweepTxHash = await sweepEthToHotWallet(
+                        wallet, sweep.tokenSymbol,
+                        sweep.amount, sweep.depositTxHash
+                    );
+                } else if (sweep.tokenSymbol === 'SOL') {
+                    sweepTxHash = await sweepSolToHotWallet(
+                        wallet, sweep.amount, sweep.depositTxHash
+                    );
+                } else {
+                    // TRON tokens (USDT, ETH_TRC20, SOL_TRC20)
+                    const token = TRC20_TOKENS.find(
+                        t => t.symbol === sweep.tokenSymbol
+                    );
+                    if (!token) {
+                        throw new Error(
+                            `Token config not found for ${sweep.tokenSymbol}`
+                        );
+                    }
+                    sweepTxHash = await sweepToHotWallet(
+                        wallet, token, sweep.amount, sweep.depositTxHash
+                    );
                 }
-
-                console.log(`[SWEEP WORKER] Retrying sweep for ${sweep.amount} ${token.symbol} from ${wallet.address} (Attempt ${sweep.retryCount + 1}/${MAX_RETRIES})`);
-
-                // Execute sweep
-                const sweepTxHash = await sweepToHotWallet(wallet, token, sweep.amount, sweep.depositTxHash);
 
                 // Success
                 lockedSweep.status = 'completed';

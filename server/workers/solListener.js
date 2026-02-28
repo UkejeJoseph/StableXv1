@@ -8,13 +8,12 @@ import { decrypt } from '../utils/encryption.js';
 import SweepQueue from '../models/sweepQueueModel.js';
 import { queueWebhook } from '../services/webhookService.js';
 import { sendOperationalAlert } from '../utils/alerting.js';
+import { trackApiCall } from '../utils/apiTracker.js';
 
 const SOL_RPC_FALLBACKS = [
     process.env.SOL_RPC_URL,
-    "https://rpc.ankr.com/solana",
     "https://solana-rpc.publicnode.com",
     "https://api.mainnet-beta.solana.com",
-    "https://solana-api.projectserum.com"
 ].filter(Boolean);
 
 let currentRpcIndex = 0;
@@ -27,7 +26,7 @@ const getConnection = (forceRotate = false) => {
     if (forceRotate) {
         currentRpcIndex = (currentRpcIndex + 1) % SOL_RPC_FALLBACKS.length;
         connection = null;
-        console.warn(`🔄 [SOL] Rotating to RPC: ${SOL_RPC_FALLBACKS[currentRpcIndex]}`);
+        console.warn(`[SOL] 🔄 FALLBACK: Rotating to RPC: ${SOL_RPC_FALLBACKS[currentRpcIndex]}. Reason: RPC Error/Manual trigger.`);
     }
     if (!connection) {
         connection = new Connection(SOL_RPC_FALLBACKS[currentRpcIndex], { commitment: 'confirmed' });
@@ -38,8 +37,15 @@ const getConnection = (forceRotate = false) => {
 export const startSolListener = () => {
     console.log(`🔗 [SOL] Listener Started: Polling ${SOL_RPC_FALLBACKS[currentRpcIndex]} for SOL deposits...`);
     console.log(`🔄 [SOL] Auto-Sweep: ${ENABLE_SWEEP ? 'ENABLED' : 'DISABLED'} | Hot Wallet: ${HOT_WALLET}`);
-    setInterval(pollSignatures, POLL_INTERVAL);
+
+    // Switch to recursive polling for better stability
+    checkSignaturesRecursive();
     setInterval(checkConfirmations, POLL_INTERVAL);
+};
+
+const checkSignaturesRecursive = async () => {
+    await pollSignatures();
+    setTimeout(checkSignaturesRecursive, POLL_INTERVAL);
 };
 
 const pollSignatures = async () => {
@@ -49,7 +55,17 @@ const pollSignatures = async () => {
             address: { $ne: 'FIAT_ACCOUNT' }
         });
 
-        for (const wallet of wallets) {
+        // Deduplicate wallets by address to prevent double-scanning
+        const uniqueWallets = [];
+        const seenAddresses = new Set();
+        for (const w of wallets) {
+            if (!seenAddresses.has(w.address)) {
+                seenAddresses.add(w.address);
+                uniqueWallets.push(w);
+            }
+        }
+
+        for (const wallet of uniqueWallets) {
             let success = false;
             let attempts = 0;
 
@@ -57,9 +73,13 @@ const pollSignatures = async () => {
                 try {
                     const solConnection = getConnection();
                     const pubkey = new PublicKey(wallet.address);
-                    const signatures = await solConnection.getSignaturesForAddress(pubkey, { limit: 5 });
+                    console.log(`[SOL-FETCH] 🌐 Fetching Signatures for: ${wallet.address}`);
+                    const sigs = await solConnection.getSignaturesForAddress(pubkey, { limit: 25 });
+                    console.log(`[SOL-RES] ✅ OK: Fetched ${sigs.length} signatures for ${wallet.address}`);
+                    trackApiCall('helius');
+                    success = true;
 
-                    for (const sigInfo of signatures) {
+                    for (const sigInfo of sigs) {
                         if (sigInfo.err) continue;
                         const existing = await Transaction.findOne({ reference: sigInfo.signature });
                         if (existing) continue;
@@ -83,10 +103,9 @@ const pollSignatures = async () => {
                             }
                         });
                     }
-                    success = true;
                 } catch (err) {
                     if (err.message?.includes('429') || err.message?.includes('Too Many Requests') || err.message?.includes('fetch failed')) {
-                        console.warn(`⚠️ [SOL] RPC Error (${err.message}) on ${SOL_RPC_FALLBACKS[currentRpcIndex]}. Rotating...`);
+                        console.warn(`[SOL] ⚠️ RPC LIMIT: ${err.message} on ${SOL_RPC_FALLBACKS[currentRpcIndex]}. Rotating...`);
                         getConnection(true); // Force rotate
                         attempts++;
                         await new Promise(r => setTimeout(r, 5000)); // Wait before retry
@@ -109,37 +128,40 @@ const checkConfirmations = async () => {
         const confirmingTxs = await Transaction.find({ status: 'confirming', currency: 'SOL' });
 
         for (const tx of confirmingTxs) {
-            const txDetails = await solConnection.getTransaction(tx.reference, {
-                commitment: 'confirmed',
-                maxSupportedTransactionVersion: 0,
-            });
-
-            if (!txDetails || !txDetails.meta) continue;
-
-            const wallet = await Wallet.findById(tx.metadata.get('walletId'));
-            if (!wallet) continue;
-
-            const accountKeys = txDetails.transaction.message.staticAccountKeys || txDetails.transaction.message.accountKeys;
-            const walletIndex = accountKeys.findIndex(key => key.toBase58() === wallet.address);
-            if (walletIndex === -1) continue;
-
-            const preBalance = txDetails.meta.preBalances[walletIndex];
-            const postBalance = txDetails.meta.postBalances[walletIndex];
-            const amount = (postBalance - preBalance) / LAMPORTS_PER_SOL;
-
-            if (amount <= 0.001) {
-                // Not a deposit or too small
-                tx.status = 'failed';
-                tx.description = 'Ignored: Negative or dust amount';
-                await tx.save();
-                continue;
-            }
-
-            console.log(`✅ [SOL] Tx ${tx.reference} confirmed. Amount: ${amount} SOL`);
-            tx.amount = amount;
-            await tx.save();
-
             try {
+                const txDetails = await solConnection.getTransaction(tx.reference, {
+                    commitment: 'confirmed',
+                    maxSupportedTransactionVersion: 0,
+                });
+
+                if (!txDetails || !txDetails.meta) continue;
+
+                const wallet = await Wallet.findById(tx.metadata.get('walletId'));
+                if (!wallet) continue;
+
+                const accountKeys = txDetails.transaction.message.staticAccountKeys || txDetails.transaction.message.accountKeys;
+                const walletIndex = accountKeys.findIndex(key => key.toBase58() === wallet.address);
+                if (walletIndex === -1) continue;
+
+                const preBalance = txDetails.meta.preBalances[walletIndex];
+                const postBalance = txDetails.meta.postBalances[walletIndex];
+                const amount = (postBalance - preBalance) / LAMPORTS_PER_SOL;
+
+                if (amount <= 0.001) {
+                    tx.status = 'failed';
+                    tx.description = 'Ignored: Negative or dust amount';
+                    await tx.save();
+                    continue;
+                }
+
+                console.log(`✅ [SOL] Tx ${tx.reference} confirmed. Amount: ${amount} SOL`);
+                tx.amount = amount;
+                tx.status = 'completed'; // Mark as completed here
+                await tx.save();
+
+                // Note: SOL listener uses signatures so it doesn't have a 'lastCheckedBlock' 
+                // but if it did, we would sync it here across all wallet records for the address.
+
                 const creditResult = await creditUserWallet(
                     tx.user,
                     'SOL',
@@ -162,7 +184,12 @@ const checkConfirmations = async () => {
                     await sweepToHotWallet(creditResult.wallet, amount, tx.reference);
                 }
             } catch (err) {
-                console.error(`[SOL] Credit/Sweep failed for ${tx.reference}:`, err.message);
+                if (err.message?.includes('429') || err.message?.includes('Too Many Requests') || err.message?.includes('fetch failed')) {
+                    console.warn(`[SOL-CONF] ⚠️ RPC LIMIT: ${err.message} during confirmation check. Rotating...`);
+                    getConnection(true);
+                } else {
+                    console.error(`[SOL-CONF] ❌ ERROR: ${err.message} for tx ${tx.reference}`);
+                }
             }
         }
     } catch (err) {
@@ -172,7 +199,7 @@ const checkConfirmations = async () => {
 
 export const sweepToHotWallet = async (wallet, amount, depositTxHash) => {
     try {
-        console.log(`🔄 [SOL] Sweeping ${amount} SOL from ${wallet.address}...`);
+        console.log(`[SOL-SWEEP] 🔄 Sweeping ${amount} SOL from ${wallet.address}...`);
         const solConnection = getConnection();
         const privateKey = decrypt(wallet.encryptedPrivateKey, wallet.iv, wallet.authTag);
 
@@ -184,10 +211,17 @@ export const sweepToHotWallet = async (wallet, amount, depositTxHash) => {
         }
 
         const balance = await solConnection.getBalance(signer.publicKey);
-        const fee = 5000; // Expected fee in lamports
-        const sweepAmount = balance - fee;
+        const fee = 5000; // Transaction fee in lamports
+        const RENT_EXEMPTION = 890880; // Minimum lamports to keep account alive
+        const sweepAmount = balance - fee - RENT_EXEMPTION;
 
-        if (sweepAmount <= 0) throw new Error("Balance too low to cover fee");
+        if (sweepAmount <= 0) {
+            throw new Error(
+                `Balance too low to sweep safely. ` +
+                `Balance: ${balance}, ` +
+                `Required minimum: ${fee + RENT_EXEMPTION} lamports`
+            );
+        }
 
         const transaction = new SolTransaction().add(
             SystemProgram.transfer({
@@ -198,7 +232,7 @@ export const sweepToHotWallet = async (wallet, amount, depositTxHash) => {
         );
 
         const signature = await solConnection.sendTransaction(transaction, [signer]);
-        console.log(`🚀 [SOL] Sweep broadcasted: ${signature}`);
+        console.log(`[SOL-SWEEP] 🚀 SUCCESS: Broadcasted sweep ${signature}`);
 
         const user = await User.findById(wallet.user);
         if (user && user.webhookUrl) {
@@ -222,6 +256,10 @@ export const sweepToHotWallet = async (wallet, amount, depositTxHash) => {
             metadata: { sweepTxHash: signature, depositTxHash, network: 'SOL' }
         });
     } catch (err) {
+        if (err.message?.includes('429') || err.message?.includes('Too Many Requests')) {
+            console.warn(`[SOL-SWEEP] ⚠️ RPC LIMIT during sweep. Rotating...`);
+            getConnection(true);
+        }
         console.error(`❌ [SOL] Sweep Error:`, err.message);
         await sendOperationalAlert('SWEEP_FAILED', {
             network: 'SOL',

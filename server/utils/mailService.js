@@ -23,10 +23,20 @@ const getTransporter = () => {
       connectionTimeout: 8000,
       greetingTimeout: 8000,
       socketTimeout: 8000,
-      // Debug logging to help identify why railway might be dropping it
-      logger: process.env.NODE_ENV !== 'production',
-      debug: process.env.NODE_ENV !== 'production'
+      // Debug logging forced ON to identify why railway might be dropping it
+      logger: true,
+      debug: true
     });
+
+    console.log(`[SMTP] ⏳ Initializing connection to smtp.gmail.com for ${process.env.MAIL_USER}...`);
+    transporter.verify(function (error, success) {
+      if (error) {
+        console.error('[SMTP] ❌ FATAL ERROR: Cannot connect to SMTP server:', error);
+      } else {
+        console.log('[SMTP] ✅ Transporter verified. Ready to send messages.');
+      }
+    });
+
   }
   return transporter;
 };

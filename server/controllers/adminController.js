@@ -488,7 +488,7 @@ export const getHotWalletBalances = asyncHandler(async (req, res) => {
     try {
         const tronWeb = new TronWeb({
             fullHost: 'https://api.trongrid.io',
-            headers: { "TRON-PRO-API-KEY": process.env.TRONGRID_API_KEY || "" }
+            headers: { 'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY || "" }
         });
         const addr = process.env.STABLEX_HOT_WALLET_TRC20;
 

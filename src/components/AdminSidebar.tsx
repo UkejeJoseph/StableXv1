@@ -5,7 +5,8 @@ import {
     Activity,
     Settings,
     LogOut,
-    ShieldAlert
+    ShieldAlert,
+    Wallet
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

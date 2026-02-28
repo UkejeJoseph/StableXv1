@@ -372,7 +372,10 @@ export const sweepToHotWallet = async (wallet, token, amount, depositTxHash) => 
     // 4. Broadcast
     const broadcastRes = await fetch(`${TRON_GRID_API}/wallet/broadcasttransaction`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY
+        },
         body: JSON.stringify(signedTx),
     });
 
@@ -444,7 +447,10 @@ const fundWalletWithTrx = async (toAddress, trxAmount) => {
 
         const createRes = await fetch(createUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY
+            },
             body: JSON.stringify(createBody)
         });
 

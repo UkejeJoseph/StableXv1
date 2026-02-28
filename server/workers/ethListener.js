@@ -24,6 +24,7 @@ const ERC20_ABI = [
 
 const RPC_URLS = [
     process.env.ETH_RPC_URL,
+    'https://lb.drpc.live/ethereum/Aj0ag2yiJEfWo3zCvW8aHOtPF89TFHcR8ZsQtuZZzRRv',
     'https://eth.llamarpc.com',
     'https://rpc.ankr.com/eth',
     'https://cloudflare-eth.com',

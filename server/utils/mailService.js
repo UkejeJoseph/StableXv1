@@ -12,20 +12,21 @@ const getTransporter = () => {
     }
 
     transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,       // Use purely secure SSL/TLS
-      secure: true,    // Force secure connection
+      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      family: 4,
+      tls: {
+        rejectUnauthorized: false
+      },
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 5000,
       auth: {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASS
       },
-      // Failsafe strict timeouts (prevent eternal hanging on cloud providers)
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 8000,
-      // Force IPv4 to prevent ENETUNREACH issues on cloud providers (like Railway)
-      family: 4,
-      // Debug logging forced ON to identify why railway might be dropping it
+      // Keep logging for diagnosis as previously requested
       logger: true,
       debug: true
     });

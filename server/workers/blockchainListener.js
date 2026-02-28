@@ -12,6 +12,11 @@ import crypto from 'crypto';
 import * as ecc from 'tiny-secp256k1';
 import SweepQueue from '../models/sweepQueueModel.js';
 import { trackApiCall } from '../utils/apiTracker.js';
+import http from 'http';
+import https from 'https';
+
+const httpAgent = new http.Agent({ family: 4 });
+const httpsAgent = new https.Agent({ family: 4 });
 
 export const TRC20_TOKENS = [
     { symbol: 'USDT', contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", decimals: 6, key: 'USDT_TRC20' },
@@ -123,6 +128,9 @@ const rotateTronProvider = () => {
 };
 
 const fetchWithTimeout = async (url, options = {}, timeout = 30000) => {
+    const isHttps = url.startsWith('https');
+    const agent = isHttps ? ipv4HttpsAgent : ipv4HttpAgent;
+
     const headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         ...options.headers
@@ -132,7 +140,7 @@ const fetchWithTimeout = async (url, options = {}, timeout = 30000) => {
         console.log(`[TRON-FETCH] 🌐 Requesting: ${url}`);
     }
     return Promise.race([
-        fetch(url, { ...options, headers }),
+        fetch(url, { ...options, headers, agent }),
         new Promise((_, reject) =>
             setTimeout(() => {
                 console.warn(`[TRON] ⚠️ TIMEOUT: Request to ${url} exceeded ${timeout}ms`);

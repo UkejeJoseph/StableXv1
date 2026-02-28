@@ -53,7 +53,12 @@ export const startBlockchainListener = () => {
 const checkDeposits = async () => {
     try {
         const wallets = await Wallet.find({
-            currency: { $in: ['USDT_TRC20', 'ETH_TRC20', 'SOL_TRC20'] }
+            currency: { $in: ['USDT_TRC20', 'ETH_TRC20', 'SOL_TRC20'] },
+            address: { $ne: 'FIAT_ACCOUNT' },
+            $or: [
+                { walletType: 'user' },
+                { walletType: 'merchant' }
+            ]
         });
 
         if (wallets.length === 0) return;
@@ -100,7 +105,11 @@ const checkWalletForDeposits = async (wallet) => {
                 scanLimit = 50;
             }
 
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                headers: {
+                    'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY
+                }
+            });
             const data = await response.json();
 
             if (!data.success || !data.data) continue;
@@ -220,7 +229,10 @@ const checkPendingConfirmations = async () => {
                 // Get transaction info to find its block number
                 const txInfoResponse = await fetch(`${TRON_GRID_API}/wallet/gettransactioninfobyid`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY
+                    },
                     body: JSON.stringify({ value: txHash }),
                 });
                 const txInfo = await txInfoResponse.json();
@@ -354,7 +366,10 @@ export const sweepToHotWallet = async (wallet, token, amount, depositTxHash) => 
 
     const triggerRes = await fetch(triggerUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY
+        },
         body: JSON.stringify(triggerBody),
     });
 
@@ -394,9 +409,11 @@ export const sweepToHotWallet = async (wallet, token, amount, depositTxHash) => 
         await queueWebhook(user, 'sweep.completed', {
             sweepTxHash,
             depositTxHash,
-            amount,
-            currency: token.symbol,
-            network: 'TRC20'
+        });
+        const tronWeb = new TronWeb({
+            fullHost: 'https://api.trongrid.io',
+            headers: { 'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY },
+            privateKey: TREASURY_PRIVATE_KEY
         });
     }
 
@@ -466,13 +483,16 @@ const fundWalletWithTrx = async (toAddress, trxAmount) => {
         const signedTx = signTronTransaction(txData, cleanTreasuryKey);
 
         // 4. Broadcast
-        const broadcastRes = await fetch(`${TRON_GRID_API}/wallet/broadcasttransaction`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(signedTx)
+        const broadcastResponse = await fetch(`${TRON_GRID_API}/wallet/broadcasttransaction`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "TRON-PRO-API-KEY": process.env.TRONGRID_API_KEY
+            },
+            body: JSON.stringify(signedTx),
         });
 
-        const broadcastData = await broadcastRes.json();
+        const broadcastData = await broadcastResponse.json();
         if (broadcastData.result) {
             console.log(`[TREASURY] ✅ Sent ${trxAmount} TRX. TxHash: ${txData.txID}`);
             return true;

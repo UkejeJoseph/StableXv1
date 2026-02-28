@@ -634,7 +634,10 @@ router.post('/withdraw-crypto', protect, transferLimiter, idempotency, async (re
           const amountInSun = Math.floor(withdrawAmount * 1000000);
           const triggerResponse = await fetch(`${TRON_API}/wallet/triggersmartcontract`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "TRON-PRO-API-KEY": process.env.TRONGRID_API_KEY
+            },
             body: JSON.stringify({
               owner_address: tronAddressToHex(hotWalletAddress),
               contract_address: USDT_TRC20_CONTRACT,
@@ -656,7 +659,10 @@ router.post('/withdraw-crypto', protect, transferLimiter, idempotency, async (re
           const signedTx = signTronTransaction(triggerResult.transaction, cleanKey);
           const broadcastResponse = await fetch(`${TRON_API}/wallet/broadcasttransaction`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "TRON-PRO-API-KEY": process.env.TRONGRID_API_KEY
+            },
             body: JSON.stringify(signedTx),
           });
           const broadcastResult = await broadcastResponse.json();
@@ -670,7 +676,10 @@ router.post('/withdraw-crypto', protect, transferLimiter, idempotency, async (re
           const amountInSun = Math.floor(withdrawAmount * 1000000);
           const createTxResponse = await fetch(`${TRON_API}/wallet/createtransaction`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "TRON-PRO-API-KEY": process.env.TRONGRID_API_KEY
+            },
             body: JSON.stringify({
               owner_address: tronAddressToHex(hotWalletAddress),
               to_address: tronAddressToHex(toAddress),
@@ -685,7 +694,10 @@ router.post('/withdraw-crypto', protect, transferLimiter, idempotency, async (re
           const signedTx = signTronTransaction(createTxResult, cleanKey);
           const broadcastResponse = await fetch(`${TRON_API}/wallet/broadcasttransaction`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "TRON-PRO-API-KEY": process.env.TRONGRID_API_KEY
+            },
             body: JSON.stringify(signedTx),
           });
           const broadcastResult = await broadcastResponse.json();

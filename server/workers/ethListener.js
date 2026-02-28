@@ -23,8 +23,8 @@ const ERC20_ABI = [
 ];
 
 const RPC_URLS = [
-    process.env.ETH_RPC_URL,
     'https://lb.drpc.live/ethereum/Aj0ag2yiJEfWo3zCvW8aHOtPF89TFHcR8ZsQtuZZzRRv',
+    process.env.ETH_RPC_URL,
     'https://eth.llamarpc.com',
     'https://rpc.ankr.com/eth',
     'https://cloudflare-eth.com',
@@ -83,7 +83,10 @@ const pollBlocks = async () => {
     }
 
     try {
-        const wallets = await Wallet.find({ currency: { $in: ['ETH', 'USDT_ERC20'] } });
+        const wallets = await Wallet.find({
+            currency: { $in: ['ETH', 'USDT_ERC20'] },
+            address: { $ne: 'FIAT_ACCOUNT' }
+        });
 
         for (const wallet of wallets) {
             const lastBlock = parseInt(wallet.lastCheckedBlock || "0");
@@ -91,6 +94,8 @@ const pollBlocks = async () => {
                 // Initialize for new wallets to current block - 100 to catch recent deposits
                 wallet.lastCheckedBlock = String(currentBlock);
                 await wallet.save();
+                // Delay between wallets to reduce RPC load
+                await new Promise(r => setTimeout(r, 500));
                 continue;
             }
 

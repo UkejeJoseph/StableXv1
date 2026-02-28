@@ -42,7 +42,10 @@ export const startBtcListener = () => {
 
 const checkBtcDeposits = async () => {
     try {
-        const wallets = await Wallet.find({ currency: 'BTC' });
+        const wallets = await Wallet.find({
+            currency: 'BTC',
+            address: { $ne: 'FIAT_ACCOUNT' }
+        });
         for (const wallet of wallets) {
             try {
                 const apiBase = getBtcApi();

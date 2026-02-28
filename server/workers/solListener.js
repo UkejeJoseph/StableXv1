@@ -44,7 +44,10 @@ export const startSolListener = () => {
 
 const pollSignatures = async () => {
     try {
-        const wallets = await Wallet.find({ currency: 'SOL' });
+        const wallets = await Wallet.find({
+            currency: 'SOL',
+            address: { $ne: 'FIAT_ACCOUNT' }
+        });
 
         for (const wallet of wallets) {
             let success = false;

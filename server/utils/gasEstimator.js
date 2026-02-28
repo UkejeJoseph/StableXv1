@@ -31,7 +31,10 @@ export async function estimateTronGas(fromAddress, toAddress, amount = 1) {
 
         const response = await fetch(`${TRON_GRID_API}/wallet/triggerconstantcontract`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY
+            },
             body: JSON.stringify({
                 owner_address: tronAddressToHex(fromAddress),
                 contract_address: tronAddressToHex(USDT_CONTRACT),

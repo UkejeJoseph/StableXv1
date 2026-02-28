@@ -11,7 +11,6 @@ import transactionRoutes from './transactions.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import * as Sentry from "@sentry/node";
 import { sendAlert } from './utils/alerting.js';
-connectDB();
 
 const app = express();
 app.set('trust proxy', 1);
@@ -158,11 +157,14 @@ import { startSweepWorker } from './workers/sweepWorker.js';
 import { distributeYield } from './services/stakingService.js';
 import { sendDailyStats } from './utils/alerting.js';
 
-const startAllWorkers = async () => {
+// ── Server Startup ───────────────────────────────────────────
+const startServer = async () => {
   try {
+    // 1. Force strict DB connection first
     await connectDB();
     console.log('✅ MongoDB Connected and ready');
 
+    // 2. Start all workers only after DB is ready
     startBlockchainListener(); // TRC20 (USDT, ETH_TRC20, SOL_TRC20)
     startBtcListener();        // Native BTC
     startEthListener();        // Native ETH + USDT ERC20
@@ -170,9 +172,9 @@ const startAllWorkers = async () => {
     startSweepWorker();        // TRON Sweep Retry Queue
     startWebhookWorker();      // Webhook Notification Queue
 
-    console.log('✅ All workers started after DB connected');
+    console.log('✅ All workers started');
 
-    // Daily yield distribution — midnight every day
+    // 3. Schedule recurring tasks
     cron.schedule('0 0 * * *', async () => {
       try {
         console.log('[STAKING CRON] Running daily yield distribution...');
@@ -182,13 +184,16 @@ const startAllWorkers = async () => {
       }
     });
     console.log('📈 [STAKING CRON] Daily yield distribution scheduled (00:00)');
+
+    // 4. Finally start listening for traffic
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+
   } catch (err) {
-    console.error('❌ Failed to start workers due to DB connection error:', err.message);
+    console.error('❌ FATAL: Failed to start server:', err.message);
     process.exit(1);
   }
 };
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-  startAllWorkers();
-});
+startServer();

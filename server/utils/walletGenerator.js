@@ -76,7 +76,10 @@ export const deriveWallet = async (mnemonic, network, index = 0) => {
 
             // Derive TRON address from private key
             const { TronWeb } = await import('tronweb');
-            const tronWeb = new TronWeb({ fullHost: 'https://api.trongrid.io' });
+            const tronWeb = new TronWeb({
+                fullHost: 'https://api.trongrid.io',
+                headers: { 'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY }
+            });
             const address = tronWeb.address.fromPrivateKey(privateKey);
 
             return {

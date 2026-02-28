@@ -15,7 +15,8 @@ const walletSchema = mongoose.Schema({
         type: String, // Legacy, e.g. BTC, ETH
     },
     network: {
-        type: String, // New, e.g. BTC, ETH
+        type: String, // e.g. BTC, ETH
+        required: true,
     },
     balance: {
         type: Number,

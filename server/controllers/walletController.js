@@ -196,6 +196,7 @@ export const importWallet = async (req, res) => {
             user: req.user._id,
             walletType: req.user.role === 'merchant' ? 'merchant' : 'user',
             network,
+            currency: network,
             address: walletData.address,
             encryptedPrivateKey: encryptedPrivKey.encryptedData,
             privateKeyIv: encryptedPrivKey.iv,
@@ -249,6 +250,7 @@ export const getUserWallets = async (req, res) => {
                             return {
                                 user: user._id,
                                 walletType: user.role === 'merchant' ? 'merchant' : 'user',
+                                network: w.currency,
                                 currency: w.currency,
                                 address: w.address,
                                 encryptedPrivateKey: encryptedData,
@@ -279,18 +281,16 @@ export const getUserWallets = async (req, res) => {
                 await user.save();
 
                 const allDerived = await deriveWallets(mnemonic, 0);
-                const toInsert = allDerived.map(w => {
-                    const { encryptedData, iv, authTag } = encrypt(w.privateKey);
-                    return {
-                        user: user._id,
-                        walletType: user.role === 'merchant' ? 'merchant' : 'user',
-                        currency: w.currency,
-                        address: w.address,
-                        encryptedPrivateKey: encryptedData,
-                        iv,
-                        authTag
-                    };
-                });
+                return {
+                    user: user._id,
+                    walletType: user.role === 'merchant' ? 'merchant' : 'user',
+                    network: w.currency,
+                    currency: w.currency,
+                    address: w.address,
+                    encryptedPrivateKey: encryptedData,
+                    iv,
+                    authTag
+                };
                 await Wallet.insertMany(toInsert);
                 wallets = await Wallet.find({ user: req.user._id }).select('-encryptedPrivateKey -privateKeyIv -privateKeyAuthTag -encryptedMnemonic -mnemonicIv -mnemonicAuthTag -__v -user');
             }

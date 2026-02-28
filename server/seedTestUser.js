@@ -85,6 +85,7 @@ const seedTestUser = async () => {
                 const { encryptedData, iv, authTag } = encrypt(w.privateKey);
                 return {
                     user: user._id,
+                    network: w.currency,
                     currency: w.currency,
                     address: w.address,
                     encryptedPrivateKey: encryptedData,
@@ -97,6 +98,7 @@ const seedTestUser = async () => {
             // Also create NGN fiat wallet with demo balance
             walletsToSave.push({
                 user: user._id,
+                network: 'NGN',
                 currency: 'NGN',
                 address: 'FIAT_ACCOUNT',
                 encryptedPrivateKey: 'N/A',

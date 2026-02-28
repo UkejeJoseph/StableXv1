@@ -413,6 +413,7 @@ router.post('/deposit', protect, async (req, res) => {
       // For now, allow creating it.
       wallet = await Wallet.create({
         user: req.user._id,
+        network: currency,
         currency: currency,
         balance: 0,
         address: "FIAT_ACCOUNT", // Placeholder for fiat
@@ -1104,6 +1105,7 @@ router.post('/swap', protect, async (req, res) => {
     if (!destWallet) {
       destWallet = await Wallet.create([{
         user: user._id,
+        network: toCurrency,
         currency: toCurrency,
         balance: 0,
         address: "INTERNAL_SWAP",

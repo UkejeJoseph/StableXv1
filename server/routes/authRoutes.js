@@ -80,18 +80,16 @@ passport.use(new GoogleStrategy({
             await user.save();
 
             // Encrypt and save wallets
-            const walletsToSave = walletsData.map(w => {
-                const { encryptedData, iv, authTag } = encrypt(w.privateKey);
-                return {
-                    user: user._id,
-                    walletType: user.role === 'merchant' ? 'merchant' : 'user',
-                    currency: w.currency,
-                    address: w.address,
-                    encryptedPrivateKey: encryptedData,
-                    iv,
-                    authTag
-                };
-            });
+            return {
+                user: user._id,
+                walletType: user.role === 'merchant' ? 'merchant' : 'user',
+                network: w.currency,
+                currency: w.currency,
+                address: w.address,
+                encryptedPrivateKey: encryptedData,
+                iv,
+                authTag
+            };
             await Wallet.insertMany(walletsToSave);
             console.log(`[GOOGLE AUTH] ✅ Created ${walletsToSave.length} wallets for user ${user._id}`);
 

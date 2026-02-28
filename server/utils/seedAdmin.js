@@ -36,6 +36,7 @@ const seedAdmin = async () => {
         const wallets = [
             {
                 user: admin._id,
+                network: 'NGN',
                 currency: 'NGN',
                 balance: 0,
                 address: 'TREASURY_NGN',
@@ -45,6 +46,7 @@ const seedAdmin = async () => {
             },
             {
                 user: admin._id,
+                network: 'USDT',
                 currency: 'USDT',
                 balance: 0,
                 address: 'TREASURY_USDT',

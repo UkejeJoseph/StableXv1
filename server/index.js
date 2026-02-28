@@ -158,23 +158,37 @@ import { startSweepWorker } from './workers/sweepWorker.js';
 import { distributeYield } from './services/stakingService.js';
 import { sendDailyStats } from './utils/alerting.js';
 
+const startAllWorkers = async () => {
+  try {
+    await connectDB();
+    console.log('✅ MongoDB Connected and ready');
+
+    startBlockchainListener(); // TRC20 (USDT, ETH_TRC20, SOL_TRC20)
+    startBtcListener();        // Native BTC
+    startEthListener();        // Native ETH + USDT ERC20
+    startSolListener();        // Native SOL
+    startSweepWorker();        // TRON Sweep Retry Queue
+    startWebhookWorker();      // Webhook Notification Queue
+
+    console.log('✅ All workers started after DB connected');
+
+    // Daily yield distribution — midnight every day
+    cron.schedule('0 0 * * *', async () => {
+      try {
+        console.log('[STAKING CRON] Running daily yield distribution...');
+        await distributeYield();
+      } catch (err) {
+        console.error('[STAKING CRON] Yield distribution failed:', err.message);
+      }
+    });
+    console.log('📈 [STAKING CRON] Daily yield distribution scheduled (00:00)');
+  } catch (err) {
+    console.error('❌ Failed to start workers due to DB connection error:', err.message);
+    process.exit(1);
+  }
+};
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
-  startBlockchainListener(); // TRC20 (USDT, ETH_TRC20, SOL_TRC20)
-  startBtcListener();        // Native BTC
-  startEthListener();        // Native ETH + USDT ERC20
-  startSolListener();        // Native SOL
-  startSweepWorker();        // TRON Sweep Retry Queue
-  startWebhookWorker();      // Webhook Notification Queue
-
-  // Daily yield distribution — midnight every day
-  cron.schedule('0 0 * * *', async () => {
-    try {
-      console.log('[STAKING CRON] Running daily yield distribution...');
-      await distributeYield();
-    } catch (err) {
-      console.error('[STAKING CRON] Yield distribution failed:', err.message);
-    }
-  });
-  console.log('📈 [STAKING CRON] Daily yield distribution scheduled (00:00)');
+  startAllWorkers();
 });

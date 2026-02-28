@@ -11,10 +11,10 @@ import { sendOperationalAlert } from '../utils/alerting.js';
 
 const SOL_RPC_FALLBACKS = [
     process.env.SOL_RPC_URL,
-    "https://api.mainnet-beta.solana.com",
-    "https://solana-api.projectserum.com",
     "https://rpc.ankr.com/solana",
-    "https://api.metaplex.solana.com"
+    "https://solana-rpc.publicnode.com",
+    "https://api.mainnet-beta.solana.com",
+    "https://solana-api.projectserum.com"
 ].filter(Boolean);
 
 let currentRpcIndex = 0;
@@ -27,7 +27,7 @@ const getConnection = (forceRotate = false) => {
     if (forceRotate) {
         currentRpcIndex = (currentRpcIndex + 1) % SOL_RPC_FALLBACKS.length;
         connection = null;
-        console.log(`🔄 [SOL] Rotating to RPC: ${SOL_RPC_FALLBACKS[currentRpcIndex]}`);
+        console.warn(`🔄 [SOL] Rotating to RPC: ${SOL_RPC_FALLBACKS[currentRpcIndex]}`);
     }
     if (!connection) {
         connection = new Connection(SOL_RPC_FALLBACKS[currentRpcIndex], { commitment: 'confirmed' });
@@ -82,10 +82,11 @@ const pollSignatures = async () => {
                     }
                     success = true;
                 } catch (err) {
-                    if (err.message?.includes('429') || err.message?.includes('Too Many Requests')) {
-                        console.warn(`⚠️ [SOL] Rate limited (429) on ${SOL_RPC_FALLBACKS[currentRpcIndex]}. Rotating...`);
+                    if (err.message?.includes('429') || err.message?.includes('Too Many Requests') || err.message?.includes('fetch failed')) {
+                        console.warn(`⚠️ [SOL] RPC Error (${err.message}) on ${SOL_RPC_FALLBACKS[currentRpcIndex]}. Rotating...`);
                         getConnection(true); // Force rotate
                         attempts++;
+                        await new Promise(r => setTimeout(r, 5000)); // Wait before retry
                     } else {
                         throw err;
                     }

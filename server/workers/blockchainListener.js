@@ -75,9 +75,9 @@ const checkDeposits = async () => {
                 }
             });
 
-            // Subtle delay between batches if the userbase is very large (e.g. > 100)
-            if (wallets.length > 50) {
-                await new Promise(r => setTimeout(r, 500));
+            // Subtle delay between batches to respect rate limits
+            if (wallets.length > 10) {
+                await new Promise(r => setTimeout(r, 2000));
             }
         }
     } catch (error) {

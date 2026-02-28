@@ -37,7 +37,12 @@ let ethProvider = null;
 const initProvider = async () => {
     for (const url of RPC_URLS) {
         try {
-            const p = new ethers.JsonRpcProvider(url);
+            const p = new ethers.JsonRpcProvider(url, undefined, {
+                staticNetwork: true,
+                polling: true,
+                pollingInterval: 10000,
+                timeout: 30000
+            });
             const blockNumber = await p.getBlockNumber();
             console.log(`[ETH] Connected to RPC: ${url} (block ${blockNumber})`);
             ethProvider = p;

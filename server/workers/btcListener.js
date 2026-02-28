@@ -47,7 +47,7 @@ const checkBtcDeposits = async () => {
                         await Transaction.create({
                             user: wallet.user,
                             type: 'deposit',
-                            status: tx.status.confirmed ? 'confirming' : 'confirming', // always confirming initially
+                            status: 'confirming',
                             amount,
                             currency: 'BTC',
                             reference: txid,
@@ -63,6 +63,8 @@ const checkBtcDeposits = async () => {
                     }
                 }
             }
+            // Sequential delay to avoid BTC API rate limits
+            await new Promise(r => setTimeout(r, 1000));
         }
     } catch (err) {
         console.error("[BTC] Poll Error:", err.message);

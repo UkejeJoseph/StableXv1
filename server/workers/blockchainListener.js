@@ -44,8 +44,8 @@ export const startBlockchainListener = () => {
         console.log("⚠️ No hot wallet configured. Sweep disabled. Set STABLEX_HOT_WALLET_TRC20 in .env");
     }
 
-    // Poll for new deposits every 30 seconds
-    setInterval(checkDeposits, 30000);
+    // Poll for new deposits every 10 seconds
+    setInterval(checkDeposits, 10000);
     // Check confirmations for pending deposits every 60 seconds
     setInterval(checkPendingConfirmations, 60000);
 };

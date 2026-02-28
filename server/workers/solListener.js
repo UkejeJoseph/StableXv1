@@ -9,19 +9,34 @@ import SweepQueue from '../models/sweepQueueModel.js';
 import { queueWebhook } from '../services/webhookService.js';
 import { sendOperationalAlert } from '../utils/alerting.js';
 
-const SOL_RPC = process.env.SOL_RPC_URL || "https://api.mainnet-beta.solana.com";
-const POLL_INTERVAL = 60000;
+const SOL_RPC_FALLBACKS = [
+    process.env.SOL_RPC_URL,
+    "https://api.mainnet-beta.solana.com",
+    "https://solana-api.projectserum.com",
+    "https://rpc.ankr.com/solana",
+    "https://api.metaplex.solana.com"
+].filter(Boolean);
+
+let currentRpcIndex = 0;
+const POLL_INTERVAL = 15000; // 15 seconds
 const HOT_WALLET = process.env.STABLEX_HOT_WALLET_SOL;
 const ENABLE_SWEEP = process.env.ENABLE_AUTO_SWEEP === 'true';
 
 let connection;
-const getConnection = () => {
-    if (!connection) connection = new Connection(SOL_RPC, { commitment: 'confirmed' });
+const getConnection = (forceRotate = false) => {
+    if (forceRotate) {
+        currentRpcIndex = (currentRpcIndex + 1) % SOL_RPC_FALLBACKS.length;
+        connection = null;
+        console.log(`🔄 [SOL] Rotating to RPC: ${SOL_RPC_FALLBACKS[currentRpcIndex]}`);
+    }
+    if (!connection) {
+        connection = new Connection(SOL_RPC_FALLBACKS[currentRpcIndex], { commitment: 'confirmed' });
+    }
     return connection;
 };
 
 export const startSolListener = () => {
-    console.log(`🔗 [SOL] Listener Started: Polling ${SOL_RPC} for SOL deposits...`);
+    console.log(`🔗 [SOL] Listener Started: Polling ${SOL_RPC_FALLBACKS[currentRpcIndex]} for SOL deposits...`);
     console.log(`🔄 [SOL] Auto-Sweep: ${ENABLE_SWEEP ? 'ENABLED' : 'DISABLED'} | Hot Wallet: ${HOT_WALLET}`);
     setInterval(pollSignatures, POLL_INTERVAL);
     setInterval(checkConfirmations, POLL_INTERVAL);
@@ -29,37 +44,55 @@ export const startSolListener = () => {
 
 const pollSignatures = async () => {
     try {
-        const solConnection = getConnection();
         const wallets = await Wallet.find({ currency: 'SOL' });
 
         for (const wallet of wallets) {
-            const pubkey = new PublicKey(wallet.address);
-            const signatures = await solConnection.getSignaturesForAddress(pubkey, { limit: 5 });
+            let success = false;
+            let attempts = 0;
 
-            for (const sigInfo of signatures) {
-                if (sigInfo.err) continue;
-                const existing = await Transaction.findOne({ reference: sigInfo.signature });
-                if (existing) continue;
+            while (!success && attempts < SOL_RPC_FALLBACKS.length) {
+                try {
+                    const solConnection = getConnection();
+                    const pubkey = new PublicKey(wallet.address);
+                    const signatures = await solConnection.getSignaturesForAddress(pubkey, { limit: 5 });
 
-                console.log(`💰 [SOL] Found potential deposit: ${sigInfo.signature} for ${wallet.address}`);
+                    for (const sigInfo of signatures) {
+                        if (sigInfo.err) continue;
+                        const existing = await Transaction.findOne({ reference: sigInfo.signature });
+                        if (existing) continue;
 
-                await Transaction.create({
-                    user: wallet.user,
-                    type: 'deposit',
-                    status: 'confirming',
-                    amount: 0, // Will be filled on confirmation
-                    currency: 'SOL',
-                    reference: sigInfo.signature,
-                    metadata: {
-                        network: 'SOL',
-                        onChainTxHash: sigInfo.signature,
-                        slot: String(sigInfo.slot),
-                        confirmations: '0',
-                        requiredConfirmations: '1',
-                        walletId: String(wallet._id)
+                        console.log(`💰 [SOL] Found potential deposit: ${sigInfo.signature} for ${wallet.address}`);
+
+                        await Transaction.create({
+                            user: wallet.user,
+                            type: 'deposit',
+                            status: 'confirming',
+                            amount: 0, // Will be filled on confirmation
+                            currency: 'SOL',
+                            reference: sigInfo.signature,
+                            metadata: {
+                                network: 'SOL',
+                                onChainTxHash: sigInfo.signature,
+                                slot: String(sigInfo.slot),
+                                confirmations: '0',
+                                requiredConfirmations: '1',
+                                walletId: String(wallet._id)
+                            }
+                        });
                     }
-                });
+                    success = true;
+                } catch (err) {
+                    if (err.message?.includes('429') || err.message?.includes('Too Many Requests')) {
+                        console.warn(`⚠️ [SOL] Rate limited (429) on ${SOL_RPC_FALLBACKS[currentRpcIndex]}. Rotating...`);
+                        getConnection(true); // Force rotate
+                        attempts++;
+                    } else {
+                        throw err;
+                    }
+                }
             }
+            // Sequential delay to avoid RPC rate limits
+            await new Promise(r => setTimeout(r, 500));
         }
     } catch (err) {
         console.error("[SOL] Signature Poll Error:", err.message);

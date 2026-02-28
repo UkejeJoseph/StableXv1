@@ -5,11 +5,13 @@ import { creditUserWallet } from '../services/walletService.js';
 import { decrypt } from '../utils/encryption.js';
 import SweepQueue from '../models/sweepQueueModel.js';
 
+import { withRetry } from '../utils/retry.js';
+
 const ETH_RPC = process.env.ETH_RPC_URL || "https://ethereum-rpc.publicnode.com";
 const USDT_ERC20_CONTRACT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 const USDT_DECIMALS = 6;
 const CONFIRMATION_THRESHOLD = 12;
-const POLL_INTERVAL = 30000; // 30 seconds
+const POLL_INTERVAL = 10000; // 10 seconds
 const ENABLE_SWEEP = process.env.ENABLE_AUTO_SWEEP === 'true';
 const HOT_WALLET = process.env.STABLEX_HOT_WALLET_ETH;
 const TREASURY_PRIVATE_KEY = process.env.STABLEX_TREASURY_ETH_PRIVATE_KEY;
@@ -88,8 +90,8 @@ const pollBlocks = async () => {
 
             if (currentBlock <= lastBlock) continue;
 
-            // Check for ETH balance increase
-            const balanceWei = await ethProvider.getBalance(wallet.address);
+            // Check for ETH balance increase with retry
+            const balanceWei = await withRetry(() => ethProvider.getBalance(wallet.address));
             const balance = parseFloat(ethers.formatEther(balanceWei));
 
             // Note: Since ETH doesn't have a reliable 'Transfer' event for native ETH,
@@ -101,7 +103,7 @@ const pollBlocks = async () => {
             // Check for USDT ERC20 Transfer events
             const usdtContract = new ethers.Contract(USDT_ERC20_CONTRACT, ERC20_ABI, ethProvider);
             const filter = usdtContract.filters.Transfer(null, wallet.address);
-            const events = await usdtContract.queryFilter(filter, lastBlock + 1, currentBlock);
+            const events = await withRetry(() => usdtContract.queryFilter(filter, lastBlock + 1, currentBlock));
 
             for (const event of events) {
                 const amount = parseFloat(ethers.formatUnits(event.args.value, USDT_DECIMALS));
@@ -112,6 +114,9 @@ const pollBlocks = async () => {
             wallet.lastCheckedBlock = String(currentBlock);
             wallet.lastKnownBalance = balance;
             await wallet.save();
+
+            // Sequential delay to avoid RPC rate limits
+            await new Promise(r => setTimeout(r, 200));
         }
     } catch (err) {
         console.error("[ETH] Poll Blocks Error (Processing):", err.message);

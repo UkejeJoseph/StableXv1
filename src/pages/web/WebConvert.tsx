@@ -17,10 +17,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ArrowDownUp, Info, History } from "lucide-react";
-import { getMarketPrices } from "@/lib/marketData";
-
 import { useBalances } from "@/hooks/useBalances";
 import { useQueryClient } from "@tanstack/react-query";
+import { useMarketData } from "@/hooks/useMarketData";
+import { fetchSwapRate } from "@/lib/marketData";
 
 export default function WebConvert() {
   const queryClient = useQueryClient();
@@ -31,9 +31,10 @@ export default function WebConvert() {
   const [spendCurrency, setSpendCurrency] = useState("NGN");
   const [receiveCurrency, setReceiveCurrency] = useState("USDT_TRC20");
   const [isLoading, setIsLoading] = useState(false);
-  const [prices, setPrices] = useState<any[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
   const { toast } = useToast();
+
+  const { data: marketData, loading: pricesLoading, isStale } = useMarketData();
 
   const getBalance = (currency: string) => {
     if (!balancesArray || !Array.isArray(balancesArray)) return 0;
@@ -41,63 +42,44 @@ export default function WebConvert() {
     return wallet ? wallet.balance : 0;
   };
 
-  const [rates, setRates] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    const fetchRates = async () => {
-      try {
-        const res = await fetch("/api/transactions/rates");
-        const data = await res.json();
-        if (data.success) {
-          setRates(data.rates);
-        }
-      } catch (e) {
-        console.error("Failed to fetch rates:", e);
-      }
-    };
-    fetchRates();
-    const interval = setInterval(fetchRates, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
   // Dynamic conversion math for preview based on backend rates
   useEffect(() => {
-    if (!spendAmount || isNaN(Number(spendAmount))) {
+    if (!spendAmount || isNaN(Number(spendAmount)) || !marketData) {
       setReceiveAmount("0.00");
       return;
     }
 
     const amount = Number(spendAmount);
+    const rates = marketData.rates || {};
 
     // Check for direct pair (e.g. USDT_TRC20_NGN) or normalized base (USDT_NGN)
     const pair = `${spendCurrency}_${receiveCurrency}`;
-    const rate = rates[pair];
+    let rate = rates[pair];
+
+    if (!rate) {
+      // Fallback for NGN -> Crypto or Crypto -> NGN if specific pair variant missing
+      const fromBase = spendCurrency.split('_')[0];
+      const toBase = receiveCurrency.split('_')[0];
+
+      if (spendCurrency === 'NGN') {
+        rate = rates[`NGN_${toBase}`] || rates[`NGN_${receiveCurrency}`] || 0;
+      } else if (receiveCurrency === 'NGN') {
+        rate = rates[`${fromBase}_NGN`] || rates[`${spendCurrency}_NGN`] || 0;
+      } else {
+        // Crypto to Crypto via NGN as bridge
+        const fromToNgn = rates[`${fromBase}_NGN`] || rates[`${spendCurrency}_NGN`] || 0;
+        const ngnToTo = rates[`NGN_${toBase}`] || rates[`NGN_${receiveCurrency}`] || 0;
+        if (fromToNgn && ngnToTo) rate = fromToNgn * ngnToTo;
+      }
+    }
 
     if (rate) {
       const displayDecimals = receiveCurrency === 'NGN' ? 2 : 6;
       setReceiveAmount((amount * rate).toFixed(displayDecimals));
     } else {
-      // Fallback for NGN -> Crypto or Crypto -> NGN if specific pair variant missing
-      const fromBase = spendCurrency.split('_')[0];
-      const toBase = receiveCurrency.split('_')[0];
-
-      // Try cross-rate via NGN base
-      let effectiveRate = 0;
-      if (spendCurrency === 'NGN') {
-        effectiveRate = rates[`NGN_${toBase}`] || rates[`NGN_${receiveCurrency}`] || 0;
-      } else if (receiveCurrency === 'NGN') {
-        effectiveRate = rates[`${fromBase}_NGN`] || rates[`${spendCurrency}_NGN`] || 0;
-      } else {
-        // Crypto to Crypto via NGN as bridge
-        const fromToNgn = rates[`${fromBase}_NGN`] || rates[`${spendCurrency}_NGN`] || 0;
-        const ngnToTo = rates[`NGN_${toBase}`] || rates[`NGN_${receiveCurrency}`] || 0;
-        if (fromToNgn && ngnToTo) effectiveRate = fromToNgn * ngnToTo;
-      }
-
-      const displayDecimals = receiveCurrency === 'NGN' ? 2 : 6;
-      setReceiveAmount(effectiveRate ? (amount * effectiveRate).toFixed(displayDecimals) : "0.00");
+      setReceiveAmount("0.00");
     }
-  }, [spendAmount, spendCurrency, receiveCurrency, rates]);
+  }, [spendAmount, spendCurrency, receiveCurrency, marketData]);
 
   const handleSwap = () => {
     setSpendCurrency(receiveCurrency);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { getMarketPrices, formatPrice, type CryptoPrice } from "@/lib/marketData";
+import { formatPrice } from "@/lib/marketData";
+import { useMarketData } from "@/hooks/useMarketData";
 import { SiBitcoin, SiEthereum, SiSolana } from "react-icons/si";
 import "../marquee.css";
 
@@ -12,24 +13,23 @@ const cryptoIcons: Record<string, JSX.Element> = {
 };
 
 export function MarqueeTicker() {
-  const [tokens, setTokens] = useState<CryptoPrice[]>([]);
+  const { data: marketData, loading } = useMarketData();
+  const [tokens, setTokens] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await getMarketPrices();
-        setTokens(data);
-      } catch (error) {
-        console.error("Failed to fetch market data:", error);
-      }
-    };
+    if (marketData && marketData.prices) {
+      const mapped = Object.entries(marketData.prices).map(([symbol, price]: [string, any]) => ({
+        id: symbol.toLowerCase(),
+        symbol,
+        name: symbol,
+        price: price.usd,
+        priceChange24h: price.usd_24h_change || 0,
+      }));
+      setTokens(mapped);
+    }
+  }, [marketData]);
 
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (tokens.length === 0) {
+  if (loading || tokens.length === 0) {
     return (
       <div className="px-4 mt-4">
         <div className="bg-card border rounded-lg py-2 px-4">
@@ -63,9 +63,8 @@ export function MarqueeTicker() {
               )}
               <span className="font-medium text-xs">{token.symbol}</span>
               <span className="text-xs text-muted-foreground">{formatPrice(token.price)}</span>
-              <span className={`text-[10px] font-medium ${
-                token.priceChange24h >= 0 ? "text-green-500" : "text-red-500"
-              }`}>
+              <span className={`text-[10px] font-medium ${token.priceChange24h >= 0 ? "text-green-500" : "text-red-500"
+                }`}>
                 {token.priceChange24h >= 0 ? "+" : ""}{token.priceChange24h.toFixed(2)}%
               </span>
             </div>

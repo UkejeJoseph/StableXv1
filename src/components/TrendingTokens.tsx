@@ -1,23 +1,30 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getMarketPrices, type CryptoPrice } from "@/lib/marketData";
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useMarketData } from "@/hooks/useMarketData";
 
 export function TrendingTokens() {
-  const [tokens, setTokens] = useState<CryptoPrice[]>([]);
+  const { data: marketData, loading } = useMarketData();
+  const [tokens, setTokens] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("hot");
 
   useEffect(() => {
-    const fetchPrices = async () => {
-      const data = await getMarketPrices();
-      setTokens(data);
-    };
-    fetchPrices();
-    const interval = setInterval(fetchPrices, 5000); // 5s refresh for live feel
-    return () => clearInterval(interval);
-  }, []);
+    if (marketData && marketData.prices) {
+      const mapped = Object.entries(marketData.prices).map(([symbol, price]: [string, any]) => ({
+        id: symbol.toLowerCase(),
+        symbol,
+        name: symbol, // Could add better names map here
+        price: price.usd,
+        priceChange24h: price.usd_24h_change || 0,
+        marketCap: (price.usd_24h_vol || 0) * 10, // Mocking MC since backend doesn't provide it yet
+        volume24h: price.usd_24h_vol || 0,
+        image: undefined
+      }));
+      setTokens(mapped);
+    }
+  }, [marketData]);
 
   // Organize tokens based on tabs (mocking categories using the limited dataset)
   const getTabTokens = () => {

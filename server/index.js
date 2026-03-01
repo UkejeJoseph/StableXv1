@@ -105,6 +105,7 @@ import giftcardRoutes from './routes/giftcardRoutes.js';
 import stakingRoutes from './routes/stakingRoutes.js';
 import korapayRoutes from './routes/korapayRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import priceRoutes from './routes/priceRoutes.js';
 
 // Apply global rate limiter to all /api routes
 // Note: apiLimiter is now configured to fail-open inside its own middleware
@@ -126,6 +127,7 @@ app.use('/api/giftcards', giftcardRoutes);
 app.use('/api/staking', stakingRoutes);
 app.use('/api/korapay', korapayRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/prices', priceRoutes);
 
 
 app.get('/api/health', (req, res) => {

@@ -48,7 +48,7 @@ export function PriceChart({ symbol }: PriceChartProps) {
                 }
 
                 const response = await fetch(
-                    `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${interval}&limit=${limit}`
+                    `/api/prices/klines?symbol=${binanceSymbol}&interval=${interval}&limit=${limit}`
                 );
                 const klines = await response.json();
 

@@ -1,97 +1,91 @@
-export interface CryptoPrice {
-  id: string;
-  symbol: string;
-  name: string;
-  price: number;
-  priceChange24h: number;
-  marketCap: number;
-  volume24h: number;
-  image?: string;
+// Backend proxy for market data
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
+export interface MarketPrice {
+  usd: number;
+  usd_24h_change: number;
+  usd_24h_vol?: number;
+  high_24h?: number;
+  low_24h?: number;
+  ngn?: number;
+  source: string;
+  timestamp: number;
 }
 
-const COINGECKO_API = import.meta.env.VITE_COINGECKO_API || "https://api.coingecko.com/api/v3";
-const BINANCE_API = import.meta.env.VITE_BINANCE_API || "https://api.binance.com/api/v3";
-
-export async function getMarketPrices(): Promise<CryptoPrice[]> {
-  try {
-    // 1. Try CoinGecko first (more tokens, richer data)
-    const response = await fetch(
-      `${COINGECKO_API}/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,tron,binancecoin&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h`
-    );
-
-    if (response.ok) {
-      const data = await response.json();
-      return data.map((coin: any) => ({
-        id: coin.id,
-        symbol: coin.symbol.toUpperCase(),
-        name: coin.name,
-        price: coin.current_price,
-        priceChange24h: coin.price_change_percentage_24h || 0,
-        marketCap: coin.market_cap,
-        volume24h: coin.total_volume,
-        image: coin.image,
-      }));
-    }
-
-    console.warn("CoinGecko rate limited or down, falling back to Binance...");
-    throw new Error("CoinGecko fail");
-
-  } catch (error) {
-    // 2. Fallback to Binance (Reliable, high rate limits, but limited to USDT pairs)
-    try {
-      const symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "TRXUSDT", "BNBUSDT"];
-      const response = await fetch(`${BINANCE_API}/ticker/24hr?symbols=${JSON.stringify(symbols)}`);
-
-      if (!response.ok) throw new Error("Binance fail");
-
-      const data = await response.json();
-      const symbolMap: Record<string, string> = {
-        BTCUSDT: "BTC", ETHUSDT: "ETH", SOLUSDT: "SOL", TRXUSDT: "TRX", BNBUSDT: "BNB"
-      };
-      const nameMap: Record<string, string> = {
-        BTCUSDT: "Bitcoin", ETHUSDT: "Ethereum", SOLUSDT: "Solana", TRXUSDT: "Tron", BNBUSDT: "Binance Coin"
-      };
-
-      return data.map((item: any) => ({
-        id: item.symbol.toLowerCase(),
-        symbol: symbolMap[item.symbol],
-        name: nameMap[item.symbol],
-        price: parseFloat(item.lastPrice),
-        priceChange24h: parseFloat(item.priceChangePercent),
-        marketCap: 0, // Binance ticker doesn't provide market cap easily
-        volume24h: parseFloat(item.quoteVolume),
-      }));
-    } catch (binanceError) {
-      console.error("Critical market data failure:", binanceError);
-      return [];
-    }
-  }
+export interface MarketData {
+  prices: Record<string, MarketPrice>;
+  ngnRates: Record<string, { ngn: number }>;
+  usdToNgn: number;
+  rates: {
+    USDT_NGN: number;
+    NGN_USDT: number;
+    BTC_NGN: number;
+    ETH_NGN: number;
+    SOL_NGN: number;
+  };
+  source: string;
+  stale: boolean;
+  timestamp: string;
 }
 
-export async function getTrendingCoins(): Promise<CryptoPrice[]> {
-  try {
-    const response = await fetch(`${COINGECKO_API}/search/trending`);
+// Single fetch function - calls backend only
+export async function fetchMarketData(): Promise<MarketData> {
+  console.log('[MARKET-DATA] Fetching from backend proxy...');
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch trending coins: ${response.statusText}`);
-    }
+  const res = await fetch(`${API_BASE}/api/prices/markets`, {
+    credentials: 'include',
+  });
 
-    const data = await response.json();
-
-    return data.coins.slice(0, 5).map((item: any) => ({
-      id: item.item.id,
-      symbol: item.item.symbol.toUpperCase(),
-      name: item.item.name,
-      price: item.item.data?.price || 0,
-      priceChange24h: item.item.data?.price_change_percentage_24h?.usd || 0,
-      marketCap: item.item.data?.market_cap || 0,
-      volume24h: item.item.data?.total_volume || 0,
-      image: item.item.thumb,
-    }));
-  } catch (error) {
-    console.error("Error fetching trending coins:", error);
-    return [];
+  if (!res.ok) {
+    console.error('[MARKET-DATA] ❌ Backend price fetch failed:', res.status);
+    throw new Error('Failed to fetch market data');
   }
+
+  const data = await res.json();
+  console.log('[MARKET-DATA] ✅ Prices received from:', data.source);
+
+  if (data.stale) {
+    console.warn('[MARKET-DATA] ⚠️ Prices may be delayed');
+  }
+
+  return data;
+}
+
+// Get specific swap rate
+export async function fetchSwapRate(
+  from: string,
+  to: string
+): Promise<number> {
+  console.log('[MARKET-DATA] Fetching swap rate:', from, '→', to);
+
+  const res = await fetch(
+    `${API_BASE}/api/prices/rate?from=${from}&to=${to}`,
+    { credentials: 'include' }
+  );
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch rate for ${from}/${to}`);
+  }
+
+  const data = await res.json();
+  console.log('[MARKET-DATA] Rate:', from, '→', to, '=', data.rate);
+
+  return data.rate;
+}
+
+// Compatibility layer for existing components (fallback)
+export async function getMarketPrices(): Promise<any[]> {
+  const data = await fetchMarketData();
+  // Map back to old format if needed, but better to update components
+  return Object.entries(data.prices).map(([symbol, price]: [string, any]) => ({
+    id: symbol.toLowerCase(),
+    symbol,
+    name: symbol, // Placeholder
+    price: price.usd,
+    priceChange24h: price.usd_24h_change,
+    marketCap: 0,
+    volume24h: price.usd_24h_vol || 0,
+  }));
 }
 
 export function formatPrice(price: number): string {
@@ -105,27 +99,4 @@ export function formatPrice(price: number): string {
     return `$${price.toFixed(4)}`;
   }
   return `$${price.toFixed(6)}`;
-}
-
-export function formatMarketCap(marketCap: number): string {
-  if (marketCap >= 1e12) {
-    return `$${(marketCap / 1e12).toFixed(2)}T`;
-  }
-  if (marketCap >= 1e9) {
-    return `$${(marketCap / 1e9).toFixed(2)}B`;
-  }
-  if (marketCap >= 1e6) {
-    return `$${(marketCap / 1e6).toFixed(2)}M`;
-  }
-  return `$${marketCap.toLocaleString()}`;
-}
-
-export function formatVolume(volume: number): string {
-  if (volume >= 1e9) {
-    return `$${(volume / 1e9).toFixed(2)}B`;
-  }
-  if (volume >= 1e6) {
-    return `$${(volume / 1e6).toFixed(2)}M`;
-  }
-  return `$${volume.toLocaleString()}`;
 }

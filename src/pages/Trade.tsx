@@ -31,10 +31,39 @@ const coins: Coin[] = [
   { id: "usdt-trc20", name: "USD Tether", symbol: "USDT", network: "TRC20", price: 1, change: 0.01, IconComponent: SiTether, iconColor: "text-red-500" },
 ];
 
+import { useMarketData } from "@/hooks/useMarketData";
+
 export default function Trade() {
+  const { data: marketData, loading } = useMarketData();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCoin, setSelectedCoin] = useState<Coin | null>(null);
+  const [selectedCoin, setSelectedCoin] = useState<any | null>(null);
   const [showChart, setShowChart] = useState(false);
+
+  // Map backend data to local coin format
+  const coins = marketData?.prices ? Object.entries(marketData.prices).map(([symbol, price]: [string, any]) => {
+    const isUSDT = symbol.startsWith('USDT');
+    const network = symbol.includes('_') ? symbol.split('_')[1] : (isUSDT ? 'TRC20' : undefined);
+    const baseSymbol = symbol.split('_')[0];
+
+    return {
+      id: symbol.toLowerCase(),
+      name: baseSymbol === 'BTC' ? 'Bitcoin' : baseSymbol === 'ETH' ? 'Ethereum' : baseSymbol === 'SOL' ? 'Solana' : baseSymbol,
+      symbol: baseSymbol,
+      network: network,
+      price: price.usd,
+      change: price.usd_24h_change || 0,
+      IconComponent: baseSymbol === "BTC" ? SiBitcoin : baseSymbol === "ETH" ? SiEthereum : baseSymbol === "SOL" ? SiSolana : SiTether,
+      iconColor: baseSymbol === "BTC" ? "text-orange-500" : baseSymbol === "ETH" ? "text-slate-600" : baseSymbol === "SOL" ? "text-purple-500" : "text-green-500"
+    };
+  }) : [];
+
+  if (loading && coins.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background text-foreground">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   const filteredCoins = coins.filter(
     (coin) =>

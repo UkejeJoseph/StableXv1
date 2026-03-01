@@ -2,7 +2,7 @@ import express from 'express';
 import * as bitcoin from 'bitcoinjs-lib';
 import * as ecc from 'tiny-secp256k1';
 import { ECPairFactory } from 'ecpair';
-import { getLiveRates } from './utils/priceService.js';
+import { getMarketPrices as getLiveRates } from './services/priceService.js';
 import mongoose from 'mongoose';
 import User from './models/userModel.js';
 import { protect } from './middleware/authMiddleware.js';

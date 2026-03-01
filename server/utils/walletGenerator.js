@@ -98,7 +98,7 @@ export const deriveWallet = async (mnemonic, network, index = 0) => {
  * Derive all standard wallets at once (used during registration)
  */
 export const deriveWallets = async (mnemonic, index = 0) => {
-    const networks = ['BTC', 'ETH', 'SOL', 'USDT_TRC20'];
+    const networks = ['BTC', 'ETH', 'SOL', 'TRX', 'USDT_TRC20'];
     const results = await Promise.all(networks.map(n => deriveWallet(mnemonic, n, index)));
 
     // Add USDT_ERC20 (same as ETH)

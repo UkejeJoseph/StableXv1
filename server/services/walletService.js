@@ -23,6 +23,10 @@ export async function creditUserWallet(
         session = sessionOrNull;
     }
 
+    // Normalization
+    currency = currency?.toUpperCase();
+    network = network?.toUpperCase();
+
     console.log('[WALLET-SERVICE] CREDIT');
     console.log('[WALLET-SERVICE] User:', userId);
     console.log('[WALLET-SERVICE] Currency:', currency, 'Network:', network);
@@ -96,6 +100,10 @@ export async function debitUserWallet(
         provider = meta.provider || 'internal';
         session = sessionOrNull;
     }
+
+    // Normalization
+    currency = currency?.toUpperCase();
+    network = network?.toUpperCase();
 
     console.log('[WALLET-SERVICE] DEBIT');
     console.log('[WALLET-SERVICE] User:', userId);

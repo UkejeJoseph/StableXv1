@@ -238,15 +238,19 @@ router.get('/rates', async (req, res) => {
     const rates = {};
 
     // Process all rates from priceService with spread
-    Object.keys(liveRates).forEach(pair => {
+    // liveRates.rates contains pairs like BTC_NGN, SOL_NGN, etc.
+    Object.keys(liveRates.rates).forEach(pair => {
       if (pair.endsWith('_NGN')) {
         const base = pair.replace('_NGN', '');
-        rates[`${base}_NGN`] = liveRates[pair] * (1 - SPREAD); // User sells crypto to us
-        rates[`NGN_${base}`] = 1 / (liveRates[pair] * (1 + SPREAD)); // User buys crypto from us
+        const marketRate = liveRates.rates[pair];
+        // User sells crypto to us: they get less NGN than market
+        rates[`${base}_NGN`] = marketRate * (1 - SPREAD);
+        // User buys crypto from us: they pay more NGN than market
+        rates[`NGN_${base}`] = 1 / (marketRate * (1 + SPREAD));
       }
     });
 
-    res.json({ success: true, rates, marketRate: liveRates.USDT_NGN, spread: SPREAD });
+    res.json({ success: true, rates, marketRate: liveRates.usdToNgn, spread: SPREAD });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -267,8 +271,18 @@ router.post('/swap', protect, async (req, res) => {
     // Relative to NGN for consistent accounting
     const market = await getLiveRates();
     const usdToNgn = market.usdToNgn;
-    const fromUsd = (await getSwapRate(fromCurrency, 'USDT_TRC20')).rate;
-    const profit = (Number(amount) * fromUsd * usdToNgn) * 0.02439; // approx. 2.5% of the gross
+
+    // Get the USD value of the 'from' amount to calculate absolute profit in NGN
+    let fromUsdRate;
+    try {
+      const fromUsdData = await getSwapRate(fromCurrency, 'USDT_TRC20');
+      fromUsdRate = fromUsdData.rate;
+    } catch (e) {
+      // Fallback: assume 1 if it's already a USD stablecoin
+      fromUsdRate = fromCurrency.includes('USDT') || fromCurrency.includes('USD') ? 1 : 0;
+    }
+
+    const profit = (Number(amount) * fromUsdRate * usdToNgn) * 0.02439; // approx. 2.5% of the gross
 
     const treasuryUser = await User.findOne({ email: 'platform@stablex.internal' });
     if (!treasuryUser) throw new Error('Treasury error');

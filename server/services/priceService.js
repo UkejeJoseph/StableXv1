@@ -300,6 +300,8 @@ export async function getMarketPrices() {
             BTC_NGN: cryptoPrices['BTC']?.usd * usdToNgn,
             ETH_NGN: cryptoPrices['ETH']?.usd * usdToNgn,
             SOL_NGN: cryptoPrices['SOL']?.usd * usdToNgn,
+            TRX_NGN: cryptoPrices['TRX']?.usd * usdToNgn,
+            BNB_NGN: cryptoPrices['BNB']?.usd * usdToNgn,
         },
         source,
         stale: false,
@@ -344,7 +346,7 @@ export async function getSwapRate(fromCurrency, toCurrency) {
     const usdToNgn = market.usdToNgn;
 
     // Normalization helper: USDT_TRC20 -> USDT, SOL_TRC20 -> SOL
-    const normalize = (c) => c.split('_')[0];
+    const normalize = (c) => c.trim().toUpperCase().split('_')[0];
     const fromBase = normalize(fromCurrency);
     const toBase = normalize(toCurrency);
 
@@ -359,11 +361,13 @@ export async function getSwapRate(fromCurrency, toCurrency) {
         BNB: market.prices['BNB']?.usd,
     };
 
+    // Explicitly handle common suffixes if they aren't caught by split
     const fromUsd = usdPrices[fromBase] || market.prices[fromBase]?.usd;
     const toUsd = usdPrices[toBase] || market.prices[toBase]?.usd;
 
     if (!fromUsd || !toUsd) {
-        console.error('[PRICE-SERVICE] ❌ Unknown currency:', fromCurrency, '(', fromBase, ') or', toCurrency, '(', toBase, ')');
+        console.error('[PRICE-SERVICE] ❌ Unknown currency or missing price:',
+            { fromCurrency, fromBase, fromUsd: !!fromUsd, toCurrency, toBase, toUsd: !!toUsd });
         throw new Error(`Unsupported currency pair: ${fromCurrency}/${toCurrency}`);
     }
 

@@ -59,6 +59,7 @@ import WebDeposit from "./pages/web/WebDeposit";
 import WebWithdraw from "./pages/web/WebWithdraw";
 import WebWallet from "./pages/web/WebWallet";
 import WebCreateWallet from "./pages/web/WebCreateWallet";
+import WebQRCode from "./pages/web/WebQRCode";
 import WebAccount from "./pages/web/WebAccount";
 import WebOrders from "./pages/web/WebOrders";
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
@@ -193,6 +194,9 @@ function AnimatedRoutes() {
               } />
               <Route path="/web/create-wallet" element={
                 <PageTransition><WebCreateWallet /></PageTransition>
+              } />
+              <Route path="/web/qr" element={
+                <PageTransition><WebQRCode /></PageTransition>
               } />
 
               {/* Admin Portal (Strict Auth) */}

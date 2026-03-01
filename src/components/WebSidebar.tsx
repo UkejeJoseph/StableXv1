@@ -5,7 +5,8 @@ import {
   Home, CreditCard, ArrowLeftRight, TrendingUp, Gift, Coins,
   Bot, Users, Activity, BarChart2, Compass, Briefcase, ArrowDownLeft,
   ArrowUpRight, Link as LinkIcon, MessageSquare, Replace,
-  Sun, Moon, Shield, Webhook, Landmark, BookOpen, BadgeCheck, ArrowLeft
+  Sun, Moon, Shield, Webhook, Landmark, BookOpen, BadgeCheck, ArrowLeft,
+  QrCode
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { Button } from "@/components/ui/button";
@@ -430,26 +431,22 @@ export function WebLayout({ children, hideSidebar = false }: { children: React.R
       </div>
 
       {/* Mobile Bottom Navigation (Binance/Bybit Style) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#12161a] border-t border-border/20 flex items-center justify-around z-40 px-2 pb-safe">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#12161a] border-t border-border/20 flex items-center justify-around z-40 px-2 pb-safe shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
         <Link to="/web/dashboard" className={`flex flex-col items-center justify-center gap-1 w-16 h-full ${isActive('/web/dashboard') ? 'text-[#F0B90B]' : 'text-muted-foreground hover:text-white'}`}>
           <Home className="w-5 h-5" />
           <span className="text-[10px] font-medium">Home</span>
         </Link>
-        <div className="flex flex-col items-center justify-center gap-1 w-16 h-full text-muted-foreground/30 cursor-not-allowed">
-          <BarChart2 className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Markets</span>
-        </div>
-        <Link to="/web/trade" className={`flex flex-col items-center justify-center gap-1 w-16 h-full ${isActive('/web/trade') ? 'text-[#F0B90B]' : 'text-muted-foreground hover:text-white'}`}>
+        <Link to="/web/convert" className={`flex flex-col items-center justify-center gap-1 w-16 h-full ${isActive('/web/convert') ? 'text-[#F0B90B]' : 'text-muted-foreground hover:text-white'}`}>
           <ArrowLeftRight className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Trade</span>
+          <span className="text-[10px] font-medium">Swap</span>
         </Link>
-        <Link to="/web/dashboard" className={`flex flex-col items-center justify-center gap-1 w-16 h-full ${isActive('/web/discover') ? 'text-[#F0B90B]' : 'text-muted-foreground hover:text-white'}`}>
-          <Compass className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Discover</span>
+        <Link to="/web/qr" className={`flex flex-col items-center justify-center gap-1 w-16 h-full ${isActive('/web/qr') ? 'text-[#F0B90B]' : 'text-muted-foreground hover:text-white'}`}>
+          <QrCode className="w-5 h-5" />
+          <span className="text-[10px] font-medium">QR</span>
         </Link>
-        <Link to="/web/wallet" className={`flex flex-col items-center justify-center gap-1 w-16 h-full ${isActive('/web/wallet') ? 'text-[#F0B90B]' : 'text-muted-foreground hover:text-white'}`}>
-          <Wallet className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Assets</span>
+        <Link to="/web/account" className={`flex flex-col items-center justify-center gap-1 w-16 h-full ${isActive('/web/account') ? 'text-[#F0B90B]' : 'text-muted-foreground hover:text-white'}`}>
+          <User className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Profile</span>
         </Link>
       </nav>
 

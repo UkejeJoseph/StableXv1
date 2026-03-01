@@ -72,7 +72,7 @@ export default function WebAccount() {
 
   return (
     <WebLayout>
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-6 pb-24 lg:pb-12">
         <div className="bg-navy text-white px-4 py-8 rounded-2xl">
           <div className="flex flex-col items-center">
             <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold mb-3" data-testid="account-avatar">

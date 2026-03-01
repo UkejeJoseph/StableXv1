@@ -263,8 +263,7 @@ const registerUser = asyncHandler(async (req, res) => {
             throw new Error('An account with this email already exists. Please log in.');
         }
 
-        // Hash password now for storage in Redis
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // Removed manual hash here to prevent double-hashing. Mongoose will hash it on save.
 
         // Generate OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -275,7 +274,7 @@ const registerUser = asyncHandler(async (req, res) => {
             firstName,
             lastName,
             email,
-            password: hashedPassword,
+            password,
             otp,
             role: role || 'user',
             phoneNumber,

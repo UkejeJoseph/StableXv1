@@ -144,10 +144,10 @@ async function handleChargeSuccess(data) {
     await creditUserWallet(
         userId,
         'NGN',
-        confirmedAmount,
+        'user', // Explicitly provide type to satisfy polymorphic signature
+        Number(confirmedAmount), // Cast string string from JSON to number
         reference,
-        { ...data, method: 'webhook_charge_success' },
-        'korapay'
+        { ...data, method: 'webhook_charge_success', provider: 'korapay' }
     );
 
     console.log(`[KORAPAY-DEPOSIT] ✅ Processed charge.success for ref: ${reference}`);
@@ -204,10 +204,10 @@ async function handleTransferFailed(data) {
     await creditUserWallet(
         txn.userId || txn.user,
         'NGN',
-        txn.amount,
+        'user',
+        Number(txn.amount),
         `refund_${reference}`,
-        { type: 'withdrawal_refund', originalRef: reference, reason: 'KoraPay Transfer Failed' },
-        'korapay'
+        { type: 'withdrawal_refund', originalRef: reference, reason: 'KoraPay Transfer Failed', provider: 'korapay' }
     );
 
     await Transaction.findByIdAndUpdate(txn._id, { status: 'failed', refunded: true });

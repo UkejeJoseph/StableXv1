@@ -81,16 +81,17 @@ export const sendOtpEmail = async (email, otp) => {
 ===== END OLD MAIL SERVICE =====
 */
 
-// ── NEW: Resend API Mail Service ──────────────
+/*
+// ── OLD: Resend API Mail Service (DISABLED) ──────────────
 import { Resend } from 'resend';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendMail = async ({ to, subject, html, text }) => {
   if (!process.env.RESEND_API_KEY) {
     console.warn('[MAIL] ⚠️ RESEND_API_KEY not set. Skipping email.');
     return;
   }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
   try {
     const { data, error } = await resend.emails.send({
@@ -113,8 +114,32 @@ export const sendMail = async ({ to, subject, html, text }) => {
     throw err;
   }
 };
+// ── END OLD RESEND MAIL SERVICE ──────────────
+*/
 
-export const sendEmail = sendMail;
+// --- NEW SENDGRID SERVICE ---
+
+import sgMail from '@sendgrid/mail';
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+export const sendEmail = async ({ to, subject, html }) => {
+  try {
+    await sgMail.send({
+      to,
+      from: {
+        email: process.env.SENDGRID_FROM_EMAIL,
+        name: 'StableX'
+      },
+      subject,
+      html
+    });
+    console.log(`[MAIL] ✅ Sent to ${to}`);
+  } catch (err) {
+    console.error(`[MAIL] ❌ Failed:`, err.message);
+    throw err;
+  }
+};
 
 // Maintain backward compatibility with userController
 export const sendOtpEmail = async (email, otp) => {
@@ -131,10 +156,9 @@ export const sendOtpEmail = async (email, otp) => {
     </div>
   `;
 
-  return sendMail({
+  return sendEmail({
     to: email,
     subject: 'StableX Verification Code',
-    text: `Your verification code is: ${otp}. It expires in 10 minutes.`,
     html
   });
 };

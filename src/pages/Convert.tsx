@@ -42,7 +42,7 @@ const currencies = [
 
 export default function Convert() {
   const queryClient = useQueryClient();
-  const { data: balancesData } = useBalances();
+  const { balances: balancesData } = useBalances();
 
   const { toast } = useToast();
   const [fromCurrency, setFromCurrency] = useState("NGN");
@@ -161,7 +161,7 @@ export default function Convert() {
 
         toast({
           title: "Swap Successful",
-          description: `Successfully swapped ${amount} ${fromCurrency} to ${data.receivedAmount.toFixed(displayDecimals)} ${toCurrency}`
+          description: `Successfully swapped ${amount} ${fromCurrency} to ${Number(data.receiveAmount).toFixed(displayDecimals)} ${toCurrency}`
         });
 
         await queryClient.invalidateQueries({ queryKey: ["userBalances"] });

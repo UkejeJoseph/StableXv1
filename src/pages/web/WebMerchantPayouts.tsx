@@ -53,8 +53,9 @@ const WebMerchantPayouts = () => {
             // Fetch NGN Balance
             const walletRes = await fetch("/api/wallets", { credentials: "include" });
             const walletData = await walletRes.json();
-            if (walletData.success) {
-                const ngnWallet = walletData.data.find((w: any) => w.currency === 'NGN');
+            if (walletData.success || walletData.wallets) {
+                const wallets = walletData.wallets || walletData.data || [];
+                const ngnWallet = wallets.find((w: any) => w.currency === 'NGN');
                 if (ngnWallet) setBalanceNGN(ngnWallet.balance);
             }
 
@@ -183,8 +184,6 @@ const WebMerchantPayouts = () => {
                     amount: amount,
                     accountNumber: selectedAccount.accountNumber,
                     bankCode: selectedAccount.bankCode,
-                    accountName: selectedAccount.accountName,
-                    narration: "StableX Merchant Settlement"
                 })
             });
 

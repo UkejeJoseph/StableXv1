@@ -99,15 +99,16 @@ export default function AdminDashboard() {
     const fetchHealth = async () => {
         try {
             const res = await fetch('/api/admin/health', { credentials: "include" });
-            const data = await res.json();
-            setHealth(data);
+            if (res.ok) {
+                const data = await res.json();
+                setHealth(data);
+            } else {
+                // Endpoint may not exist yet — show degraded status silently
+                setHealth({ status: 'UNKNOWN' });
+            }
         } catch (error: any) {
-            console.error("Health check failed:", error);
-            toast({
-                title: "Health Check Failed",
-                description: "System health monitoring is currently unavailable.",
-                variant: "destructive"
-            });
+            console.warn("Health check unavailable:", error.message);
+            setHealth({ status: 'UNKNOWN' });
         }
     };
 

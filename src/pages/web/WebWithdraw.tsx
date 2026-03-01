@@ -36,7 +36,7 @@ type WalletType = "NGN" | "USDT_ERC20" | "USDT" | "BTC" | "ETH" | "SOL" | "TRX" 
 export default function WebWithdraw() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data: balancesData } = useBalances();
+  const { balances: balancesData } = useBalances();
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState("method_selection");
@@ -194,7 +194,6 @@ export default function WebWithdraw() {
           accountNumber,
           bankCode: selectedBank,
           beneficiaryName: accountName,
-          narration: "Withdrawal from StableX",
         };
 
         const res = await fetch("/api/transactions/withdraw", {
@@ -226,7 +225,8 @@ export default function WebWithdraw() {
         const payload = {
           currency: selectedWallet,
           amount,
-          address: cryptoAddress,
+          toAddress: cryptoAddress,
+          network: selectedWallet,
         };
 
         const res = await fetch("/api/transactions/withdraw-crypto", {
@@ -308,7 +308,6 @@ export default function WebWithdraw() {
           amount,
           accountNumber,
           bankCode: selectedBank,
-          accountName,
         })
       });
 

@@ -29,7 +29,7 @@ export default function WebConvert() {
   const [spendAmount, setSpendAmount] = useState("");
   const [receiveAmount, setReceiveAmount] = useState("0.00");
   const [spendCurrency, setSpendCurrency] = useState("NGN");
-  const [receiveCurrency, setReceiveCurrency] = useState("USDT");
+  const [receiveCurrency, setReceiveCurrency] = useState("USDT_TRC20");
   const [isLoading, setIsLoading] = useState(false);
   const [prices, setPrices] = useState<any[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -121,7 +121,7 @@ export default function WebConvert() {
       if (data.success) {
         toast({
           title: "Swap Successful",
-          description: `Successfully swapped ${spendAmount} ${spendCurrency} for ${data.receivedAmount.toFixed(4)} ${receiveCurrency}.`,
+          description: `Successfully swapped ${spendAmount} ${spendCurrency} for ${Number(data.receiveAmount).toFixed(4)} ${receiveCurrency}.`,
         });
         await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
         setSpendAmount("");
@@ -190,9 +190,10 @@ export default function WebConvert() {
                       </SelectTrigger>
                       <SelectContent className="bg-[#1e2329] border-border/20 text-white">
                         <SelectItem value="NGN">NGN</SelectItem>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="USDT">USDT</SelectItem>
+                        <SelectItem value="USDT_TRC20">USDT (TRC20)</SelectItem>
                         <SelectItem value="BTC">BTC</SelectItem>
+                        <SelectItem value="ETH">ETH</SelectItem>
+                        <SelectItem value="SOL">SOL</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -229,10 +230,11 @@ export default function WebConvert() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-[#1e2329] border-border/20 text-white">
-                        <SelectItem value="USDT">USDT</SelectItem>
+                        <SelectItem value="USDT_TRC20">USDT (TRC20)</SelectItem>
                         <SelectItem value="BTC">BTC</SelectItem>
                         <SelectItem value="ETH">ETH</SelectItem>
                         <SelectItem value="SOL">SOL</SelectItem>
+                        <SelectItem value="NGN">NGN</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

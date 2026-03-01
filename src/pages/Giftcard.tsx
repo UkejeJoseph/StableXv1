@@ -61,8 +61,9 @@ export default function Giftcard() {
         const res = await fetch("/api/transactions/rates");
         if (!res.ok) throw new Error("Could not fetch rates");
         const data = await res.json();
-        if (data.success && data.rates?.USDT?.NGN) {
-          setRates({ NGN_USDT: 1 / data.rates.USDT.NGN });
+        if (data.success && data.rates) {
+          const ngnToUsdt = data.rates.NGN_USDT || (1 / (data.rates.USDT_NGN || 1600));
+          setRates({ NGN_USDT: ngnToUsdt });
         }
       } catch (err: any) {
         console.warn("Giftcard Rates Error:", err.message);

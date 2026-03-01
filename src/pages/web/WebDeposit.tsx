@@ -212,8 +212,11 @@ export default function WebDeposit() {
     setIsProcessing(true);
     setErrorMessage("");
     try {
-      const res = await fetch(`/api/korapay/deposit/verify/${targetRef}`, {
+      const res = await fetch(`/api/korapay/deposit/verify`, {
+        method: "POST",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reference: targetRef }),
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));

@@ -12,11 +12,19 @@ import crypto from 'crypto';
 import * as ecc from 'tiny-secp256k1';
 import SweepQueue from '../models/sweepQueueModel.js';
 import { trackApiCall } from '../utils/apiTracker.js';
+import { ECPair } from 'ecpair';
+import axios from 'axios';
 import http from 'http';
 import https from 'https';
 
 const httpAgent = new http.Agent({ family: 4 });
 const httpsAgent = new https.Agent({ family: 4 });
+
+const axiosIPv4 = axios.create({
+    httpAgent,
+    httpsAgent,
+    timeout: 15000
+});
 
 export const TRC20_TOKENS = [
     { symbol: 'USDT', contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", decimals: 6, key: 'USDT_TRC20' },
@@ -51,26 +59,27 @@ const TRON_PROVIDERS = [
         buildUrl: (address) => `https://rpc.ankr.com/tron_jsonrpc`,
         fetchFn: async (address, minTimestamp) => {
             const hexAddress = TronWeb.address.toHex(address).replace('41', '0x');
-            const res = await fetch('https://rpc.ankr.com/tron_jsonrpc', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            const ankrRes = await axiosIPv4.post(
+                'https://rpc.ankr.com/tron_jsonrpc',
+                {
                     jsonrpc: '2.0', id: 1,
                     method: 'eth_getLogs',
                     params: [{
-                        fromBlock: 'latest', // Ideally search back a few blocks, but keep simple for now
+                        fromBlock: 'latest',
                         toBlock: 'latest',
-                        address: '0x' + tronAddressToHex("TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t").slice(2), // USDT
+                        address: '0x' + tronAddressToHex(
+                            "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+                        ).slice(2),
                         topics: [
-                            '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef', // Transfer
-                            null, // From any
-                            hexAddress.padStart(66, '0') // To this user
+                            '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
+                            null,
+                            hexAddress.padStart(66, '0')
                         ]
                     }]
-                }),
-                signal: AbortSignal.timeout(15000)
-            });
-            const json = await res.json();
+                },
+                { headers: { 'Content-Type': 'application/json' } }
+            );
+            const json = ankrRes.data;
             if (json.error) throw new Error(json.error.message);
             const logs = json.result || [];
             return logs.map(log => {
@@ -127,7 +136,31 @@ const rotateTronProvider = () => {
     console.warn(`[TRON] 🔄 FALLBACK: Rotating provider to ${newProvider.name}. Reason: RPC Error. New backoff: ${tronBackoffDelay}ms`);
 };
 
-const fetchWithTimeout = async (url, options = {}, timeout = 30000) => {
+const fetchTronWithIPv4 = async (url, options = {}) => {
+    console.log(`[TRON-FETCH] 🌐 Requesting: ${url}`);
+    try {
+        const response = await axiosIPv4.get(url, {
+            headers: {
+                'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY,
+                'User-Agent': 'Mozilla/5.0',
+                ...options.headers
+            }
+        });
+        return {
+            ok: response.status >= 200 && response.status < 300,
+            status: response.status,
+            json: async () => response.data,
+            text: async () => JSON.stringify(response.data)
+        };
+    } catch (err) {
+        if (err.code === 'ECONNABORTED') {
+            throw new Error('Timeout');
+        }
+        throw err;
+    }
+};
+
+const fetchWithTimeout = async (url, options = {}, timeout = 15000) => {
     const isHttps = url.startsWith('https');
     const agent = isHttps ? httpsAgent : httpAgent;
 
@@ -252,7 +285,62 @@ const checkWalletForDeposits = async (wallet) => {
                                     // same deposit handling as below
                                     highestTimestamp = Math.max(highestTimestamp, tx.timestamp);
                                     foundNew = true;
-                                    await handleDetectedDeposit(wallet, tx.amount, token, tx.timestamp, tx.txId);
+
+                                    const amount = tx.amount;
+
+                                    console.log('');
+                                    console.log('═══════════════════════════════════════════════');
+                                    console.log(`💰 New ${token.symbol} Deposit Detected! (via Ankr)`);
+                                    console.log(`   Amount: ${amount} ${token.symbol}`);
+                                    console.log(`   To: ${wallet.address}`);
+                                    console.log(`   From: ${tx.from}`);
+                                    console.log(`   TxHash: ${tx.txId}`);
+                                    console.log(`   User: ${wallet.user}`);
+                                    console.log(`   Status: CONFIRMING (need ${CONFIRMATION_THRESHOLDS.TRON} confirmations)`);
+                                    console.log('═══════════════════════════════════════════════');
+
+                                    // Create deposit record with 'confirming' status
+                                    const pendingTx = await Transaction.findOne({
+                                        user: wallet.user,
+                                        currency: token.symbol,
+                                        status: 'pending',
+                                        type: 'deposit',
+                                    });
+
+                                    if (pendingTx) {
+                                        pendingTx.status = 'confirming';
+                                        pendingTx.amount = amount;
+                                        pendingTx.metadata = pendingTx.metadata || new Map();
+                                        pendingTx.metadata.set('onChainTxHash', tx.txId);
+                                        pendingTx.metadata.set('from', tx.from);
+                                        pendingTx.metadata.set('blockTimestamp', String(tx.timestamp));
+                                        pendingTx.metadata.set('network', 'TRC20');
+                                        pendingTx.metadata.set('confirmations', String(tx.confirmations));
+                                        pendingTx.metadata.set('requiredConfirmations', String(CONFIRMATION_THRESHOLDS.TRON));
+                                        pendingTx.metadata.set('walletId', String(wallet._id));
+                                        await pendingTx.save();
+                                        console.log(`⏳ Matched pending tx ${pendingTx.reference} → now 'confirming'`);
+                                    } else {
+                                        await Transaction.create({
+                                            user: wallet.user,
+                                            type: 'deposit',
+                                            status: 'confirming',
+                                            amount: amount,
+                                            currency: token.symbol,
+                                            reference: tx.txId,
+                                            description: `${token.symbol} deposit from ${tx.from} (confirming)`,
+                                            metadata: {
+                                                from: tx.from,
+                                                blockTimestamp: String(tx.timestamp),
+                                                network: 'TRC20',
+                                                onChainTxHash: tx.txId,
+                                                confirmations: String(tx.confirmations),
+                                                requiredConfirmations: String(CONFIRMATION_THRESHOLDS.TRON),
+                                                walletId: String(wallet._id),
+                                            }
+                                        });
+                                        console.log('📝 Created new deposit record with status: confirming');
+                                    }
                                 }
                             }
                         } catch (ankrErr) {
@@ -273,7 +361,7 @@ const checkWalletForDeposits = async (wallet) => {
                         if (key) fetchOptions.headers['TRON-PRO-API-KEY'] = key;
                     }
 
-                    const response = await fetchWithTimeout(url, fetchOptions);
+                    const response = await fetchTronWithIPv4(url, fetchOptions);
 
                     if (!response.ok) {
                         const errorText = await response.text();
@@ -410,21 +498,19 @@ const checkPendingConfirmations = async () => {
         if (confirmingTxs.length === 0) return;
 
         // Get current TRON block number
-        const blockResponse = await fetch(`${TRON_GRID_API}/wallet/getnowblock`, {
-            headers: {
-                'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY
-            }
-        });
-
-        if (!blockResponse.ok) {
-            const errText = await blockResponse.text();
-            console.error(`[TRON-CONF] ❌ FAILED: getnowblock failed: ${blockResponse.status} - ${errText}`);
+        let blockData;
+        try {
+            const blockResponse = await axiosIPv4.get(
+                `${TRON_GRID_API}/wallet/getnowblock`,
+                { headers: { 'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY } }
+            );
+            blockData = blockResponse.data;
+        } catch (err) {
+            console.error(`[TRON-CONF] ❌ FAILED: getnowblock failed: ${err.message}`);
             // Force rotation on next main loop if Grid is stuck
             rotateTronProvider();
             return;
         }
-
-        const blockData = await blockResponse.json();
         const currentBlock = blockData?.block_header?.raw_data?.number;
 
         if (!currentBlock) {
@@ -439,15 +525,23 @@ const checkPendingConfirmations = async () => {
 
             try {
                 // Get transaction info to find its block number
-                const txInfoResponse = await fetch(`${TRON_GRID_API}/wallet/gettransactioninfobyid`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY
-                    },
-                    body: JSON.stringify({ value: txHash }),
-                });
-                const txInfo = await txInfoResponse.json();
+                let txInfo;
+                try {
+                    const txInfoResponse = await axiosIPv4.post(
+                        `${TRON_GRID_API}/wallet/gettransactioninfobyid`,
+                        { value: txHash },
+                        {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY
+                            }
+                        }
+                    );
+                    txInfo = txInfoResponse.data;
+                } catch (err) {
+                    console.error(`[TRON-CONF] ❌ FAILED: gettransactioninfobyid failed: ${err.message}`);
+                    continue;
+                }
 
                 if (!txInfo.blockNumber) continue; // Transaction not yet in a block
 
@@ -579,16 +673,17 @@ export const sweepToHotWallet = async (wallet, token, amount, depositTxHash) => 
         call_value: 0,
     };
 
-    const triggerRes = await fetch(triggerUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY
-        },
-        body: JSON.stringify(triggerBody),
-    });
-
-    const triggerData = await triggerRes.json();
+    const triggerRes = await axiosIPv4.post(
+        triggerUrl,
+        triggerBody,
+        {
+            headers: {
+                'Content-Type': 'application/json',
+                'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY
+            }
+        }
+    );
+    const triggerData = triggerRes.data;
     console.log(`[TRON-RES] 📝 TriggerSmartContract Status: ${triggerRes.status}`);
 
     if (!triggerData.result?.result) {
@@ -601,16 +696,18 @@ export const sweepToHotWallet = async (wallet, token, amount, depositTxHash) => 
     const signedTx = signTronTransaction(triggerData.transaction, cleanKey);
 
     // 4. Broadcast
-    const broadcastRes = await fetch(`${TRON_GRID_API}/wallet/broadcasttransaction`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY
-        },
-        body: JSON.stringify(signedTx),
-    });
+    const broadcastRes = await axiosIPv4.post(
+        `${TRON_GRID_API}/wallet/broadcasttransaction`,
+        signedTx,
+        {
+            headers: {
+                'Content-Type': 'application/json',
+                'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY
+            }
+        }
+    );
 
-    const broadcastData = await broadcastRes.json();
+    const broadcastData = broadcastRes.data;
     console.log(`[TRON-RES] 🚀 Broadcast Status: ${broadcastRes.status} Result=${broadcastData.result}`);
 
     if (!broadcastData.result) {
@@ -625,11 +722,6 @@ export const sweepToHotWallet = async (wallet, token, amount, depositTxHash) => 
         await queueWebhook(user, 'sweep.completed', {
             sweepTxHash,
             depositTxHash,
-        });
-        const tronWeb = new TronWeb({
-            fullHost: 'https://api.trongrid.io',
-            headers: { 'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY },
-            privateKey: TREASURY_PRIVATE_KEY
         });
     }
 
@@ -679,16 +771,18 @@ const fundWalletWithTrx = async (toAddress, trxAmount) => {
         };
 
         console.log(`[TRON-FETCH] 🌐 Treasury Funding: ${createUrl}`);
-        const createRes = await fetch(createUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY
-            },
-            body: JSON.stringify(createBody)
-        });
+        const createRes = await axiosIPv4.post(
+            createUrl,
+            createBody,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY
+                }
+            }
+        );
 
-        const createData = await createRes.json();
+        const createData = createRes.data;
         console.log(`[TRON-RES] 📝 CreateTransaction Status: ${createRes.status}`);
 
         const txData = createData;
@@ -703,16 +797,18 @@ const fundWalletWithTrx = async (toAddress, trxAmount) => {
         const signedTx = signTronTransaction(txData, cleanTreasuryKey);
 
         // 4. Broadcast
-        const broadcastResponse = await fetch(`${TRON_GRID_API}/wallet/broadcasttransaction`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "TRON-PRO-API-KEY": process.env.TRONGRID_API_KEY
-            },
-            body: JSON.stringify(signedTx),
-        });
+        const broadcastResponse = await axiosIPv4.post(
+            `${TRON_GRID_API}/wallet/broadcasttransaction`,
+            signedTx,
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                    "TRON-PRO-API-KEY": process.env.TRONGRID_API_KEY
+                }
+            }
+        );
 
-        const broadcastData = await broadcastResponse.json();
+        const broadcastData = broadcastResponse.data;
         if (broadcastData.result) {
             console.log(`[TREASURY] ✅ Sent ${trxAmount} TRX. TxHash: ${txData.txID}`);
             return true;

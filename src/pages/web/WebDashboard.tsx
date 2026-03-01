@@ -74,7 +74,7 @@ const WebDashboard = () => {
           {/* Main Content (Left 2/3) */}
           <div className="lg:col-span-2 space-y-6">
             <PortfolioOverview />
-            <QuickActionsGrid />
+            <QuickActionsGrid onQuickSend={() => setIsQuickSendOpen(true)} />
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">My Assets</h2>
               <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsConnectOpen(true)}>

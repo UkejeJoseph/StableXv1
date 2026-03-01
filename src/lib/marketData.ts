@@ -1,6 +1,16 @@
 // Backend proxy for market data
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
+export interface CryptoPrice {
+  id: string;
+  symbol: string;
+  name: string;
+  price: number;
+  priceChange24h: number;
+  marketCap: number;
+  volume24h: number;
+}
+
 export interface MarketPrice {
   usd: number;
   usd_24h_change: number;

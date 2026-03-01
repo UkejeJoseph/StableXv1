@@ -9,6 +9,7 @@ import { TransactionHistory } from "@/components/TransactionHistory";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, Wallet, Hexagon, TrendingUp } from "lucide-react";
+import { WebQuickSend } from "@/components/WebQuickSend";
 import { getMarketPrices, type CryptoPrice } from "@/lib/marketData";
 import {
   Dialog,
@@ -24,6 +25,7 @@ const Home = () => {
   const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [prices, setPrices] = useState<CryptoPrice[]>([]);
+  const [isQuickSendOpen, setIsQuickSendOpen] = useState(false);
 
   useEffect(() => {
     const fetchPrices = async () => {
@@ -94,7 +96,15 @@ const Home = () => {
     <div className="flex flex-col min-h-screen pb-20 bg-background">
       <Header />
       <BalanceDisplay />
-      <QuickActions variant="home" onConnect={handleConnect} />
+      <QuickActions
+        variant="home"
+        onConnect={handleConnect}
+        onQuickSend={() => setIsQuickSendOpen(true)}
+      />
+      <WebQuickSend
+        isOpen={isQuickSendOpen}
+        onClose={() => setIsQuickSendOpen(false)}
+      />
 
       <MarqueeTicker />
 

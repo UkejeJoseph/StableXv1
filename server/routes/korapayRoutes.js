@@ -4,7 +4,6 @@ import {
     verifyDeposit,
     initiatePayout,
     getBanks,
-    handleWebhook,
     createTemporaryAccount,
     initializePayWithBank
 } from '../controllers/korapayController.js';

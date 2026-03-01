@@ -12,7 +12,6 @@ import { apiLimiter } from './middleware/rateLimiter.js';
 import * as Sentry from "@sentry/node";
 import { sendAlert } from './utils/alerting.js';
 import korapayWebhook from './routes/webhooks/korapay.js';
-import ngnDepositRoutes from './routes/deposit/ngn.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -162,7 +161,6 @@ import { startSolListener } from './workers/solListener.js';
 import { startWebhookWorker } from './workers/webhookRetryWorker.js';
 import { startSweepWorker } from './workers/sweepWorker.js';
 import { distributeYield } from './services/stakingService.js';
-import { startDailyYieldDistribution } from './services/stakingService.js';
 import { startInterswitchRequeryWorker } from './workers/interswitchRequeryWorker.js';
 
 // ── Server Startup ───────────────────────────────────────────

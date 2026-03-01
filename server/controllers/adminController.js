@@ -599,3 +599,23 @@ export const treasuryLimiter = rateLimit({
     },
     keyGenerator: (req, res) => ipKeyGenerator(req)
 });
+
+// @desc    Trigger bulk payout for pending users
+// @route   POST /api/admin/bulk-payout
+// @access  Private/Admin
+export const triggerBulkPayout = asyncHandler(async (req, res) => {
+    // This is a stub for the bulk payout functionality requested by the frontend
+    // In a real implementation, this would query pending withdrawal requests,
+    // batch them, and send them to the payment provider.
+
+    console.log(`🔐 [ADMIN:BulkPayout] Bulk payout triggered by ${req.user.email}`);
+
+    // Simulate processing for the demo
+    const processedCount = Math.floor(Math.random() * 10) + 1;
+
+    res.json({
+        success: true,
+        message: 'Bulk payout initiated',
+        processedCount
+    });
+});

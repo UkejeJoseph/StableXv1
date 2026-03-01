@@ -98,7 +98,7 @@ export default function AdminDashboard() {
 
     const fetchHealth = async () => {
         try {
-            const res = await fetch('/api/admin/health', { credentials: "include" });
+            const res = await fetch('/api/health', { credentials: "include" });
             if (res.ok) {
                 const data = await res.json();
                 setHealth(data);

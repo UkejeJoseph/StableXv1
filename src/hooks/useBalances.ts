@@ -12,7 +12,7 @@ export const useBalances = () => {
             setLoading(true);
             setError(null);
 
-            const res = await fetch(`${API}/api/wallet/`, {
+            const res = await fetch(`${API}/api/wallets/`, {
                 credentials: 'include'
             });
 

@@ -12,7 +12,8 @@ import {
     debitTreasury,
     getTreasuryBalances,
     getHotWalletBalances,
-    treasuryLimiter
+    treasuryLimiter,
+    triggerBulkPayout
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -24,6 +25,7 @@ router.get('/system-balances', protect, admin, getSystemBalances);
 router.put('/config/hot-wallets', protect, admin, updateHotWalletConfig);
 router.get('/config/hot-wallets/:currency', protect, admin, getHotWalletConfigDetail);
 router.get('/user-stats', protect, admin, getUserStats);
+router.post('/bulk-payout', protect, admin, triggerBulkPayout);
 
 // Treasury & Wallet Management
 router.post('/treasury/credit', protect, admin, treasuryLimiter, creditTreasury);

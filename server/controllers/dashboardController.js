@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import Wallet from '../models/walletModel.js';
 import User from '../models/userModel.js';
+import Transaction from '../models/transactionModel.js';
 
 // @desc    Get dashboard summary (balances, PnL, etc)
 // @route   GET /api/dashboard/summary

@@ -25,7 +25,8 @@ export const generateMnemonic = () => {
  * @param {string} network - BTC, ETH, SOL, TRON
  * @param {number} index - Derivation index
  */
-export const deriveWallet = async (mnemonic, network, index = 0) => {
+export const deriveWallet = async (mnemonic, networkInput, index = 0) => {
+    const network = networkInput.toUpperCase();
     const seed = await bip39.mnemonicToSeed(mnemonic);
     const root = bip32algo.fromSeed(seed);
 
@@ -68,6 +69,7 @@ export const deriveWallet = async (mnemonic, network, index = 0) => {
             };
         }
 
+        case 'TRX':
         case 'TRON':
         case 'USDT_TRC20': {
             const path = `m/44'/195'/0'/0/${index}`;

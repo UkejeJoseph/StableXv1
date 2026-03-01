@@ -1,7 +1,7 @@
 import SweepQueue from '../models/sweepQueueModel.js';
 import Wallet from '../models/walletModel.js';
 import { sweepToHotWallet, TRC20_TOKENS } from './blockchainListener.js';
-import { sweepBtcToHotWallet } from './btcListener.js';
+import { sweepBTC } from '../services/btcSweepService.js';
 import { sweepToHotWallet as sweepEthToHotWallet } from './ethListener.js';
 import { sweepToHotWallet as sweepSolToHotWallet } from './solListener.js';
 
@@ -52,9 +52,9 @@ const processSweepQueue = async () => {
                 let sweepTxHash;
 
                 if (sweep.tokenSymbol === 'BTC') {
-                    sweepTxHash = await sweepBtcToHotWallet(
-                        wallet, sweep.amount, sweep.depositTxHash
-                    );
+                    console.log('[SWEEP-WORKER] Retrying BTC sweep for:', wallet.address);
+                    sweepTxHash = await sweepBTC(wallet.address, wallet.user);
+                    console.log('[SWEEP-WORKER] ✅ BTC retry sweep TX:', sweepTxHash);
                 } else if (
                     sweep.tokenSymbol === 'ETH' ||
                     sweep.tokenSymbol === 'USDT_ERC20'

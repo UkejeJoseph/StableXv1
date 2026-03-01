@@ -1,8 +1,8 @@
 import crypto from 'crypto';
 import korapayService from '../services/korapayService.js';
 import Transaction from '../models/transactionModel.js';
-import Wallet from '../models/walletModel.js';
 import User from '../models/userModel.js';
+import { creditUserWallet, debitUserWallet } from '../services/walletService.js';
 
 
 /**
@@ -16,35 +16,38 @@ export const initializeDeposit = async (req, res) => {
             return res.status(400).json({ message: 'Invalid amount' });
         }
 
-        const reference = `KO_DEP_${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
         const user = req.user;
+        const reference = `STX-KPY-${Date.now()}-${user._id}`;
+        console.log('[KORAPAY-CHECKOUT] Generated reference:', reference);
 
         // Create a pending transaction
         await Transaction.create({
-            user: user._id,
-            type: 'deposit',
+            userId: user._id, // ✅ Consistent with new model
+            type: 'ngn_deposit', // ✅ Consistent with new model
             status: 'pending',
             amount: Number(amount),
             currency: 'NGN',
             reference,
-            description: 'Korapay Web Checkout Deposit',
+            provider: 'korapay', // ✅ Added provider
+            metadata: { description: 'Korapay Web Checkout Deposit' },
         });
 
-        const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'StableX User';
+        const name = user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'StableX User';
 
         // Call Korapay Service
-        const checkoutData = await korapayService.initializeCheckoutCharge(
-            Number(amount),
-            user.email,
+        const koraData = await korapayService.initializeCheckoutCharge({
+            amount: Number(amount),
+            email: user.email,
             name,
             reference,
-            redirectUrl || `${process.env.FRONTEND_URL}/web/deposit`
-        );
+            redirectUrl: redirectUrl || `${process.env.FRONTEND_URL}/web/deposit`
+        });
 
         res.status(200).json({
             message: 'Checkout initialized successfully',
-            checkoutUrl: checkoutData.checkout_url,
+            publicKey: process.env.KORAPAY_PUBLIC_KEY, // ✅ Return PK for modal
             reference,
+            checkoutUrl: koraData.checkoutUrl
         });
     } catch (error) {
         console.error('Korapay initializeDeposit error:', error);
@@ -68,17 +71,29 @@ export const createTemporaryAccount = async (req, res) => {
 
         // Create a pending transaction for this account
         await Transaction.create({
-            user: user._id,
-            type: 'deposit',
+            userId: user._id, // ✅ Consistent with new model
+            type: 'ngn_deposit', // ✅ Consistent with new model
             status: 'pending',
             amount: Number(amount),
             currency: 'NGN',
             reference: accountReference,
-            description: 'Korapay Temporary Bank Transfer',
+            provider: 'korapay', // ✅ Added provider
+            metadata: { description: 'Korapay Temporary Bank Transfer' },
         });
 
         // Request a non-permanent account from Kora
-        const vbaData = await korapayService.createVirtualAccount(user, accountReference, false);
+        const koraRes = await korapayService.initializeBankTransfer({
+            amount: Number(amount),
+            name: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'StableX User',
+            email: user.email,
+            reference: accountReference
+        });
+
+        if (!koraRes.status) {
+            throw new Error(koraRes.message || 'Failed to generate bank account');
+        }
+
+        const vbaData = koraRes.data;
 
         res.status(200).json({
             success: true,
@@ -99,48 +114,114 @@ export const createTemporaryAccount = async (req, res) => {
 };
 
 /**
+ * Initialize a "Pay with Bank" (Direct Debit) transaction
+ */
+export const initializePayWithBank = async (req, res) => {
+    try {
+        const { amount, bankCode } = req.body;
+        const user = req.user;
+
+        if (!amount || Number(amount) < 200) {
+            return res.status(400).json({ message: 'Minimum amount for Pay with Bank is ₦200' });
+        }
+
+        if (!bankCode) {
+            return res.status(400).json({ message: 'Bank code is required' });
+        }
+
+        const reference = `STX-KPY-PWB-${Date.now()}-${user._id}`;
+        console.log('[KORAPAY-PWB] Generated reference:', reference);
+
+        // Create a pending transaction
+        await Transaction.create({
+            userId: user._id,
+            type: 'ngn_deposit',
+            status: 'pending',
+            amount: Number(amount),
+            currency: 'NGN',
+            reference,
+            provider: 'korapay',
+            metadata: { description: 'Korapay Pay with Bank Deposit' },
+        });
+
+        const name = user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'StableX User';
+
+        // Call Korapay Service
+        const koraRes = await korapayService.initializePayWithBank({
+            amount: Number(amount),
+            name,
+            email: user.email,
+            reference,
+            bankCode
+        });
+
+        if (!koraRes.status) {
+            throw new Error(koraRes.message || 'Failed to initialize Pay with Bank');
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Pay with Bank initialized',
+            checkoutUrl: koraRes.data.authorization?.redirect_url,
+            reference
+        });
+    } catch (error) {
+        console.error('Korapay initializePayWithBank error:', error);
+        res.status(500).json({ message: error.message || 'Payment initialization failed' });
+    }
+};
+
+/**
  * Verify a deposit (Pay-in) status
  */
 export const verifyDeposit = async (req, res) => {
     try {
-        const { reference } = req.params;
+        const { reference } = req.body; // ✅ Frontend sends this in body (POST)
 
-        const transaction = await Transaction.findOne({ reference });
+        if (!reference) {
+            return res.status(400).json({ message: 'Reference is required' });
+        }
+
+        const transaction = await Transaction.findOne({ reference, provider: 'korapay' });
         if (!transaction) {
             return res.status(404).json({ message: 'Transaction not found' });
         }
 
         // If already processed via webhook, return early
-        if (transaction.status === 'completed') {
-            return res.status(200).json({ message: 'Transaction already completed', transaction });
+        if (transaction.status === 'success') {
+            return res.status(200).json({
+                success: true,
+                message: 'Transaction already completed',
+                amount: transaction.amount
+            });
         }
 
         const chargeData = await korapayService.queryCharge(reference);
 
         if (chargeData.status === 'success') {
-            if (transaction.status !== 'completed') {
-                transaction.status = 'completed';
-                transaction.metadata = { ...transaction.metadata, korapayData: JSON.stringify(chargeData) };
-                await transaction.save();
-
-                // Credit the NGN Wallet
-                let walletType = 'user';
-                if (req.user && req.user.role === 'merchant') walletType = 'merchant';
-
-                await Wallet.findOneAndUpdate(
-                    { user: transaction.user, currency: 'NGN', walletType },
-                    { $inc: { balance: transaction.amount } },
-                    { new: true, upsert: true }
+            if (transaction.status !== 'success') {
+                // ✅ Credit the NGN Wallet atomically via unified service
+                await creditUserWallet(
+                    transaction.userId,
+                    'NGN',
+                    transaction.amount,
+                    reference,
+                    { korapayData: chargeData, method: 'verify_call' },
+                    'korapay'
                 );
             }
-            return res.status(200).json({ message: 'Deposit successful', transaction });
+            return res.status(200).json({
+                success: true,
+                message: 'Deposit successful',
+                amount: transaction.amount
+            });
         } else if (chargeData.status === 'failed') {
             transaction.status = 'failed';
             await transaction.save();
-            return res.status(400).json({ message: 'Deposit failed on Korapay', transaction });
+            return res.status(400).json({ success: false, message: 'Deposit failed on Korapay' });
         }
 
-        res.status(200).json({ message: 'Deposit still pending', transaction, status: chargeData.status });
+        res.status(200).json({ success: false, message: 'Deposit still pending', status: chargeData.status });
     } catch (error) {
         console.error('Korapay verifyDeposit error:', error);
         res.status(500).json({ message: error.message || 'Verification failed' });
@@ -151,77 +232,83 @@ export const verifyDeposit = async (req, res) => {
  * Initiate a Payout (Withdrawal)
  */
 export const initiatePayout = async (req, res) => {
+    const { amount, bankCode, accountNumber } = req.body;
+    const userId = req.user._id;
+
+    console.log('[KORAPAY-PAYOUT] ══════════════════════════');
+    console.log('[KORAPAY-PAYOUT] User:', userId, 'Amount: ₦', amount);
+    console.log('[KORAPAY-PAYOUT] Bank:', bankCode, 'Account:', accountNumber);
+
     try {
-        const { amount, bankCode, accountNumber, accountName } = req.body;
+        // Step 1: Resolve bank account first
+        console.log('[KORAPAY-PAYOUT] Step 1: Resolving bank account...');
+        const resolved = await korapayService.resolveBankAccount(bankCode, accountNumber);
+
+        if (!resolved) {
+            console.error('[KORAPAY-PAYOUT] ❌ Bank account resolution failed');
+            return res.status(400).json({ success: false, error: 'Invalid bank account details' });
+        }
+
+        const reference = `STX-KPY-WDR-${Date.now()}`;
+        const narration = 'StableX NGN Withdrawal';
+
+        // Step 2 & 3: Check balance and deduct atomically via unified service
+        console.log('[KORAPAY-PAYOUT] Step 2: Deducting balance via walletService...');
+        const debitResult = await debitUserWallet(userId, 'NGN', amount, reference, {
+            bankCode,
+            accountNumber,
+            accountName: resolved.account_name,
+        }, 'korapay');
+
+        const transaction = debitResult.transaction;
         const user = req.user;
 
-        if (!amount || !bankCode || !accountNumber || !accountName) {
-            return res.status(400).json({ message: 'All fields are required' });
-        }
-
-        const withdrawAmount = Number(amount);
-        if (withdrawAmount <= 0) {
-            return res.status(400).json({ message: 'Invalid payout amount' });
-        }
-
-        let walletType = user.role === 'merchant' ? 'merchant' : 'user';
-
-        // 1. Debit Wallet Safely Avoid negative balance
-        const wallet = await Wallet.findOneAndUpdate(
-            { user: user._id, currency: 'NGN', walletType, balance: { $gte: withdrawAmount } },
-            { $inc: { balance: -withdrawAmount } },
-            { new: true }
+        // Step 4: Send payout request via korapayService
+        console.log('[KORAPAY-PAYOUT] Step 3: Sending payout to KoraPay service...');
+        const payoutResult = await korapayService.disburseToBankAccount(
+            amount,
+            bankCode,
+            accountNumber,
+            resolved.account_name,
+            reference,
+            user.email,
+            user.fullName || user.username,
+            narration
         );
 
-        if (!wallet) {
-            return res.status(400).json({ message: 'Insufficient NGN balance' });
-        }
+        console.log('[KORAPAY-PAYOUT] Response:', JSON.stringify(payoutResult));
 
-        const reference = `KO_PAY_${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
+        if (!payoutResult.status) {
+            // 🔴 CRITICAL: Check if it's a re-triable error or a definitive failure
+            // If it's a 4xx "insufficient funds" on OUR bank account, or validation error
+            console.error('[KORAPAY-PAYOUT] ❌ KoraPay rejected payout:', payoutResult.message);
 
-        // 2. Create Transaction Record
-        const transaction = await Transaction.create({
-            user: user._id,
-            type: 'withdrawal',
-            status: 'pending', // Will be updated by webhook
-            amount: withdrawAmount,
-            currency: 'NGN',
-            reference,
-            description: `Bank Withdrawal to ${accountNumber} (${bankCode})`,
-        });
+            // Refund the user atomically
+            await creditUserWallet(userId, 'NGN', amount, `refund_${reference}`, {
+                type: 'withdrawal_refund',
+                reason: payoutResult.message
+            }, 'korapay');
 
-        // 3. Call Korapay
-        try {
-            const payoutData = await korapayService.disburseToBankAccount(
-                withdrawAmount,
-                bankCode,
-                accountNumber,
-                accountName,
-                reference
-            );
-
-            return res.status(200).json({
-                message: 'Payout initiated successfully',
-                reference,
-                status: payoutData.status // 'processing' usually
-            });
-
-        } catch (koraError) {
-            // 4. REVERT on initial failure
-            console.error('Korapay Payout API failed, reverting debit:', koraError.message);
-            await Wallet.findOneAndUpdate(
-                { _id: wallet._id },
-                { $inc: { balance: withdrawAmount } }
-            );
             transaction.status = 'failed';
-            transaction.description += ` | Error: ${koraError.message}`;
             await transaction.save();
 
-            return res.status(500).json({ message: koraError.message || 'Payout request failed' });
+            return res.status(400).json({ success: false, error: payoutResult.message });
         }
-    } catch (error) {
-        console.error('Korapay initiatePayout error:', error);
-        res.status(500).json({ message: error.message || 'Payout failed' });
+
+        console.log('[KORAPAY-PAYOUT] ✅ Payout initiated successfully');
+        transaction.status = 'completed'; // For Korapay, initiation is often success
+        await transaction.save();
+
+        res.json({
+            success: true,
+            message: 'Withdrawal initiated successfully',
+            reference,
+            accountName: resolved.account_name,
+        });
+
+    } catch (err) {
+        console.error('[KORAPAY-PAYOUT] ❌ FATAL:', err.message);
+        return res.status(500).json({ success: false, error: err.message || 'Payout failed' });
     }
 };
 
@@ -238,116 +325,3 @@ export const getBanks = async (req, res) => {
     }
 };
 
-/**
- * Webhook handler for async status updates
- */
-export const handleWebhook = async (req, res) => {
-    try {
-        const signature = req.headers['x-korapay-signature'];
-
-        // Verify Webhook Signature using raw body if available
-        const verificationBody = req.rawBody || req.body;
-        if (!korapayService.verifyWebhookSignature(verificationBody, signature)) {
-            console.warn('Invalid Korapay webhook signature');
-            return res.status(401).send('Unauthorized');
-        }
-
-        const event = req.body;
-        console.log(`[KORAPAY WEBHOOK] Received event: ${event.event}`);
-
-        const data = event.data;
-        // For virtual account payments, the unique identifier is account_reference
-        // For checkout charges, it is reference
-        const reference = data.reference || data.account_reference;
-
-        if (!reference) return res.status(200).send('OK');
-
-        const transaction = await Transaction.findOne({ reference });
-        if (!transaction) {
-            console.warn(`[KORAPAY WEBHOOK] Transaction not found for ref: ${reference}`);
-            return res.status(200).send('OK');
-        }
-
-        if (transaction.status === 'completed' || transaction.status === 'failed') {
-            return res.status(200).send('OK'); // Already handled
-        }
-
-        // ── Handle Successful Pay-ins (Deposits & Virtual Accounts) ──
-        if (event.event === 'charge.success' || event.event === 'virtual_bank_account.payment') {
-
-            const amount = data.amount || data.amount_paid || transaction.amount;
-            const targetUser = await User.findById(transaction.user);
-
-            if (!targetUser) {
-                console.error(`[KORAPAY WEBHOOK] User not found for transaction: ${transaction._id}`);
-                return res.status(200).send('OK');
-            }
-
-            // Use atomic update to prevent double-crediting race conditions
-            const isAdjusted = data.amount_paid && data.amount_paid !== transaction.amount;
-            const updatedTransaction = await Transaction.findOneAndUpdate(
-                { _id: transaction._id, status: { $ne: 'completed' } },
-                {
-                    $set: {
-                        status: 'completed',
-                        amount: isAdjusted ? data.amount_paid : transaction.amount,
-                        description: isAdjusted ? transaction.description + ` (Adjusted amount: ${data.amount_paid})` : transaction.description,
-                        metadata: { ...transaction.metadata, korapayWebhook: 'success', event: event.event }
-                    }
-                },
-                { new: true }
-            );
-
-            if (!updatedTransaction) {
-                console.log(`[KORAPAY WEBHOOK] Transaction ${transaction._id} already processed.`);
-                return res.status(200).send('OK');
-            }
-
-            let walletType = targetUser.role === 'merchant' ? 'merchant' : 'user';
-
-            await Wallet.findOneAndUpdate(
-                { user: targetUser._id, currency: 'NGN', walletType },
-                { $inc: { balance: Number(amount) } },
-                { upsert: true }
-            );
-            console.log(`[KORAPAY WEBHOOK] Credited ${walletType} for ${amount} NGN (Ref: ${reference})`);
-        }
-        // ── Handle Failed Pay-ins ──
-        else if (event.event === 'charge.failed') {
-            if (transaction) {
-                transaction.status = 'failed';
-                await transaction.save();
-            }
-        }
-        // ── Handle Successful Payouts (Withdrawals) ──
-        else if (event.event === 'transfer.success') {
-            if (transaction) {
-                transaction.status = 'completed';
-                await transaction.save();
-            }
-            console.log(`[KORAPAY WEBHOOK] Marked payout ${reference} as completed`);
-        }
-        // ── Handle Failed Payouts (Revert Deduction) ──
-        else if (event.event === 'transfer.failed') {
-            if (transaction) {
-                transaction.status = 'failed';
-                await transaction.save();
-
-                const targetUser = await User.findById(transaction.user);
-                let walletType = targetUser?.role === 'merchant' ? 'merchant' : 'user';
-
-                // Revert the deducted balance
-                await Wallet.findOneAndUpdate(
-                    { user: transaction.user, currency: 'NGN', walletType },
-                    { $inc: { balance: transaction.amount } }
-                );
-                console.log(`[KORAPAY WEBHOOK] Reverted failed payout ${reference}`);
-            }
-        }
-
-        res.status(200).send('OK');
-    } catch (error) {
-        console.error('Korapay Webhook Error:', error);
-        res.status(500).send('Webhook Processing Error');
-    }
-};

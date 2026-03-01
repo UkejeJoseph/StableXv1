@@ -5,7 +5,8 @@ import {
     initiatePayout,
     getBanks,
     handleWebhook,
-    createTemporaryAccount
+    createTemporaryAccount,
+    initializePayWithBank
 } from '../controllers/korapayController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -13,15 +14,13 @@ const router = express.Router();
 
 // ── Pay-ins (Deposits) ────────────────────────
 router.post('/deposit/initialize', protect, initializeDeposit);
-router.get('/deposit/verify/:reference', protect, verifyDeposit);
+router.post('/deposit/verify', protect, verifyDeposit);
 router.post('/deposit/bank-transfer', protect, createTemporaryAccount);
+router.post('/deposit/pay-with-bank', protect, initializePayWithBank);
 
 
 // ── Payouts (Withdrawals) ─────────────────────
 router.post('/payout', protect, initiatePayout);
 router.get('/banks', getBanks);
-
-// ── Webhooks ──────────────────────────────────
-router.post('/webhook', handleWebhook);
 
 export default router;

@@ -26,9 +26,8 @@ export function BalanceDisplay({ currency: initialCurrency = "NGN" }: BalanceDis
   const [isHidden, setIsHidden] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState<WalletType>(initialCurrency);
 
-  const { data: balancesData, isLoading: isRefreshing } = useBalances();
+  const { balances: balancesArray = [], loading: isRefreshing, error } = useBalances();
 
-  const balances = balancesData || { NGN: 0, USD: 0, USDT: 0 };
   const isLive = true;
 
   const formatBalance = (amount: number, wallet: WalletType) => {
@@ -51,11 +50,17 @@ export function BalanceDisplay({ currency: initialCurrency = "NGN" }: BalanceDis
     return amount;
   };
 
-  const currentBalance = balances[selectedWallet] || 0;
+  const currentWallet = balancesArray.find((b: any) => b.currency === selectedWallet) || balancesArray.find((b: any) => b.currency === (selectedWallet === 'USDT' ? 'USDT_TRC20' : selectedWallet));
+  const currentBalance = currentWallet ? currentWallet.balance : 0;
   const usdEquivalent = getUsdEquivalent(currentBalance, selectedWallet);
 
   return (
     <div className="text-center py-6 px-4" data-testid="balance-display">
+      {error && (
+        <div className="mb-4 text-xs font-medium text-red-500 bg-red-50 dark:bg-red-900/20 py-1.5 px-3 rounded-full inline-block border border-red-200 dark:border-red-800">
+          Failed to sync: {error}
+        </div>
+      )}
       <div className="flex items-center justify-center gap-2 mb-2">
         <div className="flex items-center gap-1">
           <div className={`w-2 h-2 rounded-full ${isLive ? "bg-green-500 animate-pulse" : "bg-gray-400"}`} />

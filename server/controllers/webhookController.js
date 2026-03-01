@@ -122,7 +122,8 @@ export async function handleWebhook(req, res) {
                         iswResponseCode: statusResult.data.responseCode,
                         creditedAt: new Date().toISOString(),
                         source: 'Webhook'
-                    }
+                    },
+                    'interswitch'
                 );
 
                 console.log('[WEBHOOK] ✅ Wallet credited and transaction updated via walletService');

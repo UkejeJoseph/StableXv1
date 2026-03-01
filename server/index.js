@@ -11,6 +11,8 @@ import transactionRoutes from './transactions.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import * as Sentry from "@sentry/node";
 import { sendAlert } from './utils/alerting.js';
+import korapayWebhook from './routes/webhooks/korapay.js';
+import ngnDepositRoutes from './routes/deposit/ngn.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -81,13 +83,14 @@ app.use(cors({
   origin: true, // Allow requests from Vite proxy or current origin
   credentials: true // Crucial for accepting cookies from frontend
 }));
-app.use(express.json({
-  verify: (req, res, buf) => {
-    if (req.originalUrl && req.originalUrl.includes('/webhook')) {
-      req.rawBody = buf.toString();
-    }
-  }
-}));
+// ✅ Step 1: Webhook route FIRST (raw body required)
+app.use('/webhook', korapayWebhook);
+console.log('[SERVER] ✅ KoraPay webhook registered at /webhook/korapay');
+
+// ✅ Step 2: JSON middleware AFTER webhook
+app.use(express.json());
+console.log('[SERVER] ✅ express.json() registered');
+
 app.use(cookieParser());
 app.use(passport.initialize());
 
@@ -159,7 +162,8 @@ import { startSolListener } from './workers/solListener.js';
 import { startWebhookWorker } from './workers/webhookRetryWorker.js';
 import { startSweepWorker } from './workers/sweepWorker.js';
 import { distributeYield } from './services/stakingService.js';
-import { sendDailyStats } from './utils/alerting.js';
+import { startDailyYieldDistribution } from './services/stakingService.js';
+import { startInterswitchRequeryWorker } from './workers/interswitchRequeryWorker.js';
 
 // ── Server Startup ───────────────────────────────────────────
 const startServer = async () => {
@@ -175,6 +179,7 @@ const startServer = async () => {
     startSolListener();        // Native SOL
     startSweepWorker();        // TRON Sweep Retry Queue
     startWebhookWorker();      // Webhook Notification Queue
+    startInterswitchRequeryWorker(); // Interswitch Payout Sync
 
     console.log('✅ All workers started');
 

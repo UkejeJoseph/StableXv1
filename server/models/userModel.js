@@ -72,6 +72,24 @@ const userSchema = mongoose.Schema({
     },
     webhookUrl: { type: String, default: null },
     webhookSecret: { type: String, default: null },
+    ngnBalance: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
+    fullName: {
+        type: String,
+        trim: true,
+    },
+    vba: {
+        account_name: String,
+        account_number: String,
+        bank_name: String,
+        bank_code: String,
+        account_reference: String,
+        unique_id: String,
+        created_at: Date,
+    },
 }, {
     timestamps: true,
 });

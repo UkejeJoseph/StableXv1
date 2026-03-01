@@ -1,0 +1,977 @@
+════════════════════
+BACKEND ENDPOINTS DISCOVERED: 
+════════════════════
+server/routes/adminRoutes.js endpoints:
+- GET /users
+- PUT /users/:id/kyc
+- GET /transactions
+- GET /system-balances
+- PUT /config/hot-wallets
+- GET /config/hot-wallets/:currency
+- GET /user-stats
+- POST /treasury/credit
+- POST /treasury/debit
+- GET /treasury/balances
+- GET /hot-wallets/balances
+
+server/routes/aiRoutes.js endpoints:
+- POST /chat
+
+server/routes/authRoutes.js endpoints:
+- POST /forgot-password
+- POST /reset-password
+- GET /google
+- GET /google/callback
+- POST /refresh
+- POST /logout
+
+server/routes/checkoutRoutes.js endpoints:
+- POST /initialize
+- GET /:sessionId/details
+- POST /:sessionId/pay-internal
+
+server/routes/developerRoutes.js endpoints:
+- GET /keys
+- POST /keys
+- PUT /webhook
+
+server/routes/giftcardRoutes.js endpoints:
+- GET /
+- POST /purchase
+
+server/routes/korapayRoutes.js endpoints:
+- POST /deposit/initialize
+- POST /deposit/verify
+- POST /deposit/bank-transfer
+- POST /payout
+- GET /banks
+
+server/routes/merchantRoutes.js endpoints:
+- GET /settlements
+- GET /webhook-logs
+- GET /webhook
+- GET /bank-accounts
+- POST /bank-accounts
+- DELETE /bank-accounts/:id
+
+server/routes/stakingRoutes.js endpoints:
+- GET /positions
+- POST /stake
+- POST /unstake
+
+server/routes/userRoutes.js endpoints:
+- POST /
+- POST /login
+- POST /logout
+- POST /verify
+- POST /verify-otp
+- POST /resend-otp
+
+server/routes/walletRoutes.js endpoints:
+- POST /generate
+- POST /import
+- POST /connect
+- GET /
+
+server/index.js endpoints:
+- GET /api/health
+
+════════════════════
+FRONTEND FILES DISCOVERED:
+════════════════════
+WEB:
+- src/App.tsx
+- src/components/AdminSidebar.tsx
+- src/components/AIChatWidget.tsx
+- src/components/AssetDistributionChart.tsx
+- src/components/BackButton.tsx
+- src/components/BalanceCard.tsx
+- src/components/BalanceDisplay.tsx
+- src/components/BottomNav.tsx
+- src/components/ConnectWeb3Wallet.tsx
+- src/components/DashboardSidebarWidgets.tsx
+- src/components/Header.tsx
+- src/components/LandingHeader.tsx
+- src/components/MarqueeTicker.tsx
+- src/components/MerchantBalances.tsx
+- src/components/MerchantKYCPanel.tsx
+- src/components/MultiChainWalletModal.tsx
+- src/components/Navigation.tsx
+- src/components/PageTransition.tsx
+- src/components/PaymentMethodCard.tsx
+- src/components/PortfolioOverview.tsx
+- src/components/PriceChart.tsx
+- src/components/ProtectedAdminRoute.tsx
+- src/components/ProtectedRoute.tsx
+- src/components/QuickActions.tsx
+- src/components/QuickActionsGrid.tsx
+- src/components/ServicesList.tsx
+- src/components/SpaceBackground.tsx
+- src/components/SplashScreen.tsx
+- src/components/ThemeProvider.tsx
+- src/components/TransactionHistory.tsx
+- src/components/TrendingTokens.tsx
+- src/components/ui/accordion.tsx
+- src/components/ui/alert-dialog.tsx
+- src/components/ui/alert.tsx
+- src/components/ui/aspect-ratio.tsx
+- src/components/ui/avatar.tsx
+- src/components/ui/badge.tsx
+- src/components/ui/breadcrumb.tsx
+- src/components/ui/button.tsx
+- src/components/ui/calendar.tsx
+- src/components/ui/card.tsx
+- src/components/ui/carousel.tsx
+- src/components/ui/chart.tsx
+- src/components/ui/checkbox.tsx
+- src/components/ui/collapsible.tsx
+- src/components/ui/command.tsx
+- src/components/ui/context-menu.tsx
+- src/components/ui/dialog.tsx
+- src/components/ui/drawer.tsx
+- src/components/ui/dropdown-menu.tsx
+- src/components/ui/form.tsx
+- src/components/ui/hover-card.tsx
+- src/components/ui/input-otp.tsx
+- src/components/ui/input.tsx
+- src/components/ui/label.tsx
+- src/components/ui/menubar.tsx
+- src/components/ui/navigation-menu.tsx
+- src/components/ui/pagination.tsx
+- src/components/ui/popover.tsx
+- src/components/ui/progress.tsx
+- src/components/ui/radio-group.tsx
+- src/components/ui/resizable.tsx
+- src/components/ui/scroll-area.tsx
+- src/components/ui/select.tsx
+- src/components/ui/separator.tsx
+- src/components/ui/sheet.tsx
+- src/components/ui/sidebar.tsx
+- src/components/ui/skeleton.tsx
+- src/components/ui/slider.tsx
+- src/components/ui/sonner.tsx
+- src/components/ui/star-background.tsx
+- src/components/ui/switch.tsx
+- src/components/ui/table.tsx
+- src/components/ui/tabs.tsx
+- src/components/ui/textarea.tsx
+- src/components/ui/toast.tsx
+- src/components/ui/toaster.tsx
+- src/components/ui/toggle-group.tsx
+- src/components/ui/toggle.tsx
+- src/components/ui/tooltip.tsx
+- src/components/ui/use-toast.ts
+- src/components/WalletConnect.tsx
+- src/components/WebAssetList.tsx
+- src/components/WebQuickSend.tsx
+- src/components/WebSidebar.tsx
+- src/config/blockchain.ts
+- src/contexts/UserContext.tsx
+- src/contexts/WalletContext.tsx
+- src/hooks/use-mobile.tsx
+- src/hooks/use-toast.ts
+- src/hooks/useBalances.ts
+- src/hooks/useWallets.ts
+- src/lib/blockchain.ts
+- src/lib/interswitch.ts
+- src/lib/marketData.ts
+- src/lib/transactions.ts
+- src/lib/utils.ts
+- src/lib/wagmi.ts
+- src/lib/wallet.ts
+- src/main.tsx
+- src/pages/admin/AdminDashboard.tsx
+- src/pages/admin/AdminTransactions.tsx
+- src/pages/admin/AdminUsers.tsx
+- src/pages/admin/AdminWallets.tsx
+- src/pages/web/AuthCallback.tsx
+- src/pages/web/WebAccount.tsx
+- src/pages/web/WebConvert.tsx
+- src/pages/web/WebDashboard.tsx
+- src/pages/web/WebDeposit.tsx
+- src/pages/web/WebLogin.tsx
+- src/pages/web/WebMerchantDashboard.tsx
+- src/pages/web/WebMerchantGuidelines.tsx
+- src/pages/web/WebMerchantPayIns.tsx
+- src/pages/web/WebMerchantPayouts.tsx
+- src/pages/web/WebMerchantSettlements.tsx
+- src/pages/web/WebMerchantWebhooks.tsx
+- src/pages/web/WebOrders.tsx
+- src/pages/web/WebPayPage.tsx
+- src/pages/web/WebSignup.tsx
+- src/pages/web/WebTrade.tsx
+- src/pages/web/WebVerifyOtp.tsx
+- src/pages/web/WebWallet.tsx
+- src/pages/web/WebWithdraw.tsx
+- src/types/global.d.ts
+- src/vite-env.d.ts
+
+APP/MOBILE TSX:
+- src/pages/Account.tsx
+- src/pages/CheckoutWidget.tsx
+- src/pages/Convert.tsx
+- src/pages/CreateWallet.tsx
+- src/pages/Deposit.tsx
+- src/pages/Earn.tsx
+- src/pages/Giftcard.tsx
+- src/pages/Home.tsx
+- src/pages/Index.tsx
+- src/pages/Landing.tsx
+- src/pages/Login.tsx
+- src/pages/Merchant.tsx
+- src/pages/NotFound.tsx
+- src/pages/PrivacyPolicy.tsx
+- src/pages/QRCode.tsx
+- src/pages/QRPay.tsx
+- src/pages/Signup.tsx
+- src/pages/StableXSecure.tsx
+- src/pages/Swap.tsx
+- src/pages/TermsOfService.tsx
+- src/pages/Trade.tsx
+- src/pages/Transfer.tsx
+- src/pages/VerifyOtp.tsx
+- src/pages/Wallet.tsx
+- src/pages/Withdraw.tsx
+
+════════════════════
+API CONSUMPTION REPORT:
+════════════════════
+ENDPOINT: GET /users -> server/routes/adminRoutes.js
+WEB: ✅ CALLED
+  File: src/components/WebQuickSend.tsx + Line 31
+MOBILE: ✅ CALLED
+  File: src/pages/Login.tsx + Line 32
+
+ENDPOINT: PUT /users/:id/kyc -> server/routes/adminRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: GET /transactions -> server/routes/adminRoutes.js
+WEB: ✅ CALLED
+  File: src/components/BalanceCard.tsx + Line 8
+MOBILE: ✅ CALLED
+  File: src/pages/CheckoutWidget.tsx + Line 62
+
+ENDPOINT: GET /system-balances -> server/routes/adminRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/admin/AdminDashboard.tsx + Line 52
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: PUT /config/hot-wallets -> server/routes/adminRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/admin/AdminDashboard.tsx + Line 84
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: GET /config/hot-wallets/:currency -> server/routes/adminRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: GET /user-stats -> server/routes/adminRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/admin/AdminUsers.tsx + Line 22
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: POST /treasury/credit -> server/routes/adminRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/admin/AdminWallets.tsx + Line 132
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: POST /treasury/debit -> server/routes/adminRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/admin/AdminWallets.tsx + Line 167
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: GET /treasury/balances -> server/routes/adminRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/admin/AdminWallets.tsx + Line 98
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: GET /hot-wallets/balances -> server/routes/adminRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/admin/AdminWallets.tsx + Line 97
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: POST /chat -> server/routes/aiRoutes.js
+WEB: ✅ CALLED
+  File: src/components/AIChatWidget.tsx + Line 58
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: POST /api/auth/forgot-password -> server/routes/authRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: POST /api/auth/reset-password -> server/routes/authRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: GET /api/auth/google -> server/routes/authRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: GET /api/auth/google/callback -> server/routes/authRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: POST /api/auth/refresh -> server/routes/authRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: POST /api/auth/logout -> server/routes/authRoutes.js
+WEB: ✅ CALLED
+  File: src/contexts/UserContext.tsx + Line 53
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: POST /initialize -> server/routes/checkoutRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/web/WebDeposit.tsx + Line 609
+MOBILE: ✅ CALLED
+  File: src/pages/Deposit.tsx + Line 547
+
+ENDPOINT: GET /:sessionId/details -> server/routes/checkoutRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: POST /:sessionId/pay-internal -> server/routes/checkoutRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: GET /keys -> server/routes/developerRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/web/WebMerchantDashboard.tsx + Line 32
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: POST /keys -> server/routes/developerRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/web/WebMerchantDashboard.tsx + Line 32
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: PUT /webhook -> server/routes/developerRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/web/WebMerchantDashboard.tsx + Line 84
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: GET / -> server/routes/giftcardRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: POST /purchase -> server/routes/giftcardRoutes.js
+WEB: ✅ CALLED
+  File: src/lib/interswitch.ts + Line 67
+MOBILE: ✅ CALLED
+  File: src/pages/Giftcard.tsx + Line 80
+
+ENDPOINT: POST /deposit/initialize -> server/routes/korapayRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/web/WebDeposit.tsx + Line 609
+MOBILE: ✅ CALLED
+  File: src/pages/Deposit.tsx + Line 547
+
+ENDPOINT: POST /deposit/verify -> server/routes/korapayRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/web/WebDeposit.tsx + Line 206
+MOBILE: ✅ CALLED
+  File: src/pages/Deposit.tsx + Line 172
+
+ENDPOINT: POST /deposit/bank-transfer -> server/routes/korapayRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/web/WebDeposit.tsx + Line 534
+MOBILE: ✅ CALLED
+  File: src/pages/Deposit.tsx + Line 475
+
+ENDPOINT: POST /payout -> server/routes/korapayRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/admin/AdminDashboard.tsx + Line 118
+MOBILE: ✅ CALLED
+  File: src/pages/Withdraw.tsx + Line 281
+
+ENDPOINT: GET /banks -> server/routes/korapayRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/web/WebDeposit.tsx + Line 248
+MOBILE: ✅ CALLED
+  File: src/pages/Deposit.tsx + Line 245
+
+ENDPOINT: GET /settlements -> server/routes/merchantRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/web/WebMerchantSettlements.tsx + Line 39
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: GET /webhook-logs -> server/routes/merchantRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/web/WebMerchantWebhooks.tsx + Line 40
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: GET /webhook -> server/routes/merchantRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/web/WebMerchantDashboard.tsx + Line 84
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: GET /bank-accounts -> server/routes/merchantRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/web/WebMerchantPayouts.tsx + Line 62
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: POST /bank-accounts -> server/routes/merchantRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/web/WebMerchantPayouts.tsx + Line 62
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: DELETE /bank-accounts/:id -> server/routes/merchantRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: GET /positions -> server/routes/stakingRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ✅ CALLED
+  File: src/pages/Earn.tsx + Line 78
+
+ENDPOINT: POST /stake -> server/routes/stakingRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ✅ CALLED
+  File: src/pages/Earn.tsx + Line 99
+
+ENDPOINT: POST /unstake -> server/routes/stakingRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ✅ CALLED
+  File: src/pages/Earn.tsx + Line 134
+
+ENDPOINT: POST /api/users/ -> server/routes/userRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: POST /api/users/login -> server/routes/userRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/web/WebLogin.tsx + Line 31
+MOBILE: ✅ CALLED
+  File: src/pages/Login.tsx + Line 32
+
+ENDPOINT: POST /api/users/logout -> server/routes/userRoutes.js
+WEB: ✅ CALLED
+  File: src/contexts/UserContext.tsx + Line 53
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: POST /api/users/verify -> server/routes/userRoutes.js
+WEB: ✅ CALLED
+  File: src/lib/interswitch.ts + Line 79
+MOBILE: ✅ CALLED
+  File: src/pages/Deposit.tsx + Line 172
+
+ENDPOINT: POST /api/users/verify-otp -> server/routes/userRoutes.js
+WEB: ✅ CALLED
+  File: src/lib/interswitch.ts + Line 79
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: POST /api/users/resend-otp -> server/routes/userRoutes.js
+WEB: ✅ CALLED
+  File: src/lib/interswitch.ts + Line 91
+MOBILE: ✅ CALLED
+  File: src/pages/VerifyOtp.tsx + Line 46
+
+ENDPOINT: POST /api/wallet/generate -> server/routes/walletRoutes.js
+WEB: ✅ CALLED
+  File: src/pages/web/WebDeposit.tsx + Line 698
+MOBILE: ✅ CALLED
+  File: src/pages/CreateWallet.tsx + Line 132
+
+ENDPOINT: POST /api/wallet/import -> server/routes/walletRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ✅ CALLED
+  File: src/pages/CreateWallet.tsx + Line 189
+
+ENDPOINT: POST /api/wallet/connect -> server/routes/walletRoutes.js
+WEB: ✅ CALLED
+  File: src/components/ConnectWeb3Wallet.tsx + Line 27
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: GET /api/wallet/ -> server/routes/walletRoutes.js
+WEB: ❌ NOT CALLED
+MOBILE: ❌ NOT CALLED
+
+ENDPOINT: GET /api/health -> server/index.js
+WEB: ❌ NOT CALLED
+MOBILE: ❌ NOT CALLED
+
+════════════════════
+BUTTONS WITHOUT BACKEND:
+════════════════════
+- Button: <Button... | File: src/components/AdminSidebar.tsx | Line: 45 | Issue: No clear click handler found
+- Button: <Button variant="outline" className="w-full justif... | File: src/components/AdminSidebar.tsx | Line: 59 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/AIChatWidget.tsx | Line: 140 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/BackButton.tsx | Line: 15 | Issue: No clear click handler found
+- Button: <Button variant="ghost" className="mb-2 text-muted... | File: src/components/BalanceDisplay.tsx | Line: 71 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/BalanceDisplay.tsx | Line: 93 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/ConnectWeb3Wallet.tsx | Line: 69 | Issue: No clear click handler found
+- Button: <Button className="w-full text-xs" variant="outlin... | File: src/components/DashboardSidebarWidgets.tsx | Line: 75 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/Header.tsx | Line: 31 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/Header.tsx | Line: 57 | Issue: No clear click handler found
+- Button: <Button variant="ghost" size="icon" data-testid="b... | File: src/components/Header.tsx | Line: 70 | Issue: No clear click handler found
+- Button: <Button variant="ghost" size="icon" data-testid="b... | File: src/components/Header.tsx | Line: 75 | Issue: No clear click handler found
+- Button: <Button variant="ghost" size="icon" data-testid="b... | File: src/components/Header.tsx | Line: 80 | Issue: No clear click handler found
+- Button: <Button variant="ghost" size="icon" data-testid="b... | File: src/components/Header.tsx | Line: 84 | Issue: No clear click handler found
+- Button: <Button variant="ghost" className="text-sm font-bo... | File: src/components/LandingHeader.tsx | Line: 33 | Issue: No clear click handler found
+- Button: <Button className="bg-primary text-primary-foregro... | File: src/components/LandingHeader.tsx | Line: 38 | Issue: No clear click handler found
+- Button: <Button variant="ghost" size="icon" className="tex... | File: src/components/LandingHeader.tsx | Line: 42 | Issue: No clear click handler found
+- Button: <button... | File: src/components/MerchantBalances.tsx | Line: 65 | Issue: No clear click handler found
+- Button: <Button asChild className="w-full bg-[#1bc553] hov... | File: src/components/MerchantBalances.tsx | Line: 98 | Issue: No clear click handler found
+- Button: <Button asChild variant="default" className="flex-... | File: src/components/MerchantBalances.tsx | Line: 104 | Issue: No clear click handler found
+- Button: <Button asChild variant="secondary" className="fle... | File: src/components/MerchantBalances.tsx | Line: 109 | Issue: No clear click handler found
+- Button: <button className="pb-2 text-sm font-semibold text... | File: src/components/MerchantBalances.tsx | Line: 121 | Issue: No clear click handler found
+- Button: <button className="pb-2 text-sm font-semibold text... | File: src/components/MerchantBalances.tsx | Line: 122 | Issue: No clear click handler found
+- Button: <Button variant="ghost" size="sm" className="text-... | File: src/components/MerchantBalances.tsx | Line: 124 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/MultiChainWalletModal.tsx | Line: 125 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/MultiChainWalletModal.tsx | Line: 184 | Issue: No clear click handler found
+- Button: <Button asChild size="lg" className="bg-[#F0B90B] ... | File: src/components/PortfolioOverview.tsx | Line: 97 | Issue: No clear click handler found
+- Button: <Button asChild size="lg" variant="secondary" clas... | File: src/components/PortfolioOverview.tsx | Line: 103 | Issue: No clear click handler found
+- Button: <Button asChild size="lg" variant="outline" classN... | File: src/components/PortfolioOverview.tsx | Line: 109 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/PriceChart.tsx | Line: 87 | Issue: No clear click handler found
+- Button: <button... | File: src/components/QuickActions.tsx | Line: 55 | Issue: No clear click handler found
+- Button: <button... | File: src/components/ServicesList.tsx | Line: 40 | Issue: No clear click handler found
+- Button: <button... | File: src/components/TransactionHistory.tsx | Line: 134 | Issue: No clear click handler found
+- Button: <button... | File: src/components/TrendingTokens.tsx | Line: 45 | Issue: No clear click handler found
+- Button: <button... | File: src/components/TrendingTokens.tsx | Line: 51 | Issue: No clear click handler found
+- Button: <button... | File: src/components/TrendingTokens.tsx | Line: 57 | Issue: No clear click handler found
+- Button: <Button variant="link" className="text-[#F0B90B] h... | File: src/components/TrendingTokens.tsx | Line: 127 | Issue: No clear click handler found
+- Button: <Button variant="ghost" className="text-muted-fore... | File: src/components/TrendingTokens.tsx | Line: 153 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/ui/carousel.tsx | Line: 173 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/ui/carousel.tsx | Line: 201 | Issue: No clear click handler found
+- Button: } & Pick<ButtonProps, "size"> &... | File: src/components/ui/pagination.tsx | Line: 31 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/ui/sidebar.tsx | Line: 224 | Issue: No clear click handler found
+- Button: <button... | File: src/components/ui/sidebar.tsx | Line: 249 | Issue: No clear click handler found
+- Button: <button... | File: src/components/WalletConnect.tsx | Line: 103 | Issue: No clear click handler found
+- Button: <Button asChild size="icon" variant="ghost" classN... | File: src/components/WebAssetList.tsx | Line: 65 | Issue: No clear click handler found
+- Button: <Button asChild size="icon" variant="ghost" classN... | File: src/components/WebAssetList.tsx | Line: 70 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/WebQuickSend.tsx | Line: 157 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/WebQuickSend.tsx | Line: 171 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/WebQuickSend.tsx | Line: 209 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/WebQuickSend.tsx | Line: 225 | Issue: No clear click handler found
+- Button: <button... | File: src/components/WebQuickSend.tsx | Line: 250 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/WebQuickSend.tsx | Line: 259 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/WebQuickSend.tsx | Line: 266 | Issue: No clear click handler found
+- Button: <Button... | File: src/components/WebSidebar.tsx | Line: 67 | Issue: No clear click handler found
+- Button: <Button asChild size="sm" className="bg-[#F0B90B] ... | File: src/components/WebSidebar.tsx | Line: 136 | Issue: No clear click handler found
+- Button: <Button variant="ghost" size="icon" className="tex... | File: src/components/WebSidebar.tsx | Line: 174 | Issue: No clear click handler found
+- Button: <button... | File: src/components/WebSidebar.tsx | Line: 333 | Issue: No clear click handler found
+- Button: <button... | File: src/components/WebSidebar.tsx | Line: 400 | Issue: No clear click handler found
+- Button: <Button size="sm" variant="outline" className="w-f... | File: src/components/WebSidebar.tsx | Line: 416 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/admin/AdminDashboard.tsx | Line: 232 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/admin/AdminDashboard.tsx | Line: 240 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/admin/AdminDashboard.tsx | Line: 412 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/admin/AdminDashboard.tsx | Line: 436 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/admin/AdminDashboard.tsx | Line: 459 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/admin/AdminDashboard.tsx | Line: 478 | Issue: No clear click handler found
+- Button: <Button size="icon" variant="ghost" className="h-6... | File: src/pages/admin/AdminWallets.tsx | Line: 307 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebAccount.tsx | Line: 116 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebAccount.tsx | Line: 139 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebAccount.tsx | Line: 157 | Issue: No clear click handler found
+- Button: <Button variant="outline" className="border-border... | File: src/pages/web/WebConvert.tsx | Line: 141 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebConvert.tsx | Line: 189 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebConvert.tsx | Line: 244 | Issue: No clear click handler found
+- Button: <Button variant="link" size="sm" className="h-auto... | File: src/pages/web/WebDashboard.tsx | Line: 60 | Issue: No clear click handler found
+- Button: <Button variant="link" className="w-full text-[#F0... | File: src/pages/web/WebDashboard.tsx | Line: 132 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebDeposit.tsx | Line: 989 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebDeposit.tsx | Line: 1035 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebDeposit.tsx | Line: 1043 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebDeposit.tsx | Line: 1095 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebDeposit.tsx | Line: 1140 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebDeposit.tsx | Line: 1213 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebDeposit.tsx | Line: 1253 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebDeposit.tsx | Line: 1296 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebDeposit.tsx | Line: 1366 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebDeposit.tsx | Line: 1406 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebLogin.tsx | Line: 157 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebMerchantDashboard.tsx | Line: 177 | Issue: No clear click handler found
+- Button: <Button variant="outline" className="border-border... | File: src/pages/web/WebMerchantPayIns.tsx | Line: 66 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebMerchantPayouts.tsx | Line: 244 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebMerchantPayouts.tsx | Line: 298 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebMerchantPayouts.tsx | Line: 344 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebMerchantPayouts.tsx | Line: 399 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebMerchantSettlements.tsx | Line: 92 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebMerchantWebhooks.tsx | Line: 119 | Issue: No clear click handler found
+- Button: <Button variant="outline" className="border-border... | File: src/pages/web/WebOrders.tsx | Line: 21 | Issue: No clear click handler found
+- Button: <Button variant="link" className="text-muted-foreg... | File: src/pages/web/WebOrders.tsx | Line: 64 | Issue: No clear click handler found
+- Button: <Button variant="outline" className="h-10 px-6 bor... | File: src/pages/web/WebOrders.tsx | Line: 118 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebPayPage.tsx | Line: 129 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebPayPage.tsx | Line: 169 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebSignup.tsx | Line: 293 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebTrade.tsx | Line: 104 | Issue: No clear click handler found
+- Button: <button... | File: src/pages/web/WebVerifyOtp.tsx | Line: 226 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebWallet.tsx | Line: 109 | Issue: No clear click handler found
+- Button: <Button variant="outline" size="sm" data-testid="b... | File: src/pages/web/WebWallet.tsx | Line: 145 | Issue: No clear click handler found
+- Button: <Button className="bg-navy" data-testid="button-cr... | File: src/pages/web/WebWallet.tsx | Line: 162 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebWallet.tsx | Line: 195 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebWithdraw.tsx | Line: 552 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebWithdraw.tsx | Line: 641 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/web/WebWithdraw.tsx | Line: 710 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Account.tsx | Line: 114 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Account.tsx | Line: 137 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Account.tsx | Line: 155 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/CheckoutWidget.tsx | Line: 282 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/CheckoutWidget.tsx | Line: 300 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/CheckoutWidget.tsx | Line: 308 | Issue: No clear click handler found
+- Button: <button... | File: src/pages/CheckoutWidget.tsx | Line: 346 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/CheckoutWidget.tsx | Line: 373 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Convert.tsx | Line: 227 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Convert.tsx | Line: 274 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/CreateWallet.tsx | Line: 293 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/CreateWallet.tsx | Line: 323 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/CreateWallet.tsx | Line: 367 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/CreateWallet.tsx | Line: 408 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Deposit.tsx | Line: 958 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Deposit.tsx | Line: 1003 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Deposit.tsx | Line: 1054 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Deposit.tsx | Line: 1097 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Deposit.tsx | Line: 1166 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Deposit.tsx | Line: 1206 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Deposit.tsx | Line: 1247 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Deposit.tsx | Line: 1317 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Deposit.tsx | Line: 1325 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Deposit.tsx | Line: 1367 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Earn.tsx | Line: 263 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Earn.tsx | Line: 403 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Earn.tsx | Line: 453 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Earn.tsx | Line: 460 | Issue: No clear click handler found
+- Button: <button... | File: src/pages/Giftcard.tsx | Line: 226 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Giftcard.tsx | Line: 245 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Giftcard.tsx | Line: 252 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Giftcard.tsx | Line: 292 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Giftcard.tsx | Line: 299 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Home.tsx | Line: 142 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Home.tsx | Line: 160 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Home.tsx | Line: 176 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Landing.tsx | Line: 102 | Issue: No clear click handler found
+- Button: <Button asChild size="lg" className="h-14 px-10 te... | File: src/pages/Landing.tsx | Line: 264 | Issue: No clear click handler found
+- Button: <Button className="bg-navy" data-testid="button-go... | File: src/pages/NotFound.tsx | Line: 17 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/QRCode.tsx | Line: 303 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/QRCode.tsx | Line: 340 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/QRCode.tsx | Line: 352 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/QRCode.tsx | Line: 432 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/QRCode.tsx | Line: 440 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/StableXSecure.tsx | Line: 280 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/StableXSecure.tsx | Line: 358 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/StableXSecure.tsx | Line: 368 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/StableXSecure.tsx | Line: 483 | Issue: No clear click handler found
+- Button: <button... | File: src/pages/StableXSecure.tsx | Line: 542 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/StableXSecure.tsx | Line: 580 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Trade.tsx | Line: 101 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Transfer.tsx | Line: 335 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Transfer.tsx | Line: 399 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Transfer.tsx | Line: 410 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Transfer.tsx | Line: 452 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Transfer.tsx | Line: 463 | Issue: No clear click handler found
+- Button: <button... | File: src/pages/VerifyOtp.tsx | Line: 163 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Wallet.tsx | Line: 109 | Issue: No clear click handler found
+- Button: <Button variant="outline" size="sm" data-testid="b... | File: src/pages/Wallet.tsx | Line: 145 | Issue: No clear click handler found
+- Button: <Button className="bg-navy" data-testid="button-cr... | File: src/pages/Wallet.tsx | Line: 162 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Wallet.tsx | Line: 195 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Withdraw.tsx | Line: 533 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Withdraw.tsx | Line: 625 | Issue: No clear click handler found
+- Button: <Button... | File: src/pages/Withdraw.tsx | Line: 697 | Issue: No clear click handler found
+
+════════════════════
+ENDPOINTS WITHOUT ANY UI:
+════════════════════
+- PUT /users/:id/kyc -> server/routes/adminRoutes.js | Impact: May be unused or admin-only
+- GET /config/hot-wallets/:currency -> server/routes/adminRoutes.js | Impact: May be unused or admin-only
+- POST /api/auth/forgot-password -> server/routes/authRoutes.js | Impact: May be unused or admin-only
+- POST /api/auth/reset-password -> server/routes/authRoutes.js | Impact: May be unused or admin-only
+- GET /api/auth/google -> server/routes/authRoutes.js | Impact: May be unused or admin-only
+- GET /api/auth/google/callback -> server/routes/authRoutes.js | Impact: May be unused or admin-only
+- POST /api/auth/refresh -> server/routes/authRoutes.js | Impact: May be unused or admin-only
+- GET /:sessionId/details -> server/routes/checkoutRoutes.js | Impact: May be unused or admin-only
+- POST /:sessionId/pay-internal -> server/routes/checkoutRoutes.js | Impact: May be unused or admin-only
+- GET / -> server/routes/giftcardRoutes.js | Impact: May be unused or admin-only
+- DELETE /bank-accounts/:id -> server/routes/merchantRoutes.js | Impact: May be unused or admin-only
+- POST /api/users/ -> server/routes/userRoutes.js | Impact: May be unused or admin-only
+- GET /api/wallet/ -> server/routes/walletRoutes.js | Impact: May be unused or admin-only
+- GET /api/health -> server/index.js | Impact: May be unused or admin-only
+
+════════════════════
+UI ISSUES PER SCREEN:
+════════════════════
+- Screen name: src/pages/admin/AdminDashboard.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/admin/AdminTransactions.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/admin/AdminUsers.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/admin/AdminWallets.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/web/AuthCallback.tsx
+  Missing loading state: YES
+  Missing error state: NO
+  Missing empty state: YES
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/web/WebAccount.tsx
+  Missing loading state: YES
+  Missing error state: NO
+  Missing empty state: YES
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/web/WebConvert.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/web/WebDashboard.tsx
+  Missing loading state: NO
+  Missing error state: YES
+  Missing empty state: YES
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/web/WebDeposit.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/web/WebLogin.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: YES
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/web/WebMerchantDashboard.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: YES
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/web/WebMerchantGuidelines.tsx
+  Missing loading state: YES
+  Missing error state: YES
+  Missing empty state: YES
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/web/WebMerchantPayIns.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/web/WebMerchantPayouts.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/web/WebMerchantSettlements.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/web/WebMerchantWebhooks.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/web/WebOrders.tsx
+  Missing loading state: YES
+  Missing error state: YES
+  Missing empty state: NO
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/web/WebPayPage.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/web/WebSignup.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/web/WebTrade.tsx
+  Missing loading state: YES
+  Missing error state: YES
+  Missing empty state: YES
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/web/WebVerifyOtp.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: YES
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/web/WebWallet.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/web/WebWithdraw.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/Account.tsx
+  Missing loading state: YES
+  Missing error state: NO
+  Missing empty state: YES
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/CheckoutWidget.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: YES
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/Convert.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: YES
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/CreateWallet.tsx
+  Missing loading state: YES
+  Missing error state: NO
+  Missing empty state: YES
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/Deposit.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/Earn.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/Giftcard.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/Home.tsx
+  Missing loading state: YES
+  Missing error state: NO
+  Missing empty state: YES
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/Index.tsx
+  Missing loading state: YES
+  Missing error state: YES
+  Missing empty state: YES
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/Landing.tsx
+  Missing loading state: YES
+  Missing error state: YES
+  Missing empty state: YES
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/Login.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: YES
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/Merchant.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/NotFound.tsx
+  Missing loading state: YES
+  Missing error state: YES
+  Missing empty state: YES
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/PrivacyPolicy.tsx
+  Missing loading state: YES
+  Missing error state: YES
+  Missing empty state: YES
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/QRCode.tsx
+  Missing loading state: YES
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/QRPay.tsx
+  Missing loading state: YES
+  Missing error state: YES
+  Missing empty state: YES
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/Signup.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/StableXSecure.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/Swap.tsx
+  Missing loading state: YES
+  Missing error state: YES
+  Missing empty state: YES
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/TermsOfService.tsx
+  Missing loading state: YES
+  Missing error state: NO
+  Missing empty state: YES
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/Trade.tsx
+  Missing loading state: YES
+  Missing error state: YES
+  Missing empty state: YES
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/Transfer.tsx
+  Missing loading state: YES
+  Missing error state: NO
+  Missing empty state: YES
+  Missing confirmation dialog: NO
+
+- Screen name: src/pages/VerifyOtp.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: YES
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/Wallet.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: YES
+
+- Screen name: src/pages/Withdraw.tsx
+  Missing loading state: NO
+  Missing error state: NO
+  Missing empty state: NO
+  Missing confirmation dialog: NO
+

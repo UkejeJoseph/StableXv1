@@ -10,6 +10,7 @@ interface User {
     kycStatus?: string;
     isVerified?: boolean;
     kycLevel?: number;
+    fullName?: string;
 }
 
 interface UserContextType {
@@ -26,12 +27,29 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    const refreshUser = async () => {
+    const refreshUser = async (retry = true) => {
         try {
             const res = await fetch("/api/users/profile", { credentials: "include" });
             if (res.ok) {
                 const data = await res.json();
                 setUser(data);
+            } else if (res.status === 401 && retry) {
+                try {
+                    const API = import.meta.env.VITE_API_URL || "";
+                    const refreshRes = await fetch(`${API}/api/auth/refresh`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include"
+                    });
+
+                    if (refreshRes.ok) {
+                        return refreshUser(false); // Retry fetching profile after successful refresh
+                    } else {
+                        setUser(null);
+                    }
+                } catch (err) {
+                    setUser(null);
+                }
             } else {
                 setUser(null);
             }
@@ -39,7 +57,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error("Failed to fetch user profile:", error);
             setUser(null);
         } finally {
-            setIsLoading(false);
+            if (retry) {
+                setIsLoading(false);
+            }
         }
     };
 

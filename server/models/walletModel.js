@@ -68,7 +68,7 @@ const walletSchema = mongoose.Schema({
     timestamps: true,
 });
 
-walletSchema.index({ user: 1, currency: 1, walletType: 1 });
+walletSchema.index({ user: 1, currency: 1, walletType: 1 }, { unique: true });
 walletSchema.index({ address: 1 });
 
 const Wallet = mongoose.model('Wallet', walletSchema);

@@ -11,6 +11,7 @@ import SweepQueue from '../models/sweepQueueModel.js';
 import { queueWebhook } from '../services/webhookService.js';
 import { sendOperationalAlert } from '../utils/alerting.js';
 import fetch from 'node-fetch';
+import { sweepBTC } from '../services/btcSweepService.js';
 
 const ECPair = ECPairFactory(ecc);
 
@@ -227,7 +228,7 @@ const checkConfirmations = async () => {
                         confirmations,
                         network: 'BTC',
                         txid: tx.reference
-                    });
+                    }, 'crypto');
 
                     const updatedWallet = await Wallet.findById(tx.metadata.get('walletId'));
 
@@ -235,9 +236,27 @@ const checkConfirmations = async () => {
                     if (ENABLE_SWEEP && HOT_WALLET && updatedWallet) {
                         console.log(`[BTC-SWEEP] 🔄 Initiating sweep from ${updatedWallet.address}...`);
                         try {
-                            await sweepBtcToHotWallet(updatedWallet, tx.amount, tx.reference);
+                            const txHash = await sweepBTC(updatedWallet.address, tx.user);
+                            if (txHash) {
+                                console.log('[BTC-LISTENER] ✅ BTC sweep complete. TX:', txHash);
+                            } else {
+                                console.warn('[BTC-LISTENER] ⚠️ Sweep skipped - insufficient UTXOs or fee coverage');
+                            }
                         } catch (sweepError) {
                             console.error(`❌ BTC Sweep failed: ${sweepError.message}`);
+                            console.error('[BTC-LISTENER] Will retry via sweepWorker');
+
+                            await SweepQueue.create({
+                                walletId: updatedWallet._id,
+                                tokenSymbol: 'BTC',
+                                amount: tx.amount,
+                                depositTxHash: tx.reference,
+                                network: 'BTC',
+                                status: 'pending',
+                                retryCount: 0,
+                                nextRetryAt: new Date(Date.now() + 5 * 60 * 1000)
+                            });
+
                             await sendOperationalAlert('BTC_SWEEP_FAILED', {
                                 network: 'BTC',
                                 amount: tx.amount,
@@ -269,34 +288,4 @@ const checkConfirmations = async () => {
     }
 };
 
-/**
- * Sweep BTC from user wallet → StableX hot wallet
- * NOTE: This is a placeholder for actual on-chain BTC transaction building
- * and broadcasting, which typically requires a full node or specialized API.
- */
-export const sweepBtcToHotWallet = async (wallet, amount, depositTxHash) => {
-    console.log(`[BTC-SWEEP] 📝 Recording intent to sweep ${amount} BTC from ${wallet.address}...`);
 
-    // In a real custodial system, this would build a BTC transaction
-    // using the decrypted private key and broadcast it.
-    // For now, we record the intent.
-
-    await Transaction.create({
-        user: wallet.user,
-        type: 'sweep',
-        status: 'pending',
-        amount: amount,
-        currency: 'BTC',
-        reference: `SWEEP_BTC_${depositTxHash}`,
-        description: `BTC auto-sweep ${amount} to hot wallet`,
-        metadata: {
-            depositTxHash,
-            fromAddress: wallet.address,
-            toAddress: HOT_WALLET,
-            network: 'BTC',
-        }
-    });
-
-    console.log(`[BTC-SWEEP] ✅ Recorded pending BTC sweep for ${amount}`);
-    return true;
-};

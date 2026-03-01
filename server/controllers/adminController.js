@@ -1,6 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import User from '../models/userModel.js';
-import { creditUserWallet } from '../services/walletService.js';
+import { creditUserWallet, debitUserWallet } from '../services/walletService.js';
 import { getApiStats } from '../utils/apiTracker.js';
 import Wallet from '../models/walletModel.js';
 import Transaction from '../models/transactionModel.js';
@@ -353,60 +353,36 @@ export const getUserStats = asyncHandler(async (req, res) => {
 export const creditTreasury = asyncHandler(async (req, res) => {
     const { currency, amount, reason } = req.body;
 
-    // 1. Validation
     if (!currency || !amount || amount <= 0) {
-        res.status(400);
-        throw new Error('Currency and a positive amount are required');
+        res.status(400); throw new Error('Currency and a positive amount are required');
     }
 
     if (!reason || reason.length < 10) {
-        res.status(400);
-        throw new Error('A descriptive reason (min 10 chars) is required for audit purposes');
+        res.status(400); throw new Error('A descriptive reason is required for audit');
     }
 
-    const VALID_CURRENCIES = ['NGN', 'USDT_TRC20', 'USDT_ERC20', 'ETH', 'BTC', 'SOL', 'TRX'];
-    if (!VALID_CURRENCIES.includes(currency)) {
-        res.status(400);
-        throw new Error('Invalid currency for treasury credit');
-    }
-
-    // 2. Find/Verify Treasury User
     const treasuryUser = await User.findOne({ email: 'platform@stablex.internal' });
     if (!treasuryUser) {
-        res.status(404);
-        throw new Error('Treasury user not found. Please run the platform wallet initialization script.');
+        res.status(404); throw new Error('Treasury user not found.');
     }
 
-    // 3. Atomic Credit
-    const wallet = await Wallet.findOneAndUpdate(
-        { user: treasuryUser._id, currency, walletType: 'treasury' },
-        { $inc: { balance: Number(amount) } },
-        { new: true, upsert: true }
-    );
+    console.log(`🔐 [ADMIN:TreasuryCredit] Executing credit for ${amount} ${currency} by ${req.user.email}`);
 
-    // 4. Create Audit Log (Transaction)
-    await Transaction.create({
-        user: treasuryUser._id,
-        type: 'admin_credit',
+    // Atomic Credit via Service
+    const { wallet, transaction } = await creditUserWallet(
+        treasuryUser._id,
         currency,
-        amount: Number(amount),
-        status: 'completed',
-        reference: `admin_credit_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-        description: reason,
-        metadata: {
-            adminId: req.user._id,
-            adminEmail: req.user.email,
-            ip: req.ip
-        }
-    });
-
-    console.log(`🔐 [ADMIN] ${req.user.email} credited ${amount} ${currency} to treasury. Reason: ${reason}`);
+        Number(amount),
+        `TREAS-CR-${Date.now()}`,
+        { type: 'admin_credit', reason, adminId: req.user._id, adminEmail: req.user.email },
+        'manual'
+    );
 
     res.json({
         success: true,
         message: `Treasury credited with ${amount} ${currency}`,
         newBalance: wallet.balance,
-        currency
+        transactionId: transaction._id
     });
 });
 
@@ -417,57 +393,35 @@ export const debitTreasury = asyncHandler(async (req, res) => {
     const { currency, amount, reason } = req.body;
 
     if (!currency || !amount || amount <= 0) {
-        res.status(400);
-        throw new Error('Currency and amount are required');
+        res.status(400); throw new Error('Currency and amount are required');
     }
 
     if (!reason || reason.length < 10) {
-        res.status(400);
-        throw new Error('A descriptive reason is required');
+        res.status(400); throw new Error('A descriptive reason is required');
     }
 
     const treasuryUser = await User.findOne({ email: 'platform@stablex.internal' });
     if (!treasuryUser) {
-        res.status(404);
-        throw new Error('Treasury user not found');
+        res.status(404); throw new Error('Treasury user not found');
     }
 
-    // Atomic Balance Check + Debit
-    const wallet = await Wallet.findOneAndUpdate(
-        {
-            user: treasuryUser._id,
-            currency,
-            balance: { $gte: Number(amount) }
-        },
-        { $inc: { balance: -Number(amount) } },
-        { new: true }
-    );
+    console.log(`🔐 [ADMIN:TreasuryDebit] Executing debit for ${amount} ${currency} by ${req.user.email}`);
 
-    if (!wallet) {
-        res.status(400);
-        throw new Error(`Insufficient treasury balance in ${currency}`);
-    }
-
-    // Audit Log
-    await Transaction.create({
-        user: treasuryUser._id,
-        type: 'admin_debit',
+    // Atomic Debit via Service
+    const { wallet, transaction } = await debitUserWallet(
+        treasuryUser._id,
         currency,
-        amount: Number(amount),
-        status: 'completed',
-        reference: `admin_debit_${Date.now()}`,
-        description: reason,
-        metadata: {
-            adminId: req.user._id,
-            adminEmail: req.user.email
-        }
-    });
+        Number(amount),
+        `TREAS-DB-${Date.now()}`,
+        { type: 'admin_debit', reason, adminId: req.user._id, adminEmail: req.user.email },
+        'manual'
+    );
 
     res.json({
         success: true,
         message: `${amount} ${currency} debited from treasury`,
         newBalance: wallet.balance,
-        currency
+        transactionId: transaction._id
     });
 });
 
@@ -512,7 +466,7 @@ export const getTreasuryBalances = asyncHandler(async (req, res) => {
 export const getHotWalletBalances = asyncHandler(async (req, res) => {
     const results = {};
     const liabilities = await Wallet.aggregate([
-        { $match: { walletType: 'user' } },
+        { $match: { walletType: { $in: ['user', 'merchant'] } } },
         { $group: { _id: '$currency', total: { $sum: '$balance' } } }
     ]);
 

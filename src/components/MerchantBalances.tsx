@@ -44,12 +44,15 @@ export function MerchantBalances() {
         fetchSummary();
     }, [user]);
 
-    const activeWallet = summaryData?.wallets?.find((w: any) => w.currency === activeTab) || { balance: 0, pending: 0 };
+    const activeWallet = summaryData?.wallets?.find((w: any) =>
+        w.currency === activeTab || w.currency?.startsWith(`${activeTab}_`)
+    ) || { balance: 0, pending: 0 };
 
     // Format amounts cleanly based on currency
     const formatAmount = (val: number, curr: string) => {
         if (val === undefined || val === null) return "0.00";
-        if (curr === 'BTC' || curr === 'ETH') return val.toFixed(6);
+        if (curr === 'BTC') return val.toFixed(8);
+        if (curr === 'ETH') return val.toFixed(6);
         if (curr === 'SOL') return val.toFixed(4);
         return val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };

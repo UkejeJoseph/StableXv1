@@ -233,19 +233,15 @@ export const getUserWallets = async (req, res) => {
                 // We have a mnemonic, use it to derive missing ones
                 try {
                     const { decrypt } = await import('../utils/encryption.js');
-                    const mnemonic = decrypt({
-                        encryptedData: user.encryptedMnemonic,
-                        iv: user.mnemonicIv,
-                        authTag: user.mnemonicAuthTag
-                    });
+                    const mnemonic = decrypt(user.encryptedMnemonic, user.mnemonicIv, user.mnemonicAuthTag);
 
                     const { deriveWallets } = await import('../utils/walletGenerator.js');
                     const allDerived = await deriveWallets(mnemonic, user.walletDerivationIndex || 0);
 
+                    const { encrypt } = await import('../utils/encryption.js');
                     const toInsert = allDerived
                         .filter(w => missingCurrencies.includes(w.currency))
                         .map(w => {
-                            const { encrypt } = require('../utils/encryption.js');
                             const { encryptedData, iv, authTag } = encrypt(w.privateKey);
                             return {
                                 user: user._id,
@@ -254,46 +250,56 @@ export const getUserWallets = async (req, res) => {
                                 currency: w.currency,
                                 address: w.address,
                                 encryptedPrivateKey: encryptedData,
-                                iv,
-                                authTag
+                                privateKeyIv: iv,
+                                privateKeyAuthTag: authTag
                             };
                         });
 
                     if (toInsert.length > 0) {
                         await Wallet.insertMany(toInsert);
-                        // Re-fetch wallets after insertion
-                        wallets = await Wallet.find({ user: req.user._id }).select('-encryptedPrivateKey -privateKeyIv -privateKeyAuthTag -encryptedMnemonic -mnemonicIv -mnemonicAuthTag -__v -user');
                     }
                 } catch (deriveError) {
                     console.error('[WALLETS] ❌ Failed to derive missing wallets:', deriveError);
                 }
             } else if (user) {
                 // No mnemonic yet? This shouldn't happen for new users but might for old ones
-                console.log(`[WALLETS] 🔑 Generating new mnemonic for legacy user ${user._id}`);
-                const { generateMnemonic, deriveWallets } = await import('../utils/walletGenerator.js');
-                const mnemonic = generateMnemonic();
-                const { encrypt } = await import('../utils/encryption.js');
-                const encryptedPhrase = encrypt(mnemonic);
+                try {
+                    console.log(`[WALLETS] 🔑 Generating new mnemonic for legacy user ${user._id}`);
+                    const { generateMnemonic, deriveWallets } = await import('../utils/walletGenerator.js');
+                    const mnemonic = generateMnemonic();
+                    const { encrypt } = await import('../utils/encryption.js');
+                    const encryptedPhrase = encrypt(mnemonic);
 
-                user.encryptedMnemonic = encryptedPhrase.encryptedData;
-                user.mnemonicIv = encryptedPhrase.iv;
-                user.mnemonicAuthTag = encryptedPhrase.authTag;
-                await user.save();
+                    user.encryptedMnemonic = encryptedPhrase.encryptedData;
+                    user.mnemonicIv = encryptedPhrase.iv;
+                    user.mnemonicAuthTag = encryptedPhrase.authTag;
+                    user.walletDerivationIndex = 0;
+                    await user.save();
 
-                const allDerived = await deriveWallets(mnemonic, 0);
-                return {
-                    user: user._id,
-                    walletType: user.role === 'merchant' ? 'merchant' : 'user',
-                    network: w.currency,
-                    currency: w.currency,
-                    address: w.address,
-                    encryptedPrivateKey: encryptedData,
-                    iv,
-                    authTag
-                };
-                await Wallet.insertMany(toInsert);
-                wallets = await Wallet.find({ user: req.user._id }).select('-encryptedPrivateKey -privateKeyIv -privateKeyAuthTag -encryptedMnemonic -mnemonicIv -mnemonicAuthTag -__v -user');
+                    const allDerived = await deriveWallets(mnemonic, 0);
+                    const toInsert = allDerived.map(w => {
+                        const { encryptedData, iv, authTag } = encrypt(w.privateKey);
+                        return {
+                            user: user._id,
+                            walletType: user.role === 'merchant' ? 'merchant' : 'user',
+                            network: w.currency,
+                            currency: w.currency,
+                            address: w.address,
+                            encryptedPrivateKey: encryptedData,
+                            privateKeyIv: iv,
+                            privateKeyAuthTag: authTag
+                        };
+                    });
+
+                    if (toInsert.length > 0) {
+                        await Wallet.insertMany(toInsert);
+                    }
+                } catch (genError) {
+                    console.error('[WALLETS] ❌ Failed to generate legacy wallets:', genError);
+                }
             }
+            // Re-fetch wallets after potential insertion
+            wallets = await Wallet.find({ user: req.user._id }).select('-encryptedPrivateKey -privateKeyIv -privateKeyAuthTag -encryptedMnemonic -mnemonicIv -mnemonicAuthTag -__v -user');
         }
 
         res.status(200).json({ wallets });

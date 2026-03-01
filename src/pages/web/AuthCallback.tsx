@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { useUser } from "@/contexts/UserContext";
 
 /**
  * This page handles the redirect from Google OAuth.
@@ -10,8 +11,11 @@ export default function AuthCallback() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
+    const { setUser } = useUser();
+
     useEffect(() => {
         const data = searchParams.get("data");
+        const token = searchParams.get("token");
         const error = searchParams.get("error");
 
         if (error) {
@@ -20,24 +24,31 @@ export default function AuthCallback() {
             return;
         }
 
+        if (token) {
+            localStorage.setItem("token", token);
+        }
+
         if (data) {
             try {
                 const userData = JSON.parse(decodeURIComponent(data));
                 console.log("[AUTH CALLBACK] ✅ Google auth successful");
 
-                // User data is now managed by the backend session cookie
-                // No need to store in localStorage
+                if (userData.refreshToken) {
+                    localStorage.setItem("refreshToken", userData.refreshToken);
+                }
 
-                // Redirect to dashboard
+                setUser(userData);
                 navigate("/web/dashboard");
             } catch (err) {
                 console.error("[AUTH CALLBACK] Failed to parse auth data");
                 navigate("/web/login?error=parse_failed");
             }
+        } else if (token) {
+            navigate("/web/dashboard");
         } else {
             navigate("/web/login");
         }
-    }, [searchParams, navigate]);
+    }, [searchParams, navigate, setUser]);
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background">

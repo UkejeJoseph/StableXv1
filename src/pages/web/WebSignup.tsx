@@ -79,7 +79,8 @@ export default function Signup() {
                 body: JSON.stringify({
                     email: formData.email,
                     password: formData.password,
-                    name: `${formData.firstName} ${formData.lastName}`.trim(),
+                    username: formData.email.split('@')[0],
+                    fullName: `${formData.firstName} ${formData.lastName}`.trim(),
                     role,
                     phoneNumber: formData.phone,
                     ...(role === "merchant" && {

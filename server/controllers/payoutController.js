@@ -6,6 +6,8 @@ import { getReceivingInstitutions, verifyBankAccount, initiateBankPayout } from 
 import { IS_LIVE } from '../services/interswitchConfig.js';
 import Transaction from '../models/transactionModel.js';
 import Wallet from '../models/walletModel.js';
+import { debitUserWallet, creditUserWallet } from '../services/walletService.js';
+import User from '../models/userModel.js';
 
 // ── GET /payout-banks ──────────────────────────────────────────
 export async function handleGetPayoutBanks(req, res) {
@@ -120,32 +122,15 @@ export async function handlePayoutTransfer(req, res) {
             return res.status(400).json({ success: false, error: 'Invalid payout amount' });
         }
 
-        // 1. Check and debit wallet atomically
-        const wallet = await Wallet.findOneAndUpdate(
-            { user: userId, currency: 'NGN', balance: { $gte: payoutAmount } },
-            { $inc: { balance: -payoutAmount } },
-            { new: true }
-        );
+        // 1. Check and debit wallet atomically via unified service
+        const creditResult = await debitUserWallet(userId, 'NGN', payoutAmount, transactionRef, {
+            accountNumber,
+            bankCode,
+            beneficiaryName,
+            narration: narration || `Bank Transfer to ${beneficiaryName}`
+        }, 'interswitch');
 
-        if (!wallet) {
-            return res.status(400).json({ success: false, error: 'Insufficient NGN balance or concurrent transaction' });
-        }
-
-        // 2. Log Transaction
-        const transaction = await Transaction.create({
-            user: userId,
-            type: 'withdrawal',
-            status: 'pending',
-            amount: payoutAmount,
-            currency: 'NGN',
-            reference: transactionRef,
-            description: narration || `Bank Transfer to ${beneficiaryName}`,
-            metadata: {
-                accountNumber,
-                bankCode,
-                beneficiaryName
-            }
-        });
+        const transaction = creditResult.transaction;
 
         console.log('[CTRL:Payout] Ref:', transactionRef, 'Amount:', payoutAmount, 'Bank:', bankCode);
         console.log('[CTRL:Payout] ⏳ Calling Interswitch Bank Transfer Payout API...');
@@ -162,13 +147,34 @@ export async function handlePayoutTransfer(req, res) {
         const elapsed = Date.now() - startTime;
         console.log(`[CTRL:Payout] ⏱️ Interswitch responded in ${elapsed}ms`);
 
-        if (!result.ok) {
-            console.log('[CTRL:Payout] ❌ Payout failed', result.error);
-            // On failure, refund the wallet atomically
-            await Wallet.findOneAndUpdate(
-                { _id: wallet._id },
-                { $inc: { balance: payoutAmount } }
+        console.log('[PAYOUT] Provider response status:', result.status);
+
+        // 5xx or network error - DO NOT refund
+        if (!result || result.status >= 500) {
+            console.error('[PAYOUT] ⚠️ 5xx error - NOT refunding');
+            console.error('[PAYOUT] Marking as processing for requery worker');
+
+            transaction.status = 'processing';
+            await transaction.save();
+
+            return res.status(202).json({
+                processing: true,
+                reference: transactionRef,
+                message: 'Withdrawal is being processed. Balance will update shortly.',
+            });
+        }
+
+        // 4xx clean rejection - safe to refund immediately
+        if (result.status >= 400 && result.status < 500) {
+            console.log('[PAYOUT] 4xx rejection - refunding user');
+
+            await creditUserWallet(
+                userId, 'NGN', 'NGN', payoutAmount,
+                `refund_${transactionRef}`,
+                { provider: 'interswitch', reason: typeof result.error === 'string' ? result.error : 'payout_rejected', type: 'withdrawal_refund' }
             );
+
+            console.log('[PAYOUT] ✅ Balance refunded after clean rejection');
 
             transaction.status = 'failed';
             await transaction.save();

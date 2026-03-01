@@ -567,7 +567,8 @@ const checkPendingConfirmations = async () => {
                             tx.currency,
                             tx.amount,
                             tx.reference,
-                            updatedMetadata
+                            updatedMetadata,
+                            'crypto'
                         );
                         updatedWallet = creditResult.wallet;
 

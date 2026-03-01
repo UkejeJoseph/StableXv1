@@ -167,7 +167,8 @@ const checkConfirmations = async () => {
                     'SOL',
                     amount,
                     tx.reference,
-                    { confirmedAt: new Date().toISOString(), slot: tx.metadata.get('slot') }
+                    { confirmedAt: new Date().toISOString(), slot: tx.metadata.get('slot') },
+                    'crypto'
                 );
 
                 const user = await User.findById(tx.user);

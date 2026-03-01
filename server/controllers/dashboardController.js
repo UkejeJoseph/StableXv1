@@ -8,12 +8,35 @@ import User from '../models/userModel.js';
 const getDashboardSummary = asyncHandler(async (req, res) => {
     const wallets = await Wallet.find({ user: req.user._id });
 
+    // Fetch pending balances from transactions
+    const pendingData = await Transaction.aggregate([
+        {
+            $match: {
+                user: req.user._id,
+                status: 'pending',
+                type: 'deposit'
+            }
+        },
+        {
+            $group: {
+                _id: '$currency',
+                totalPending: { $sum: '$amount' }
+            }
+        }
+    ]);
+
+    const pendingMap = pendingData.reduce((acc, item) => {
+        acc[item._id] = item.totalPending;
+        return acc;
+    }, {});
+
     const now = new Date();
     const yesterday = new Date(now - 24 * 60 * 60 * 1000);
 
     const pnlData = await Transaction.aggregate([
         {
             $match: {
+                user: req.user._id, // Filter by user!
                 createdAt: { $gte: yesterday },
                 type: { $in: ['swap', 'withdrawal', 'p2p', 'merchant'] },
                 status: 'completed'
@@ -33,6 +56,7 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
     const distribution = wallets.map(w => ({
         currency: w.currency || w.network,
         balance: w.balance,
+        pending: pendingMap[w.currency] || 0,
         address: w.address,
     }));
 

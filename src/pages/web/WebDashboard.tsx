@@ -11,7 +11,6 @@ import { WebQuickSend } from "@/components/WebQuickSend";
 import { Wallet, Hexagon, ShieldCheck, Plus, TrendingUp, Info } from "lucide-react";
 import { WebAssetList } from "@/components/WebAssetList";
 import { MultiChainWalletModal } from "@/components/MultiChainWalletModal";
-import { useWallets } from "@/hooks/useWallets";
 import { useBalances } from "@/hooks/useBalances";
 import { getMarketPrices, type CryptoPrice } from "@/lib/marketData";
 import { Card } from "@/components/ui/card";
@@ -19,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { QuickActionsGrid } from "@/components/QuickActionsGrid";
 
 const WebDashboard = () => {
-  const { data: wallets = [], isLoading: isWalletsLoading, refetch: refetchWallets } = useWallets();
+  const { balances = [], loading: isWalletsLoading, error, refetch: refetchWallets } = useBalances();
   const [isQuickSendOpen, setIsQuickSendOpen] = useState(false);
   const [isConnectOpen, setIsConnectOpen] = useState(false);
   const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
@@ -82,7 +81,12 @@ const WebDashboard = () => {
                 <Plus className="w-4 h-4" /> Connect External
               </Button>
             </div>
-            <WebAssetList wallets={wallets} isLoading={isWalletsLoading} />
+            {error && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg text-sm border border-red-200 dark:border-red-800">
+                Error loading balances: {error}
+              </div>
+            )}
+            <WebAssetList wallets={balances} isLoading={isWalletsLoading} />
             <TrendingTokens />
             <TransactionHistory />
           </div>

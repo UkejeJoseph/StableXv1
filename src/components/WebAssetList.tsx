@@ -25,6 +25,14 @@ export function WebAssetList({ wallets, isLoading }: WebAssetListProps) {
         const isCustodial = w.walletType !== 'external';
         const isNGN = w.currency === "NGN";
 
+        const formatAmount = (val: number, curr: string) => {
+            if (val === undefined || val === null) return "0.00";
+            if (curr === 'BTC') return val.toFixed(8);
+            if (curr === 'ETH') return val.toFixed(6);
+            if (curr === 'SOL') return val.toFixed(4);
+            return val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
+
         return (
             <div key={w._id} className="flex items-center justify-between p-4 bg-muted/20 hover:bg-muted/40 rounded-xl border border-border/30 transition-all group">
                 <div className="flex items-center gap-4">
@@ -52,7 +60,7 @@ export function WebAssetList({ wallets, isLoading }: WebAssetListProps) {
                 </div>
 
                 <div className="text-right">
-                    <p className="font-bold text-sm">{w.balance?.toLocaleString() || "0.00"}</p>
+                    <p className="font-bold text-sm">{formatAmount(w.balance, w.currency)}</p>
                     <div className="flex items-center gap-2 mt-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button asChild size="icon" variant="ghost" className="h-7 w-7 rounded-full bg-primary/10 hover:bg-primary/20 text-primary">
                             <Link to={`/web/deposit?wallet=${w.currency}`}>

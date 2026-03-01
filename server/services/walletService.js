@@ -1,132 +1,170 @@
+import mongoose from 'mongoose';
 import Wallet from '../models/walletModel.js';
 import Transaction from '../models/transactionModel.js';
+import User from '../models/userModel.js';
 
-/**
- * Credits a user's wallet using atomic operations and updates the associated transaction.
- * @param {string} userId - ID of the user
- * @param {string} currency - Wallet currency (e.g., 'NGN', 'USDT_TRC20')
- * @param {number} amount - Amount to credit
- * @param {string} transactionRef - Reference of the transaction
- * @param {Object} metadata - Extra metadata to save in the transaction
- * @returns {Promise<Object>} - The updated wallet and transaction
- */
-export async function creditUserWallet(userId, currency, amount, transactionRef, metadata = {}) {
-    console.log(`[SVC:Wallet] 💰 Crediting ${amount} ${currency} to User ${userId} (Ref: ${transactionRef})`);
-
-    // 1. ATOMIC Transaction Update for Idempotency
-    let transaction;
-    try {
-        transaction = await Transaction.findOneAndUpdate(
-            { reference: transactionRef, status: { $nin: ['completed', 'credited'] } },
-            {
-                $set: {
-                    status: 'completed',
-                    user: userId,
-                    amount: Number(amount),
-                    currency: currency,
-                    metadata: metadata
-                },
-                $setOnInsert: {
-                    type: 'deposit',
-                    description: `Credit of ${amount} ${currency}`,
-                }
-            },
-            { new: true, upsert: true }
-        );
-    } catch (error) {
-        // E11000 duplicate key error means it didn't match the query because status WAS completed/credited,
-        // so it tried to insert a new one and hit the unique index on `reference`.
-        if (error.code === 11000) {
-            console.log(`[SVC:Wallet] ⚠️ Transaction ${transactionRef} is already completed. Skipping credit.`);
-            return {
-                wallet: await Wallet.findOne({ user: userId, $or: [{ network: currency }, { currency: currency }] }),
-                transaction: await Transaction.findOne({ reference: transactionRef })
-            };
-        }
-        throw error;
+export async function creditUserWallet(
+    userId, currency, networkOrAmount, amountOrRef, referenceOrMeta, metaOrProvider = {}, sessionOrNull = null
+) {
+    let network, amount, reference, meta, session, provider;
+    if (typeof networkOrAmount === 'number') {
+        network = currency === 'NGN' ? 'INTERNAL' : currency;
+        amount = networkOrAmount;
+        reference = amountOrRef;
+        meta = referenceOrMeta || {};
+        provider = typeof metaOrProvider === 'string' ? metaOrProvider : 'internal';
+        session = sessionOrNull;
+    } else {
+        network = networkOrAmount;
+        amount = amountOrRef;
+        reference = referenceOrMeta;
+        meta = metaOrProvider || {};
+        provider = meta.provider || 'internal';
+        session = sessionOrNull;
     }
 
-    if (!transaction) {
-        console.log(`[SVC:Wallet] ⚠️ Transaction ${transactionRef} already credited. Skipping.`);
-        return { wallet: null, transaction: null };
+    console.log('[WALLET-SERVICE] CREDIT');
+    console.log('[WALLET-SERVICE] User:', userId);
+    console.log('[WALLET-SERVICE] Currency:', currency, 'Network:', network);
+    console.log('[WALLET-SERVICE] Amount:', amount);
+    console.log('[WALLET-SERVICE] Reference:', reference);
+    console.log('[WALLET-SERVICE] Session active:', !!session);
+
+    if (!userId || !currency || !amount || !reference) {
+        console.error('[WALLET-SERVICE] ❌ Missing params');
+        throw new Error('Missing required params');
     }
 
-    // 2. Atomic balance increment (with upsert for missing fiat wallets)
+    if (amount <= 0) {
+        console.error('[WALLET-SERVICE] ❌ Invalid amount:', amount);
+        throw new Error('Amount must be positive');
+    }
+
+    const options = { new: true, upsert: true };
+    if (session) options.session = session;
+
     const wallet = await Wallet.findOneAndUpdate(
-        { user: userId, $or: [{ network: currency }, { currency: currency }] },
-        {
-            $inc: { balance: Number(amount) },
-            $setOnInsert: {
-                user: userId,
-                network: currency,
-                currency: currency,
-                address: 'FIAT_ACCOUNT', // Default for new custodial/fiat wallets created on the fly
-                encryptedPrivateKey: 'N/A',
-                privateKeyIv: 'N/A',
-                privateKeyAuthTag: 'N/A',
-            }
-        },
-        { new: true, upsert: true } // Upsert ensures we create a NGN wallet if it didn't exist
+        { user: userId, currency, network },
+        { $inc: { balance: amount } },
+        options
     );
 
-    console.log(`[SVC:Wallet] ✅ Balance updated securely to: ${wallet.balance}`);
-    console.log(`[SVC:Wallet] ✅ Transaction ${transactionRef} marked as completed`);
+    console.log('[WALLET-SERVICE] ✅ Wallet credited:', amount, currency);
+    console.log('[WALLET-SERVICE] New balance:', wallet.balance);
 
-    return { wallet, transaction };
+    const txnOptions = { upsert: true, new: true };
+    if (session) txnOptions.session = session;
+
+    const txn = await Transaction.findOneAndUpdate(
+        { reference },
+        {
+            $set: {
+                userId,
+                status: 'completed',
+                amount,
+                currency,
+                provider,
+                metadata: { ...meta, balanceAfter: wallet.balance }
+            },
+            $setOnInsert: {
+                type: currency === 'NGN' ? 'ngn_deposit' : 'crypto_deposit',
+            }
+        },
+        txnOptions
+    );
+
+    console.log('[WALLET-SERVICE] ✅ Transaction logged:', txn._id);
+    return { wallet, transaction: txn };
 }
 
-/**
- * Debits a user's wallet securely using atomic operations, preventing negative balances.
- * @param {string} userId - ID of the user
- * @param {string} currency - Wallet currency
- * @param {number} amount - Amount to debit
- * @param {string} transactionRef - Unique reference
- * @param {Object} metadata - Extra metadata
- * @returns {Promise<Object>}
- */
-export async function debitUserWallet(userId, currency, amount, transactionRef, metadata = {}) {
-    console.log(`[SVC:Wallet] 💸 Debiting ${amount} ${currency} from User ${userId} (Ref: ${transactionRef})`);
-
-    // 1. Idempotency check
-    const existing = await Transaction.findOne({ reference: transactionRef });
-    if (existing && existing.status === 'completed') {
-        console.log(`[SVC:Wallet] ⚠️ Transcation ${transactionRef} already debited.`);
-        return { wallet: await Wallet.findOne({ user: userId, $or: [{ network: currency }, { currency: currency }] }), transaction: existing };
+export async function debitUserWallet(
+    userId, currency, networkOrAmount, amountOrRef, referenceOrMeta, metaOrProvider = {}, sessionOrNull = null
+) {
+    let network, amount, reference, meta, session, provider;
+    if (typeof networkOrAmount === 'number') {
+        network = currency === 'NGN' ? 'INTERNAL' : currency;
+        amount = networkOrAmount;
+        reference = amountOrRef;
+        meta = referenceOrMeta || {};
+        provider = typeof metaOrProvider === 'string' ? metaOrProvider : 'internal';
+        session = sessionOrNull;
+    } else {
+        network = networkOrAmount;
+        amount = amountOrRef;
+        reference = referenceOrMeta;
+        meta = metaOrProvider || {};
+        provider = meta.provider || 'internal';
+        session = sessionOrNull;
     }
 
-    // 2. Atomic balance check + deduct in ONE operation
-    // Only deducts if balance is sufficient — prevents negative balances
+    console.log('[WALLET-SERVICE] DEBIT');
+    console.log('[WALLET-SERVICE] User:', userId);
+    console.log('[WALLET-SERVICE] Currency:', currency, 'Network:', network);
+    console.log('[WALLET-SERVICE] Amount:', amount);
+    console.log('[WALLET-SERVICE] Reference:', reference);
+    console.log('[WALLET-SERVICE] Session active:', !!session);
+
+    if (amount <= 0) {
+        console.error('[WALLET-SERVICE] ❌ Invalid amount:', amount);
+        throw new Error('Amount must be positive');
+    }
+
+    const findOptions = session ? { session } : {};
+
+    // Check balance within session
+    const current = await Wallet.findOne(
+        { user: userId, currency, network },
+        null,
+        findOptions
+    );
+
+    console.log('[WALLET-SERVICE] Current balance:', current?.balance);
+
+    if (!current || current.balance < amount) {
+        console.error('[WALLET-SERVICE] ❌ Insufficient balance');
+        console.error('[WALLET-SERVICE] Has:', current?.balance, 'Needs:', amount);
+        throw new Error(`Insufficient ${currency} balance`);
+    }
+
+    const updateOptions = { new: true };
+    if (session) updateOptions.session = session;
+
+    // Atomic debit with $gte guard
     const wallet = await Wallet.findOneAndUpdate(
-        {
-            user: userId,
-            $or: [{ network: currency }, { currency: currency }],
-            balance: { $gte: Number(amount) }
-        },
-        { $inc: { balance: -Number(amount) } },
-        { new: true }
+        { user: userId, currency, network, balance: { $gte: amount } },
+        { $inc: { balance: -amount } },
+        updateOptions
     );
 
     if (!wallet) {
-        throw new Error(`Insufficient ${currency} balance for user ${userId}`);
+        console.error('[WALLET-SERVICE] ❌ Atomic debit failed - race condition');
+        throw new Error('Debit failed - race condition');
     }
 
-    // 3. Record transaction
-    const transaction = await Transaction.findOneAndUpdate(
-        { reference: transactionRef },
+    console.log('[WALLET-SERVICE] ✅ Wallet debited:', amount, currency);
+    console.log('[WALLET-SERVICE] New balance:', wallet.balance);
+
+    const txnOptions = { upsert: true, new: true };
+    if (session) txnOptions.session = session;
+
+    const txn = await Transaction.findOneAndUpdate(
+        { reference },
         {
             $set: {
-                status: 'pending', // Can be updated to completed later if it's external withdrawal
-                user: userId,
-                amount: Number(amount),
-                type: 'withdrawal',
-                currency: currency,
-                metadata: metadata
+                userId,
+                status: 'processing', // pending/processing
+                amount,
+                currency,
+                provider,
+                metadata: { ...meta, balanceAfter: wallet.balance }
+            },
+            $setOnInsert: {
+                type: currency === 'NGN' ? 'ngn_withdrawal' : 'crypto_withdrawal',
             }
         },
-        { upsert: true, new: true }
+        txnOptions
     );
 
-    console.log(`[SVC:Wallet] ✅ Wallet debited successfully. New balance: ${wallet.balance}`);
-
-    return { wallet, transaction };
+    console.log('[WALLET-SERVICE] ✅ Transaction logged');
+    return { wallet, transaction: txn };
 }

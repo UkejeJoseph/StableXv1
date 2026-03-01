@@ -15,6 +15,7 @@ import {
   handleTransactionStatus,
   handleWebCheckoutConfirm,
   handleNameEnquiry,
+  handleGenerateWebCheckoutHash,
 } from './controllers/depositController.js';
 import { handleWebhook } from './controllers/webhookController.js';
 import { protect } from './middleware/authMiddleware.js';
@@ -47,6 +48,7 @@ router.post('/pay-ussd', protect, handlePayUssd);
 router.get('/ussd-banks', handleGetUssdBanks);
 
 // ── Web Checkout (Inline) ──────────────────────────────────
+router.post('/generate-checkout-hash', protect, handleGenerateWebCheckoutHash);
 router.get('/web-checkout-confirm', protect, handleWebCheckoutConfirm);
 
 // ── Transaction Status (All Channels) ──────────────────────

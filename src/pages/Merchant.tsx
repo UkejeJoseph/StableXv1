@@ -85,7 +85,7 @@ const Merchant = () => {
             <LayoutDashboard className="h-5 w-5" />
             <span className="text-sm opacity-90">NGN Balance</span>
           </div>
-          <div className="text-3xl font-bold">₦{ngnBalance.toLocaleString()}</div>
+          <div className="text-3xl font-bold">₦{ngnBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
           <div className="text-sm opacity-90 mt-1">
             ≈ {(ngnBalance / rate).toFixed(2)} USDT
           </div>

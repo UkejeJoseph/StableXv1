@@ -1,52 +1,41 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from "react";
 
-export type AppBalances = {
-    NGN: number;
-    USDT: number;
-    BTC: number;
-    ETH: number;
-    TRX: number;
-    [key: string]: number;
-};
+const API = import.meta.env.VITE_API_URL || "";
 
 export const useBalances = () => {
-    return useQuery({
-        queryKey: ['userBalances'],
-        queryFn: async (): Promise<AppBalances> => {
-            const res = await fetch("/api/users/profile", {
-                credentials: "include",
+    const [balances, setBalances] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchBalances = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const res = await fetch(`${API}/api/wallet/`, {
+                credentials: 'include'
             });
 
             if (!res.ok) {
-                // If unauthorized, return empty balances instead of throwing
                 if (res.status === 401) {
-                    return { NGN: 0, USDT: 0, BTC: 0, ETH: 0, TRX: 0 };
+                    setBalances([]);
+                    return;
                 }
-                throw new Error("Failed to fetch balances");
+                throw new Error('Failed to fetch balances');
             }
 
             const data = await res.json();
+            setBalances(data.wallets || data.data || data);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-            const balances: AppBalances = {
-                NGN: 0,
-                USDT: 0,
-                USDT_ERC20: 0,
-                BTC: 0,
-                ETH: 0,
-                TRX: 0,
-            };
+    useEffect(() => {
+        fetchBalances();
+    }, []);
 
-            if (data.wallets && Array.isArray(data.wallets)) {
-                data.wallets.forEach((wallet: any) => {
-                    if (wallet.currency) {
-                        balances[wallet.currency] = wallet.balance || 0;
-                    }
-                });
-            }
-
-            return balances;
-        },
-        refetchInterval: 10000, // Auto-refresh every 10 seconds
-        staleTime: 5000,
-    });
+    return { balances, loading, error, refetch: fetchBalances };
 };

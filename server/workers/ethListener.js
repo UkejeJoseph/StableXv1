@@ -224,7 +224,8 @@ const checkConfirmations = async () => {
                         tx.currency,
                         tx.amount,
                         tx.reference,
-                        { confirmedAt: new Date().toISOString(), blockNumber: txBlock }
+                        { confirmedAt: new Date().toISOString(), blockNumber: txBlock },
+                        'crypto'
                     );
 
                     const user = await User.findById(tx.user);

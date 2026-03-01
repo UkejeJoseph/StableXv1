@@ -34,6 +34,7 @@ const CONFIG = {
     payItemId: process.env.INTERSWITCH_PAY_ITEM_ID || '9405967',
     terminalId: process.env.INTERSWITCH_TERMINAL_ID || '3PBL0001',
     initiatingEntityCode: process.env.INTERSWITCH_ENTITY_CODE || 'PBL',
+    secretKey: process.env.INTERSWITCH_SECRET_KEY,
 };
 
 // ── OAuth2 Token Management ────────────────────────────────

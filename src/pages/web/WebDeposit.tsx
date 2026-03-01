@@ -33,6 +33,7 @@ import {
   Timer,
   Wallet,
   Info,
+  ArrowUpRight,
 } from "lucide-react";
 import { SiVisa, SiMastercard, SiTether } from "react-icons/si";
 import { useWallets } from "@/hooks/useWallets";
@@ -78,6 +79,14 @@ export default function WebDeposit() {
     payItemId: string;
     checkoutScript: string;
     mode: string;
+  } | null>(null);
+
+  // Web Redirect State
+  const [redirectPayload, setRedirectPayload] = useState<{
+    hash: string;
+    amount: number;
+    ref: string;
+    redirectUrl: string;
   } | null>(null);
 
   // USSD state
@@ -367,7 +376,7 @@ export default function WebDeposit() {
       txn_ref: ref,
       amount: amountInKobo,
       currency: 566,
-      cust_name: user?.name || "StableX Customer",
+      cust_name: user?.fullName || "StableX Customer",
       cust_email: user?.email || "",
       cust_id: user?._id || "",
       onComplete: async (response: any) => {
@@ -386,8 +395,8 @@ export default function WebDeposit() {
               setShowSuccess(true);
               setAmount("");
               toast({
-                title: "Payment Successful",
-                description: `₦${amount} has been deposited via card.`
+                title: "Deposit Confirmation",
+                description: `Confirming payment for ${user?.fullName || "user"}...`,
               });
             } else {
               setErrorMessage("Payment verification failed. Please click 'I have paid' if debited.");
@@ -557,7 +566,45 @@ export default function WebDeposit() {
     }
   };
 
-  // ── Korapay Checkout ──
+  // ── Korapay Checkout Modal (FIX 2) ──
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://korablobstorage.blob.core.windows.net/modal-bucket/korapay-collections.min.js";
+    script.async = true;
+    script.onload = () => console.log("[KORAPAY-WEB-CHECKOUT] ✅ Script loaded");
+    document.body.appendChild(script);
+    return () => {
+      try {
+        if (document.body.contains(script)) document.body.removeChild(script);
+      } catch (e) { }
+    };
+  }, []);
+
+  const verifyPaymentServerSide = async (reference: string) => {
+    console.log("[KORAPAY-WEB-CHECKOUT] Verifying payment server-side, ref:", reference);
+    try {
+      const res = await fetch(`/api/korapay/deposit/verify`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reference }),
+      });
+      const result = await res.json();
+      console.log("[KORAPAY-WEB-CHECKOUT] Verification response:", JSON.stringify(result));
+      if (result.success) {
+        toast({
+          title: "Deposit Successful",
+          description: `₦${result.amount} credited to your wallet!`,
+        });
+        await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
+      } else {
+        setErrorMessage(result.message || "Verification failed");
+      }
+    } catch (err: any) {
+      console.error("[KORAPAY-WEB-CHECKOUT] Verification error:", err);
+    }
+  };
+
   const handleKorapayCheckout = async () => {
     if (!amount || parseFloat(amount) <= 0) {
       setErrorMessage("Please enter a valid amount");
@@ -571,12 +618,9 @@ export default function WebDeposit() {
       const res = await fetch("/api/korapay/deposit/initialize", {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: parseFloat(amount),
-          redirectUrl: window.location.href // Returns right back here to trigger verification
         })
       });
 
@@ -587,9 +631,44 @@ export default function WebDeposit() {
 
       const data = await res.json();
 
-      if (data.checkoutUrl) {
-        // Redirect completely to Korapay
-        window.location.href = data.checkoutUrl;
+      if (data.reference) {
+        // @ts-ignore
+        if (window.Korapay) {
+          // @ts-ignore
+          window.Korapay.initialize({
+            key: data.publicKey,
+            reference: data.reference,
+            amount: parseFloat(amount),
+            currency: "NGN",
+            customer: {
+              name: user?.fullName || "StableX Customer",
+              email: user?.email || "",
+            },
+            merchant_bears_cost: true,
+            channels: ["bank_transfer", "card", "pay_with_bank"],
+            notification_url: `${window.location.origin}/webhook/korapay`,
+            onSuccess: (res: any) => {
+              console.log("[KORAPAY-WEB-CHECKOUT] onSuccess:", res);
+              verifyPaymentServerSide(res.reference);
+            },
+            onFailed: (res: any) => {
+              console.log("[KORAPAY-WEB-CHECKOUT] onFailed:", res);
+              setErrorMessage("Payment failed. Please try again.");
+            },
+            onPending: (res: any) => {
+              console.log("[KORAPAY-WEB-CHECKOUT] onPending:", res);
+              toast({
+                title: "Payment Pending",
+                description: "Your bank transfer is being processed. We will credit your account once confirmed.",
+              });
+            },
+            onClose: () => {
+              console.log("[KORAPAY-WEB-CHECKOUT] Modal closed");
+            }
+          });
+        } else {
+          throw new Error("KoraPay library loading... Please try again in a moment.");
+        }
       } else {
         throw new Error(data.message || "Failed to initialize Korapay checkout.");
       }
@@ -601,8 +680,141 @@ export default function WebDeposit() {
     }
   };
 
+  // ── Korapay Web Redirect (Hosted Checkout) ──
+  const handleKorapayWebRedirect = async () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      setErrorMessage("Please enter a valid amount");
+      return;
+    }
+
+    setErrorMessage("");
+    setIsProcessing(true);
+
+    try {
+      const redirectUrl = `${window.location.origin}/dashboard/wallet/deposit-verify`;
+
+      const res = await fetch("/api/korapay/deposit/initialize", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: parseFloat(amount),
+          redirectUrl
+        })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to initialize Korapay Redirect.");
+      }
+
+      const data = await res.json();
+
+      if (data.checkoutUrl) {
+        // Redirect browser to the secure hosted Korapay checkout page
+        window.location.href = data.checkoutUrl;
+      } else {
+        throw new Error("Korapay did not return a valid checkout URL.");
+      }
+    } catch (e: any) {
+      console.error(e);
+      setErrorMessage(e.message || "Network error connecting to Korapay.");
+      setIsProcessing(false);
+    }
+  };
+
+  // ── Korapay Pay with Bank (Direct Debit) ──
+  const handleKorapayPayWithBank = async (bankCode: string) => {
+    if (!amount || parseFloat(amount) < 200) {
+      setErrorMessage("Minimum deposit amount for Pay with Bank is ₦200");
+      return;
+    }
+
+    setErrorMessage("");
+    setIsProcessing(true);
+
+    try {
+      const res = await fetch("/api/korapay/deposit/pay-with-bank", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: parseFloat(amount),
+          bankCode
+        })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to initialize Pay with Bank.");
+      }
+
+      const data = await res.json();
+
+      if (data.checkoutUrl) {
+        // Redirect browser to the bank's authorization page
+        window.location.href = data.checkoutUrl;
+      } else {
+        throw new Error("Korapay did not return a valid checkout URL.");
+      }
+    } catch (e: any) {
+      console.error(e);
+      setErrorMessage(e.message || "Network error connecting to Korapay.");
+      setIsProcessing(false);
+    }
+  };
+
+  // ── Web Redirect (Form Post Method) ──
+  const handleWebRedirect = async () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      setErrorMessage("Please enter a valid amount");
+      return;
+    }
+    if (parseFloat(amount) < 100) {
+      setErrorMessage("Minimum deposit amount is ₦100");
+      return;
+    }
+
+    setErrorMessage("");
+    setIsProcessing(true);
+
+    const ref = generateTransactionRef();
+    setTransactionRef(ref);
+
+    try {
+      const redirectUrl = `${window.location.origin}/dashboard/wallet/deposit-verify`;
+
+      const hashRes = await fetch("/api/interswitch/generate-checkout-hash", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: parseFloat(amount),
+          txn_ref: ref,
+          redirect_url: redirectUrl,
+        }),
+      });
+
+      if (!hashRes.ok) throw new Error("Failed to generate security hash");
+      const { hash, amount: amountInKobo } = await hashRes.json();
+
+      // Set the payload, which triggers the form rendering in the UI
+      setRedirectPayload({
+        hash,
+        amount: amountInKobo,
+        ref,
+        redirectUrl
+      });
+
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to initiate web redirect.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   // ── Web Checkout (ALL payment methods in one popup) ──
-  const handleWebCheckout = () => {
+  const handleWebCheckout = async () => {
     if (!amount || parseFloat(amount) <= 0) {
       setErrorMessage("Please enter a valid amount");
       return;
@@ -621,76 +833,95 @@ export default function WebDeposit() {
 
     const ref = generateTransactionRef();
     setTransactionRef(ref);
-    const amountInKobo = Math.round(parseFloat(amount) * 100);
 
-    const checkoutConfig = {
-      merchant_code: config.merchantCode,
-      pay_item_id: config.payItemId,
-      pay_item_name: "StableX Wallet Deposit",
-      txn_ref: ref,
-      amount: amountInKobo,
-      currency: 566,
-      cust_name: user?.name || "StableX Customer",
-      cust_email: user?.email || "",
-      cust_id: user?._id || "",
-      onComplete: async (response: any) => {
-        try {
-          const verifyRes = await fetch(
-            `/api/interswitch/web-checkout-confirm?transactionRef=${ref}&amount=${amount}`,
-            {
-              credentials: "include",
-            }
-          );
-          if (!verifyRes.ok) throw new Error("Web checkout verification failed");
-          const verifyData = await verifyRes.json();
-
-          if (verifyData.success && verifyData.ResponseCode === "00") {
-            await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
-            setShowSuccess(true);
-            setAmount("");
-          } else {
-            setErrorMessage("Payment verification failed. Contact support with ref: " + ref);
-          }
-        } catch (err: any) {
-          console.error("[WebCheckout] Verification error:", err);
-          setErrorMessage(err.message || "Could not verify payment. Contact support with ref: " + ref);
-        }
-        setIsProcessing(false);
-      },
-      mode: config.mode,
-      site_redirect_url: window.location.href,
-    };
-
-    if (typeof window.webpayCheckout === "function") {
-      console.log("[WebCheckout] Registering pending transaction...");
-
-      // 1. Create Pending Transaction on Backend
-      fetch("/api/transactions/deposit-pending", {
+    try {
+      // 1. Fetch SHA512 Hash from Backend
+      console.log("[WebCheckout] Fetching hash from backend...");
+      const hashRes = await fetch("/api/interswitch/generate-checkout-hash", {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: parseFloat(amount),
-          currency: "NGN",
-          reference: ref,
+          txn_ref: ref,
+          redirect_url: window.location.href,
         }),
-      })
-        .then(res => res.json())
-        .then(data => {
-          console.log("INTERSWITCH WEBPAY PAYLOAD [WebCheckout Success] =>", JSON.stringify(checkoutConfig, null, 2));
-          window.webpayCheckout(checkoutConfig);
-        })
-        .catch(err => {
-          console.error("[WebCheckout] Failed to create pending transaction:", err);
-          console.log("INTERSWITCH WEBPAY PAYLOAD [WebCheckout Fallback] =>", JSON.stringify(checkoutConfig, null, 2));
-          // Still try to launch checkout, but log error
-          window.webpayCheckout(checkoutConfig);
+      });
+
+      if (!hashRes.ok) {
+        const errorData = await hashRes.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to generate security hash");
+      }
+
+      const { hash, amount: amountInKobo } = await hashRes.json();
+
+      const checkoutConfig = {
+        merchant_code: config.merchantCode,
+        pay_item_id: config.payItemId,
+        pay_item_name: "StableX Wallet Deposit",
+        txn_ref: ref,
+        amount: amountInKobo,
+        currency: "566",
+        cust_name: user?.fullName || "StableX Customer",
+        cust_email: user?.email || "customer@stablex.com",
+        cust_id: user?._id || "guest",
+        onComplete: async (response: any) => {
+          try {
+            const verifyRes = await fetch(
+              `/api/interswitch/web-checkout-confirm?transactionRef=${ref}&amount=${amount}`,
+              {
+                credentials: "include",
+              }
+            );
+            if (!verifyRes.ok) throw new Error("Web checkout verification failed");
+            const verifyData = await verifyRes.json();
+
+            if (verifyData.success && verifyData.ResponseCode === "00") {
+              await queryClient.invalidateQueries({ queryKey: ["userBalances"] });
+              setShowSuccess(true);
+              setAmount("");
+              toast({
+                title: "Payment Successful",
+                description: `₦${amount} deposit confirmed.`
+              });
+            } else {
+              setErrorMessage("Payment verification failed. Ref: " + ref);
+            }
+          } catch (err: any) {
+            console.error("[WebCheckout] Verification error:", err);
+            setErrorMessage(err.message || "Could not verify payment. Contact support with ref: " + ref);
+          }
+          setIsProcessing(false);
+        },
+        mode: config.mode,
+      };
+
+      if (typeof window.webpayCheckout === "function") {
+        console.log("[WebCheckout] Registering pending transaction...");
+
+        // 2. Create Pending Transaction on Backend
+        await fetch("/api/transactions/deposit-pending", {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            amount: parseFloat(amount),
+            currency: "NGN",
+            reference: ref,
+          }),
         });
 
-    } else {
-      setErrorMessage("Payment system is loading. Please try again in a moment.");
+        console.log("INTERSWITCH WEBPAY PAYLOAD =>", JSON.stringify(checkoutConfig, null, 2));
+        window.webpayCheckout(checkoutConfig);
+      } else {
+        throw new Error("Payment script not fully loaded. Please refresh.");
+      }
+
+    } catch (err: any) {
+      console.error("[WebCheckout] Initiation error:", err);
+      setErrorMessage(err.message || "Failed to initiate payment");
       setIsProcessing(false);
     }
   };
@@ -841,23 +1072,63 @@ export default function WebDeposit() {
                 />
                 <PaymentMethodCard
                   id="checkout"
-                  title="Interswitch Checkout"
+                  title="Interswitch (Inline)"
                   icon={<ShieldCheck className="w-5 h-5" />}
-                  processingTime="Instant - 5 minutes"
+                  processingTime="Instant popup"
                   fee="0%"
                   limits="₦1,000 - ₦5,000,000"
                   recommended={false}
                   onClick={() => setActiveTab("checkout_form")}
                 />
                 <PaymentMethodCard
+                  id="redirect"
+                  title="Interswitch (Redirect)"
+                  icon={<Building2 className="w-5 h-5" />}
+                  processingTime="Secure Page"
+                  fee="0%"
+                  limits="₦1,000 - ₦5,000,000"
+                  recommended={false}
+                  onClick={() => setActiveTab("redirect_form")}
+                />
+                <PaymentMethodCard
                   id="korapay"
-                  title="Kora Gateway (Card/USSD)"
+                  title="Kora Gateway (Inline)"
                   icon={<ShieldCheck className="w-5 h-5 text-purple-600" />}
-                  processingTime="Instant - 5 minutes"
+                  processingTime="Instant popup"
                   fee="0%"
                   limits="₦1,000 - ₦50,000,000"
                   recommended={false}
                   onClick={() => setActiveTab("korapay_form")}
+                />
+                <PaymentMethodCard
+                  id="korapay-redirect"
+                  title="Kora (Web Redirect)"
+                  icon={<ArrowUpRight className="w-5 h-5 text-purple-600" />}
+                  processingTime="Secure Page"
+                  fee="0%"
+                  limits="₦1,000 - ₦50,000,000"
+                  recommended={false}
+                  onClick={() => setActiveTab("korapay_redirect_form")}
+                />
+                <PaymentMethodCard
+                  id="korapay-opay"
+                  title="Opay (Direct)"
+                  icon={<div className="w-5 h-5 bg-[#00D161] rounded-full flex items-center justify-center text-[10px] text-white font-bold">O</div>}
+                  processingTime="Instant Bank App"
+                  fee="0%"
+                  limits="₦200 - ₦10,000,000"
+                  recommended={false}
+                  onClick={() => setActiveTab("korapay_opay_form")}
+                />
+                <PaymentMethodCard
+                  id="korapay-palmpay"
+                  title="PalmPay (Direct)"
+                  icon={<div className="w-5 h-5 bg-[#613EEA] rounded-full flex items-center justify-center text-[10px] text-white font-bold">P</div>}
+                  processingTime="Instant Bank App"
+                  fee="0%"
+                  limits="₦200 - ₦10,000,000"
+                  recommended={false}
+                  onClick={() => setActiveTab("korapay_palmpay_form")}
                 />
               </div>
             </div>
@@ -1019,6 +1290,68 @@ export default function WebDeposit() {
         )
         }
 
+        {/* ─── INTERSWITCH WEB REDIRECT FORM ─── */}
+        {selectedWallet === "NGN" && activeTab === "redirect_form" && (
+          <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+            <Button variant="ghost" className="mb-4 pl-0" onClick={() => { setActiveTab("checkout"); setRedirectPayload(null); }}>
+              ← Back to Methods
+            </Button>
+            <Card className="p-6 bg-card border-border/50">
+              <div className="flex items-center gap-3 mb-6">
+                <Building2 className="w-8 h-8 text-primary" />
+                <div>
+                  <h3 className="font-bold text-lg">Web Redirect Checkout</h3>
+                  <p className="text-sm text-muted-foreground">Redirects to official Interswitch site</p>
+                </div>
+              </div>
+
+              {!redirectPayload ? (
+                <div className="space-y-4">
+                  <Label>Amount (NGN)</Label>
+                  <Input
+                    type="number"
+                    value={amount}
+                    onChange={e => setAmount(e.target.value)}
+                    placeholder="Enter amount"
+                  />
+                  <Button
+                    className="w-full mt-2 bg-slate-800 hover:bg-slate-900 text-white"
+                    onClick={handleWebRedirect}
+                    disabled={isProcessing || !amount}
+                  >
+                    {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Preparing...</> : "Generate Secure Payment Link"}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4 animate-in fade-in">
+                  <div className="bg-amber-50 dark:bg-amber-900/20 p-4 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <p className="text-sm text-amber-800 dark:text-amber-200 font-medium text-center">
+                      Ready! Click below to proceed to the Interswitch payment gateway.
+                    </p>
+                  </div>
+                  <form
+                    method="post"
+                    action={config?.mode === "TEST" ? "https://newwebpay.qa.interswitchng.com/collections/w/pay" : "https://newwebpay.interswitchng.com/collections/w/pay"}
+                  >
+                    <input type="hidden" name="merchant_code" value={config?.merchantCode} />
+                    <input type="hidden" name="pay_item_id" value={config?.payItemId} />
+                    <input type="hidden" name="site_redirect_url" value={redirectPayload.redirectUrl} />
+                    <input type="hidden" name="txn_ref" value={redirectPayload.ref} />
+                    <input type="hidden" name="amount" value={redirectPayload.amount} />
+                    <input type="hidden" name="currency" value="566" />
+                    <input type="hidden" name="hash" value={redirectPayload.hash} />
+
+                    <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white py-6 text-lg">
+                      Proceed to Secure Gateway →
+                    </Button>
+                  </form>
+                  <Button variant="ghost" className="w-full" onClick={() => setRedirectPayload(null)}>Cancel</Button>
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+
         {/* ─── KORAPAY CHECKOUT FORM ─── */}
         {
           selectedWallet === "NGN" && activeTab === "korapay_form" && (
@@ -1030,12 +1363,12 @@ export default function WebDeposit() {
                 <div className="flex items-center gap-3 mb-6">
                   <ShieldCheck className="w-8 h-8 text-purple-600" />
                   <div>
-                    <h3 className="font-bold text-lg">Korapay Checkout</h3>
-                    <p className="text-sm text-muted-foreground">Redirects to Korapay Secure Payment Gateway</p>
+                    <h3 className="font-bold text-lg">Korapay Checkout (Inline)</h3>
+                    <p className="text-sm text-muted-foreground">Secure Payment Gateway Popup</p>
                   </div>
                 </div>
                 <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg text-xs text-purple-700 dark:text-purple-300 mb-4">
-                  <p className="font-medium mb-1">⚡ Fast & Reliable</p>
+                  <p className="font-medium mb-1">⚡ Instant popup</p>
                   <p>Pay with Bank Transfer, USSD, or Card via Korapay.</p>
                 </div>
                 <div className="space-y-4">
@@ -1047,14 +1380,143 @@ export default function WebDeposit() {
                     placeholder="Enter amount to deposit"
                   />
                   <Button
-                    className="w-full mt-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold"
+                    className="w-full mt-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-6 text-lg"
                     onClick={handleKorapayCheckout}
                     disabled={isProcessing || !amount}
                   >
                     {isProcessing ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Initializing...</>
                     ) : (
-                      <>Pay ₦{amount || "0"} with Korapay</>
+                      <>Pay ₦{amount || "0"} with Korapay Modal</>
+                    )}
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          )
+        }
+
+        {
+          selectedWallet === "NGN" && activeTab === "korapay_redirect_form" && (
+            <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+              <Button variant="ghost" className="mb-4 pl-0" onClick={() => setActiveTab("checkout")}>
+                ← Back to Methods
+              </Button>
+              <Card className="p-6 bg-card border-border/50">
+                <div className="flex items-center gap-3 mb-6">
+                  <ArrowUpRight className="w-8 h-8 text-purple-600" />
+                  <div>
+                    <h3 className="font-bold text-lg">Korapay Web Redirect</h3>
+                    <p className="text-sm text-muted-foreground">Secure Hosted Payment Page</p>
+                  </div>
+                </div>
+                <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg text-xs text-purple-700 dark:text-purple-300 mb-4">
+                  <p className="font-medium mb-1">🔒 Highly Secure</p>
+                  <p>You will be redirected to Korapay's hosted checkout page to complete your transaction.</p>
+                </div>
+                <div className="space-y-4">
+                  <Label>Amount (NGN)</Label>
+                  <Input
+                    type="number"
+                    value={amount}
+                    onChange={e => setAmount(e.target.value)}
+                    placeholder="Enter amount to deposit"
+                  />
+                  <Button
+                    className="w-full mt-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-6 text-lg"
+                    onClick={handleKorapayWebRedirect}
+                    disabled={isProcessing || !amount}
+                  >
+                    {isProcessing ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Preparing Redirect...</>
+                    ) : (
+                      <>Redirect to Korapay Checkout →</>
+                    )}
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          )
+        }
+
+        {
+          selectedWallet === "NGN" && activeTab === "korapay_opay_form" && (
+            <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+              <Button variant="ghost" className="mb-4 pl-0" onClick={() => setActiveTab("checkout")}>
+                ← Back to Methods
+              </Button>
+              <Card className="p-6 bg-card border-border/50">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-[#00D161] rounded-full flex items-center justify-center text-xl text-white font-bold">O</div>
+                  <div>
+                    <h3 className="font-bold text-lg text-[#00D161]">Opay Direct</h3>
+                    <p className="text-sm text-muted-foreground">Authorize via Opay App/OTP</p>
+                  </div>
+                </div>
+                <div className="bg-[#00D161]/10 p-3 rounded-lg text-xs text-[#00D161] font-medium mb-4">
+                  <p className="mb-1">⚡ Fast & Automated</p>
+                  <p>You will be redirected to Opay's secure authorization page.</p>
+                </div>
+                <div className="space-y-4">
+                  <Label>Amount (NGN)</Label>
+                  <Input
+                    type="number"
+                    value={amount}
+                    onChange={e => setAmount(e.target.value)}
+                    placeholder="Enter amount (min ₦200)"
+                  />
+                  <Button
+                    className="w-full mt-2 bg-[#00D161] hover:bg-[#00B151] text-white font-semibold py-6 text-lg"
+                    onClick={() => handleKorapayPayWithBank("100004")}
+                    disabled={isProcessing || !amount || parseFloat(amount) < 200}
+                  >
+                    {isProcessing ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Preparing...</>
+                    ) : (
+                      <>Pay with Opay Direct →</>
+                    )}
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          )
+        }
+
+        {
+          selectedWallet === "NGN" && activeTab === "korapay_palmpay_form" && (
+            <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+              <Button variant="ghost" className="mb-4 pl-0" onClick={() => setActiveTab("checkout")}>
+                ← Back to Methods
+              </Button>
+              <Card className="p-6 bg-card border-border/50">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-[#613EEA] rounded-full flex items-center justify-center text-xl text-white font-bold">P</div>
+                  <div>
+                    <h3 className="font-bold text-lg text-[#613EEA]">PalmPay Direct</h3>
+                    <p className="text-sm text-muted-foreground">Authorize via PalmPay App/OTP</p>
+                  </div>
+                </div>
+                <div className="bg-[#613EEA]/10 p-3 rounded-lg text-xs text-[#613EEA] font-medium mb-4">
+                  <p className="mb-1">⚡ Instant Authorization</p>
+                  <p>You will be redirected to PalmPay's secure authorization page.</p>
+                </div>
+                <div className="space-y-4">
+                  <Label>Amount (NGN)</Label>
+                  <Input
+                    type="number"
+                    value={amount}
+                    onChange={e => setAmount(e.target.value)}
+                    placeholder="Enter amount (min ₦200)"
+                  />
+                  <Button
+                    className="w-full mt-2 bg-[#613EEA] hover:bg-[#512EDA] text-white font-semibold py-6 text-lg"
+                    onClick={() => handleKorapayPayWithBank("100033")}
+                    disabled={isProcessing || !amount || parseFloat(amount) < 200}
+                  >
+                    {isProcessing ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Preparing...</>
+                    ) : (
+                      <>Pay with PalmPay Direct →</>
                     )}
                   </Button>
                 </div>

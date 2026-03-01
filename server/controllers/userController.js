@@ -310,11 +310,13 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route   GET /api/users/profile
 // @access  Private
 const getUserProfile = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user._id);
-
     if (user) {
-        // Fetch user's wallets
-        const wallets = await Wallet.find({ user: user._id }).select('-encryptedPrivateKey -iv -authTag');
+        // Fetch wallets based on user role to keep personal/merchant separate
+        const walletType = user.role === 'merchant' ? 'merchant' : 'user';
+        const wallets = await Wallet.find({
+            user: user._id,
+            walletType: walletType
+        }).select('-encryptedPrivateKey -iv -authTag -privateKeyIv -privateKeyAuthTag -encryptedMnemonic -mnemonicIv -mnemonicAuthTag');
 
         res.json({
             _id: user._id,

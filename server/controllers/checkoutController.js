@@ -3,7 +3,7 @@ import CheckoutSession from '../models/checkoutSessionModel.js';
 import User from '../models/userModel.js';
 import Wallet from '../models/walletModel.js';
 import Transaction from '../models/transactionModel.js';
-import { creditUserWallet } from '../services/walletService.js';
+import { creditUserWallet, debitUserWallet } from '../services/walletService.js';
 
 const PLATFORM_FEE_WALLET_ID = process.env.PLATFORM_FEE_WALLET_ID;
 const MERCHANT_FEE_PERCENTAGE = 0.015; // 1.5%
@@ -145,93 +145,52 @@ export const processInternalPayment = async (req, res) => {
             return res.status(400).json({ success: false, error: 'You cannot pay your own checkout session' });
         }
 
-        // Verify Balances
-        const customerWallet = await Wallet.findOne({ user: customer._id, currency: session.currency });
-        if (!customerWallet || customerWallet.balance < session.amount) {
-            console.log(`[CHECKOUT_TRACE] Insufficient balance for user ${customer._id} in ${session.currency} wallet for session ${sessionId}.`);
-            return res.status(400).json({ success: false, error: `Insufficient ${session.currency} balance` });
-        }
-
-        const merchantWallet = await Wallet.findOne({ user: session.merchantId, currency: session.currency, walletType: 'merchant' });
-        if (!merchantWallet) {
-            console.log(`[CHECKOUT_TRACE] Merchant wallet not found for merchant ${session.merchantId} and currency ${session.currency} for session ${sessionId}.`);
-            return res.status(400).json({ success: false, error: 'Merchant wallet error' });
-        }
-
-        // Verify Balances + Deduct atomically to avoid race conditions
-        console.log(`[CHECKOUT_TRACE] Attempting to debit customer ${customer._id} wallet for ${session.amount} ${session.currency}.`);
-        const updatedCustomerWallet = await Wallet.findOneAndUpdate(
-            { _id: customerWallet._id, balance: { $gte: session.amount } },
-            { $inc: { balance: -session.amount } },
-            { new: true }
-        );
-
-        if (!updatedCustomerWallet) {
-            console.log(`[CHECKOUT_TRACE] Failed to debit customer ${customer._id} wallet for session ${sessionId}. Concurrent transaction or insufficient balance.`);
-            return res.status(400).json({ success: false, error: `Insufficient ${session.currency} balance or concurrent transaction.` });
-        }
-        console.log(`[CHECKOUT_TRACE] Successfully debited customer ${customer._id} wallet. New balance: ${updatedCustomerWallet.balance}`);
-
-        // Calculate merchant fee
+        // Calculate Fees
         const grossAmount = session.amount;
         const platformFee = grossAmount * MERCHANT_FEE_PERCENTAGE;
         const merchantReceives = grossAmount - platformFee;
 
-        console.log(`[CHECKOUT_TRACE] Calculated platform fee: ${platformFee} ${session.currency}. Merchant receives: ${merchantReceives} ${session.currency}.`);
+        console.log(`[CHECKOUT_TRACE] Atomic execution: Pay ${grossAmount} ${session.currency} (Fee: ${platformFee})`);
 
-        // Credit Merchant Atomically (minus fee)
-        console.log(`[CHECKOUT_TRACE] Attempting to credit merchant ${session.merchantId} wallet for ${merchantReceives} ${session.currency}.`);
-        await Wallet.findOneAndUpdate(
-            { _id: merchantWallet._id },
-            { $inc: { balance: merchantReceives } },
-            { new: true }
+        // 1. Debit Customer (StableX Internal Transfer Pattern)
+        const { wallet: updatedCustomerWallet } = await debitUserWallet(
+            customer._id,
+            session.currency,
+            grossAmount,
+            `CHKA-OUT-${session.sessionId}`,
+            { type: 'checkout_payment', sessionId: session.sessionId, merchantId: session.merchantId },
+            'internal'
         );
-        console.log(`[CHECKOUT_TRACE] Successfully credited merchant ${session.merchantId} wallet.`);
 
-        // Update Session with fee breakdown
+        // 2. Credit Merchant (Net Amount)
+        await creditUserWallet(
+            session.merchantId,
+            session.currency,
+            merchantReceives,
+            `CHKA-IN-${session.sessionId}`,
+            { type: 'checkout_receipt', sessionId: session.sessionId, customerId: customer._id },
+            'internal'
+        );
+
+        // 3. Route Platform Fee
+        if (PLATFORM_FEE_WALLET_ID && platformFee > 0) {
+            await creditUserWallet(
+                PLATFORM_FEE_WALLET_ID,
+                session.currency,
+                platformFee,
+                `CHKA-FEE-${session.sessionId}`,
+                { type: 'merchant_fee', originalSessionId: session.sessionId, merchantId: session.merchantId },
+                'internal'
+            ).catch(e => console.error("Fee error:", e.message));
+        }
+
+        // 4. Update Session Status
         session.status = 'completed';
         session.paymentMethod = 'StableX';
         session.platformFee = platformFee;
         session.merchantReceives = merchantReceives;
         session.feePercentage = MERCHANT_FEE_PERCENTAGE;
         await session.save();
-
-        // Route platform fee to platform wallet
-        if (PLATFORM_FEE_WALLET_ID && platformFee > 0) {
-            try {
-                await creditUserWallet(
-                    PLATFORM_FEE_WALLET_ID,
-                    session.currency,
-                    platformFee,
-                    `checkout_fee_${session.sessionId}`,
-                    { type: 'merchant_fee', merchantId: session.merchantId.toString() }
-                );
-                console.log(`[FEE_ROUTING] ✅ Checkout fee (${platformFee} ${session.currency}) credited to platform wallet`);
-            } catch (feeErr) {
-                console.error(`[FEE_ROUTING] ❌ CRITICAL: Merchant fee credit failed for session ${session.sessionId}:`, feeErr.message);
-            }
-        }
-
-        // Record Transactions
-        await Transaction.create({
-            user: customer._id,
-            type: 'transfer',
-            status: 'completed',
-            amount: session.amount,
-            currency: session.currency,
-            reference: `CHKA-OUT-${Date.now()}`,
-            description: `Payment to Merchant Order: ${session.reference}`
-        });
-
-        await Transaction.create({
-            user: session.merchantId,
-            type: 'deposit',
-            status: 'completed',
-            amount: session.amount,
-            currency: session.currency,
-            reference: `CHKA-IN-${Date.now()}`,
-            description: `Checkout Payment from @${customer.username}`
-        });
 
         // Fire Webhook to Merchant
         try {

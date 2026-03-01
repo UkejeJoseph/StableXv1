@@ -30,6 +30,8 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import VerifyOtp from "./pages/VerifyOtp";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AIChatWidget } from "./components/AIChatWidget";
 import TermsOfService from "./pages/TermsOfService";
@@ -39,6 +41,8 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import WebLogin from "./pages/web/WebLogin";
 import WebSignup from "./pages/web/WebSignup";
 import WebVerifyOtp from "./pages/web/WebVerifyOtp";
+import WebForgotPassword from "./pages/web/WebForgotPassword";
+import WebResetPassword from "./pages/web/WebResetPassword";
 import AuthCallback from "./pages/web/AuthCallback";
 import WebPayPage from "./pages/web/WebPayPage";
 import WebDashboard from "./pages/web/WebDashboard";
@@ -66,7 +70,7 @@ const queryClient = new QueryClient();
 
 function AnimatedRoutes() {
   const location = useLocation();
-  const isAuthPage = ['/login', '/signup', '/verify'].includes(location.pathname);
+  const isAuthPage = ['/login', '/signup', '/verify', '/forgot-password', '/reset-password'].includes(location.pathname);
   const isWebMode = location.pathname.startsWith('/web');
   const isLandingPage = location.pathname === '/';
 
@@ -86,6 +90,8 @@ function AnimatedRoutes() {
             <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
             <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
             <Route path="/verify" element={<PageTransition><VerifyOtp /></PageTransition>} />
+            <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
+            <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
             <Route path="/terms" element={<PageTransition><TermsOfService /></PageTransition>} />
             <Route path="/privacy" element={<PageTransition><PrivacyPolicy /></PageTransition>} />
 
@@ -93,6 +99,8 @@ function AnimatedRoutes() {
             <Route path="/web/login" element={<PageTransition><WebLogin /></PageTransition>} />
             <Route path="/web/signup" element={<PageTransition><WebSignup /></PageTransition>} />
             <Route path="/web/verify" element={<PageTransition><WebVerifyOtp /></PageTransition>} />
+            <Route path="/web/forgot-password" element={<PageTransition><WebForgotPassword /></PageTransition>} />
+            <Route path="/web/reset-password" element={<PageTransition><WebResetPassword /></PageTransition>} />
             <Route path="/web/auth-callback" element={<AuthCallback />} />
             <Route path="/web/pay/:username" element={<PageTransition><WebPayPage /></PageTransition>} />
             <Route path="/checkout/:sessionId" element={<PageTransition><CheckoutWidget /></PageTransition>} />

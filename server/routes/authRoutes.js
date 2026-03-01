@@ -13,6 +13,11 @@ const router = express.Router();
 import RefreshToken from '../models/refreshTokenModel.js';
 import { generateAuthTokens, generateAccessToken } from '../utils/tokenService.js';
 import { authLimiter } from '../middleware/rateLimiter.js';
+import { forgotPassword, resetPassword } from '../controllers/authController.js';
+
+// Public routes - no auth required
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 // ── Configure Passport Google Strategy ────────────────────────
 passport.use(new GoogleStrategy({

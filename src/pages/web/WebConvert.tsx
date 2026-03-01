@@ -8,6 +8,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { ArrowDownUp, Info, History } from "lucide-react";
 import { getMarketPrices } from "@/lib/marketData";
 
@@ -16,7 +24,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export default function WebConvert() {
   const queryClient = useQueryClient();
-  const { data: balancesData } = useBalances();
+  const { balances: balancesArray = [] } = useBalances();
   const [tab, setTab] = useState("buy");
   const [spendAmount, setSpendAmount] = useState("");
   const [receiveAmount, setReceiveAmount] = useState("0.00");
@@ -24,11 +32,13 @@ export default function WebConvert() {
   const [receiveCurrency, setReceiveCurrency] = useState("USDT");
   const [isLoading, setIsLoading] = useState(false);
   const [prices, setPrices] = useState<any[]>([]);
+  const [showConfirm, setShowConfirm] = useState(false);
   const { toast } = useToast();
 
   const getBalance = (currency: string) => {
-    if (!balancesData) return 0;
-    return balancesData[currency as keyof typeof balancesData] || 0;
+    if (!balancesArray || !Array.isArray(balancesArray)) return 0;
+    const wallet = balancesArray.find((b: any) => b.currency === currency) || balancesArray.find((b: any) => b.currency === (currency === 'USDT' ? 'USDT_TRC20' : currency));
+    return wallet ? wallet.balance : 0;
   };
 
   useEffect(() => {
@@ -66,7 +76,7 @@ export default function WebConvert() {
     setSpendAmount(receiveAmount === "0.00" ? "" : receiveAmount);
   };
 
-  const handleTransaction = async () => {
+  const handleTransactionClick = () => {
     if (!spendAmount || isNaN(Number(spendAmount))) {
       toast({ title: "Invalid Amount", description: "Please enter a valid amount.", variant: "destructive" });
       return;
@@ -83,6 +93,11 @@ export default function WebConvert() {
       return;
     }
 
+    setShowConfirm(true);
+  };
+
+  const handleTransactionExecute = async () => {
+    setShowConfirm(false);
     setIsLoading(true);
     try {
       const res = await fetch("/api/transactions/swap", {
@@ -244,7 +259,7 @@ export default function WebConvert() {
             <Button
               className={`w-full h-12 mt-6 text-base font-bold rounded-lg ${tab === 'buy' ? 'bg-[#22c55e] hover:bg-[#22c55e]/90 text-white' : 'bg-[#ef4444] hover:bg-[#ef4444]/90 text-white'}`}
               disabled={!spendAmount || Number(spendAmount) <= 0 || isLoading}
-              onClick={handleTransaction}
+              onClick={handleTransactionClick}
             >
               {isLoading ? "Processing..." : `${tab === 'buy' ? 'Buy' : 'Sell'} ${receiveCurrency}`}
             </Button>
@@ -262,6 +277,53 @@ export default function WebConvert() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirm Swap</DialogTitle>
+            <DialogDescription>
+              Please review your transaction details.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex justify-between items-center bg-muted/30 p-3 rounded-lg border border-border/40">
+              <span className="text-sm font-medium text-muted-foreground">You pay</span>
+              <span className="font-bold text-lg">{spendAmount} {spendCurrency}</span>
+            </div>
+
+            <div className="flex justify-center">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <ArrowDownUp className="w-4 h-4 text-primary" />
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center bg-muted/30 p-3 rounded-lg border border-border/40">
+              <span className="text-sm font-medium text-muted-foreground">You receive</span>
+              <span className="font-bold text-lg text-green-500">{receiveAmount} {receiveCurrency}</span>
+            </div>
+
+            <div className="flex flex-col gap-1 text-xs text-muted-foreground mt-2">
+              <div className="flex justify-between">
+                <span>Rate</span>
+                <span>1 {receiveCurrency} ≈ {spendCurrency === 'NGN' ? '1,600' : '1.00'} {spendCurrency}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Fee</span>
+                <span className="text-green-500">Included in rate</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowConfirm(false)} className="flex-1">
+              Cancel
+            </Button>
+            <Button onClick={handleTransactionExecute} className="flex-1">
+              Confirm Swap
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </WebLayout>
   );
 }

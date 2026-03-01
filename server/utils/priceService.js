@@ -42,24 +42,36 @@ export const getLiveRates = async () => {
             // Use CoinGecko USDT rate if Binance failed
             usdtRate = usdtRate || data.tether.ngn;
 
-            // Update the global rates object
-            FALLBACK_RATES.USDT_NGN = usdtRate;
-            FALLBACK_RATES.NGN_USDT = 1 / usdtRate;
+            // Updated Live Rates helper
+            const updateRate = (base, ngnValue) => {
+                FALLBACK_RATES[`${base}_NGN`] = ngnValue;
+                FALLBACK_RATES[`NGN_${base}`] = 1 / ngnValue;
 
-            FALLBACK_RATES.BTC_NGN = data.bitcoin.ngn;
-            FALLBACK_RATES.NGN_BTC = 1 / data.bitcoin.ngn;
+                // Add common variants for frontend compatibility
+                if (base === 'USDT') {
+                    FALLBACK_RATES[`USDT_TRC20_NGN`] = ngnValue;
+                    FALLBACK_RATES[`NGN_USDT_TRC20`] = 1 / ngnValue;
+                    FALLBACK_RATES[`USDT_ERC20_NGN`] = ngnValue;
+                    FALLBACK_RATES[`NGN_USDT_ERC20`] = 1 / ngnValue;
+                }
+                if (base === 'ETH') {
+                    FALLBACK_RATES[`ETH_TRC20_NGN`] = ngnValue;
+                    FALLBACK_RATES[`NGN_ETH_TRC20`] = 1 / ngnValue;
+                }
+                if (base === 'SOL') {
+                    FALLBACK_RATES[`SOL_TRC20_NGN`] = ngnValue;
+                    FALLBACK_RATES[`NGN_SOL_TRC20`] = 1 / ngnValue;
+                }
+            };
 
-            FALLBACK_RATES.ETH_NGN = data.ethereum.ngn;
-            FALLBACK_RATES.NGN_ETH = 1 / data.ethereum.ngn;
-
-            FALLBACK_RATES.SOL_NGN = data.solana.ngn;
-            FALLBACK_RATES.NGN_SOL = 1 / data.solana.ngn;
-
-            FALLBACK_RATES.TRX_NGN = data.tron.ngn;
-            FALLBACK_RATES.NGN_TRX = 1 / data.tron.ngn;
+            updateRate('USDT', usdtRate);
+            updateRate('BTC', data.bitcoin.ngn);
+            updateRate('ETH', data.ethereum.ngn);
+            updateRate('SOL', data.solana.ngn);
+            updateRate('TRX', data.tron.ngn);
 
             lastFetchTime = now;
-            console.log(`Updated Live Rates: USDT=${usdtRate}, BTC=${data.bitcoin.ngn}`);
+            console.log(`Updated Live Rates: USDT=${usdtRate.toFixed(2)}, BTC=${data.bitcoin.ngn.toLocaleString()}`);
         }
     } catch (error) {
         console.warn("Using existing/fallback rates:", error.message);

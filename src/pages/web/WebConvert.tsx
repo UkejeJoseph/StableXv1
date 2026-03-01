@@ -41,17 +41,26 @@ export default function WebConvert() {
     return wallet ? wallet.balance : 0;
   };
 
+  const [rates, setRates] = useState<Record<string, number>>({});
+
   useEffect(() => {
-    const fetchPrices = async () => {
-      const data = await getMarketPrices();
-      setPrices(data);
+    const fetchRates = async () => {
+      try {
+        const res = await fetch("/api/transactions/rates");
+        const data = await res.json();
+        if (data.success) {
+          setRates(data.rates);
+        }
+      } catch (e) {
+        console.error("Failed to fetch rates:", e);
+      }
     };
-    fetchPrices();
-    const interval = setInterval(fetchPrices, 10000);
+    fetchRates();
+    const interval = setInterval(fetchRates, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  // Simple conversion math for preview based on general rates
+  // Dynamic conversion math for preview based on backend rates
   useEffect(() => {
     if (!spendAmount || isNaN(Number(spendAmount))) {
       setReceiveAmount("0.00");
@@ -60,15 +69,35 @@ export default function WebConvert() {
 
     const amount = Number(spendAmount);
 
-    // NGN to USDT
-    if (spendCurrency === "NGN" && receiveCurrency === "USDT") {
-      setReceiveAmount((amount / 1600).toFixed(2));
-    } else if (spendCurrency === "USDT" && receiveCurrency === "NGN") {
-      setReceiveAmount((amount * 1600).toFixed(2));
+    // Check for direct pair (e.g. USDT_TRC20_NGN) or normalized base (USDT_NGN)
+    const pair = `${spendCurrency}_${receiveCurrency}`;
+    const rate = rates[pair];
+
+    if (rate) {
+      const displayDecimals = receiveCurrency === 'NGN' ? 2 : 6;
+      setReceiveAmount((amount * rate).toFixed(displayDecimals));
     } else {
-      setReceiveAmount((amount * 1).toFixed(4)); // Direct conversion for crypto-crypto
+      // Fallback for NGN -> Crypto or Crypto -> NGN if specific pair variant missing
+      const fromBase = spendCurrency.split('_')[0];
+      const toBase = receiveCurrency.split('_')[0];
+
+      // Try cross-rate via NGN base
+      let effectiveRate = 0;
+      if (spendCurrency === 'NGN') {
+        effectiveRate = rates[`NGN_${toBase}`] || rates[`NGN_${receiveCurrency}`] || 0;
+      } else if (receiveCurrency === 'NGN') {
+        effectiveRate = rates[`${fromBase}_NGN`] || rates[`${spendCurrency}_NGN`] || 0;
+      } else {
+        // Crypto to Crypto via NGN as bridge
+        const fromToNgn = rates[`${fromBase}_NGN`] || rates[`${spendCurrency}_NGN`] || 0;
+        const ngnToTo = rates[`NGN_${toBase}`] || rates[`NGN_${receiveCurrency}`] || 0;
+        if (fromToNgn && ngnToTo) effectiveRate = fromToNgn * ngnToTo;
+      }
+
+      const displayDecimals = receiveCurrency === 'NGN' ? 2 : 6;
+      setReceiveAmount(effectiveRate ? (amount * effectiveRate).toFixed(displayDecimals) : "0.00");
     }
-  }, [spendAmount, spendCurrency, receiveCurrency, prices]);
+  }, [spendAmount, spendCurrency, receiveCurrency, rates]);
 
   const handleSwap = () => {
     setSpendCurrency(receiveCurrency);
@@ -248,7 +277,11 @@ export default function WebConvert() {
               <div className="mt-6 space-y-3 bg-[#0b0e11]/50 p-3 rounded-lg border border-border/10">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground flex items-center gap-1">Exchange Rate <Info className="w-3 h-3" /></span>
-                  <span className="font-medium text-white">1 {receiveCurrency} ≈ {spendCurrency === 'NGN' ? '1,600' : '1.00'} {spendCurrency}</span>
+                  <span className="font-medium text-white">1 {receiveCurrency === 'NGN' ? spendCurrency : receiveCurrency} ≈ {
+                    receiveCurrency === 'NGN'
+                      ? (1 / (Number(receiveAmount) / Number(spendAmount))).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                      : (Number(spendAmount) / Number(receiveAmount)).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                  } NGN</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Transaction Fee</span>
@@ -308,7 +341,11 @@ export default function WebConvert() {
             <div className="flex flex-col gap-1 text-xs text-muted-foreground mt-2">
               <div className="flex justify-between">
                 <span>Rate</span>
-                <span>1 {receiveCurrency} ≈ {spendCurrency === 'NGN' ? '1,600' : '1.00'} {spendCurrency}</span>
+                <span>1 {receiveCurrency === 'NGN' ? spendCurrency : receiveCurrency} ≈ {
+                  receiveCurrency === 'NGN'
+                    ? (1 / (Number(receiveAmount) / Number(spendAmount))).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                    : (Number(spendAmount) / Number(receiveAmount)).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                } NGN</span>
               </div>
               <div className="flex justify-between">
                 <span>Fee</span>

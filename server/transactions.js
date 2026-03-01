@@ -228,13 +228,19 @@ router.post('/withdraw', protect, async (req, res) => {
 router.get('/rates', async (req, res) => {
   try {
     const liveRates = await getLiveRates();
-    const marketRate = liveRates.USDT_NGN || 1600;
     const SPREAD = 0.025;
-    const rates = {
-      'USDT_NGN': marketRate * (1 - SPREAD),
-      'NGN_USDT': 1 / (marketRate * (1 + SPREAD))
-    };
-    res.json({ success: true, rates });
+    const rates = {};
+
+    // Process all rates from priceService with spread
+    Object.keys(liveRates).forEach(pair => {
+      if (pair.endsWith('_NGN')) {
+        const base = pair.replace('_NGN', '');
+        rates[`${base}_NGN`] = liveRates[pair] * (1 - SPREAD); // User sells crypto to us
+        rates[`NGN_${base}`] = 1 / (liveRates[pair] * (1 + SPREAD)); // User buys crypto from us
+      }
+    });
+
+    res.json({ success: true, rates, marketRate: liveRates.USDT_NGN, spread: SPREAD });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -247,10 +253,16 @@ router.post('/swap', protect, async (req, res) => {
   try {
     const liveRates = await getLiveRates();
     const SPREAD = 0.025;
-    const fromValNgn = fromCurrency === 'NGN' ? 1 : liveRates[`${fromCurrency}_NGN`] || 0;
-    const toValNgn = toCurrency === 'NGN' ? 1 : liveRates[`${toCurrency}_NGN`] || 0;
 
-    if (!fromValNgn || !toValNgn) throw new Error('Rates unavailable');
+    // Normalize currencies (e.g. USDT_TRC20 -> USDT)
+    const normalize = (c) => c.split('_')[0];
+    const fromBase = normalize(fromCurrency);
+    const toBase = normalize(toCurrency);
+
+    const fromValNgn = fromCurrency === 'NGN' ? 1 : liveRates[`${fromCurrency}_NGN`] || liveRates[`${fromBase}_NGN`] || 0;
+    const toValNgn = toCurrency === 'NGN' ? 1 : liveRates[`${toCurrency}_NGN`] || liveRates[`${toBase}_NGN`] || 0;
+
+    if (!fromValNgn || !toValNgn) throw new Error(`Rates unavailable for ${fromCurrency}/${toCurrency}`);
 
     const rate = (fromValNgn / toValNgn) * (1 - SPREAD);
     const receiveAmount = Number(amount) * rate;

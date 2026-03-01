@@ -421,6 +421,7 @@ export default function WebDeposit() {
     };
 
     if (typeof window.webpayCheckout === "function") {
+      console.log("INTERSWITCH WEBPAY PAYLOAD [Card] =>", JSON.stringify(checkoutConfig, null, 2));
       window.webpayCheckout(checkoutConfig);
     } else {
       setErrorMessage("Payment system is loading. Please try again in a moment.");
@@ -678,10 +679,12 @@ export default function WebDeposit() {
       })
         .then(res => res.json())
         .then(data => {
+          console.log("INTERSWITCH WEBPAY PAYLOAD [WebCheckout Success] =>", JSON.stringify(checkoutConfig, null, 2));
           window.webpayCheckout(checkoutConfig);
         })
         .catch(err => {
           console.error("[WebCheckout] Failed to create pending transaction:", err);
+          console.log("INTERSWITCH WEBPAY PAYLOAD [WebCheckout Fallback] =>", JSON.stringify(checkoutConfig, null, 2));
           // Still try to launch checkout, but log error
           window.webpayCheckout(checkoutConfig);
         });

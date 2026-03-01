@@ -115,15 +115,16 @@ export async function handleWebhook(req, res) {
                 await creditUserWallet(
                     existingTx.user,
                     'NGN',
-                    amountInNgn,
+                    'user',
+                    Number(amountInNgn),
                     txRef,
                     {
                         paymentReference: paymentReference || '',
                         iswResponseCode: statusResult.data.responseCode,
                         creditedAt: new Date().toISOString(),
-                        source: 'Webhook'
-                    },
-                    'interswitch'
+                        source: 'Webhook',
+                        provider: 'interswitch'
+                    }
                 );
 
                 console.log('[WEBHOOK] ✅ Wallet credited and transaction updated via walletService');

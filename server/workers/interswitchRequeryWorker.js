@@ -67,14 +67,15 @@ const syncProcessingTransactions = async () => {
                     await creditUserWallet(
                         txn.userId || txn.user,
                         txn.currency,
-                        txn.amount,
+                        'user',
+                        Number(txn.amount),
                         `refund_${txn.reference}`,
                         {
                             type: 'withdrawal_refund',
                             originalRef: txn.reference,
-                            reason: `ISW Sync Failed: ${result.data?.responseDescription || 'Unknown Error'}`
-                        },
-                        'interswitch'
+                            reason: `ISW Sync Failed: ${result.data?.responseDescription || 'Unknown Error'}`,
+                            provider: 'interswitch'
+                        }
                     );
 
                     txn.status = 'failed';

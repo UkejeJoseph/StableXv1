@@ -142,7 +142,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
         });
     }
 
-    const { name, email: pendingEmail, password, otp: storedOtp, role, phoneNumber, merchantProfile } = JSON.parse(pendingData);
+    const { name, firstName, lastName, email: pendingEmail, password, otp: storedOtp, role, phoneNumber, merchantProfile } = JSON.parse(pendingData);
 
     if (otp !== storedOtp) {
         return res.status(400).json({ message: 'Incorrect OTP. Please try again.' });
@@ -158,6 +158,8 @@ const verifyOtp = asyncHandler(async (req, res) => {
     // To prevent double hashing by the model hook, we can create directly
     const user = new User({
         name,
+        firstName,
+        lastName,
         email: pendingEmail,
         password, // already hashed
         role: role || 'user',
@@ -244,7 +246,9 @@ const resendOtp = asyncHandler(async (req, res) => {
 // @route   POST /api/users
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-    const { email, password, name, phoneNumber, role, merchantProfile } = req.body;
+    const { email, password, firstName, lastName, phoneNumber, role, merchantProfile } = req.body;
+    let name = req.body.name || req.body.fullName;
+
     console.log(`[REGISTRATION] Attempt for email: ${email}`);
 
     try {
@@ -268,6 +272,8 @@ const registerUser = asyncHandler(async (req, res) => {
         // Store pending registration in Redis (10 min TTL)
         const pendingData = {
             name,
+            firstName,
+            lastName,
             email,
             password: hashedPassword,
             otp,

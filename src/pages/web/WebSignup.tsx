@@ -80,7 +80,9 @@ export default function Signup() {
                     email: formData.email,
                     password: formData.password,
                     username: formData.email.split('@')[0],
-                    fullName: `${formData.firstName} ${formData.lastName}`.trim(),
+                    name: `${formData.firstName} ${formData.lastName}`.trim(),
+                    firstName: formData.firstName.trim(),
+                    lastName: formData.lastName.trim(),
                     role,
                     phoneNumber: formData.phone,
                     ...(role === "merchant" && {

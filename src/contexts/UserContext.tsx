@@ -65,6 +65,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     useEffect(() => {
         refreshUser();
+
+        // Proactive session refresh every 5 minutes
+        const interval = setInterval(() => {
+            console.log("[UserContext] Proactive session refresh...");
+            refreshUser(true);
+        }, 5 * 60 * 1000);
+
+        return () => clearInterval(interval);
     }, []);
 
     const logout = async () => {

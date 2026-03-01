@@ -117,15 +117,21 @@ router.post('/deposit', protect, async (req, res) => {
 });
 
 router.post('/deposit-pending', protect, async (req, res) => {
-  const { amount, currency, reference } = req.body;
+  const { amount, currency, reference, provider } = req.body;
   try {
     const transaction = await Transaction.create({
-      user: req.user._id, type: 'deposit', status: 'pending',
-      amount: Number(amount), currency, reference,
-      description: `Pending ${currency} deposit`
+      userId: req.user._id,
+      type: currency === 'NGN' ? 'ngn_deposit' : 'crypto_deposit',
+      status: 'pending',
+      amount: Number(amount),
+      currency,
+      reference,
+      provider: provider || 'interswitch',
+      description: `Pending ${currency} deposit via ${provider || 'interswitch'}`
     });
     res.json({ success: true, transaction });
   } catch (error) {
+    console.error('[TX:DepositPending] ❌ Error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });

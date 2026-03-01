@@ -198,6 +198,12 @@ function AnimatedRoutes() {
               <Route path="/web/qr" element={
                 <PageTransition><WebQRCode /></PageTransition>
               } />
+              <Route path="/web/giftcard" element={
+                <PageTransition><Giftcard /></PageTransition>
+              } />
+              <Route path="/web/earn" element={
+                <PageTransition><Earn /></PageTransition>
+              } />
 
               {/* Admin Portal (Strict Auth) */}
               <Route element={<ProtectedAdminRoute />}>

@@ -301,11 +301,17 @@ export function WebLayout({ children, hideSidebar = false }: { children: React.R
                 {openServices ? <ChevronDown className="w-4 h-4 opacity-50" /> : <ChevronRight className="w-4 h-4 opacity-50" />}
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-1 pl-6 pt-1">
-                <Link to="/web/dashboard" className="block px-3 py-2 text-sm rounded-md transition-colors text-muted-foreground hover:text-white hover:bg-white/5 flex items-center gap-2">
-                  <Gift className="w-3.5 h-3.5" /> Rewards Hub
+                <Link
+                  to="/web/giftcard"
+                  className={`block px-3 py-2 text-sm rounded-md transition-colors ${isActive('/web/giftcard') ? 'bg-[#F0B90B]/10 text-[#F0B90B] font-medium' : 'text-muted-foreground hover:text-white hover:bg-white/5'} flex items-center gap-2`}
+                >
+                  <Gift className="w-3.5 h-3.5" /> Gift Cards
                 </Link>
-                <Link to="/web/dashboard" className="block px-3 py-2 text-sm rounded-md transition-colors text-muted-foreground hover:text-white hover:bg-white/5 flex items-center gap-2">
-                  <Coins className="w-3.5 h-3.5" /> Earn
+                <Link
+                  to="/web/earn"
+                  className={`block px-3 py-2 text-sm rounded-md transition-colors ${isActive('/web/earn') ? 'bg-[#F0B90B]/10 text-[#F0B90B] font-medium' : 'text-muted-foreground hover:text-white hover:bg-white/5'} flex items-center gap-2`}
+                >
+                  <Coins className="w-3.5 h-3.5" /> Earn / Staking
                 </Link>
                 <Link to="/web/dashboard" className="block px-3 py-2 text-sm rounded-md transition-colors text-muted-foreground hover:text-white hover:bg-white/5 flex items-center gap-2">
                   <Bot className="w-3.5 h-3.5" /> Trading Bots

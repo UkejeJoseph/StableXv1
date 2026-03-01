@@ -84,8 +84,7 @@ export default function WebDeposit() {
 
   // Web Redirect State
   const [redirectPayload, setRedirectPayload] = useState<{
-    hash: string;
-    amount: number;
+    amount: string;
     ref: string;
     redirectUrl: string;
   } | null>(null);
@@ -767,27 +766,15 @@ export default function WebDeposit() {
 
     try {
       const redirectUrl = `${window.location.origin}/dashboard/wallet/deposit-verify`;
-
-      const hashRes = await apiFetch("/api/interswitch/generate-checkout-hash", {
-        method: "POST",
-        body: JSON.stringify({
-          amount: parseFloat(amount),
-          txn_ref: ref,
-          redirect_url: redirectUrl,
-        }),
-      });
-
-      if (!hashRes.ok) throw new Error("Failed to generate security hash");
-      const { hash, amount: amountInKobo } = await hashRes.json();
+      const amountInKobo = Math.round(parseFloat(amount) * 100);
 
       // Set the payload, which triggers the form rendering in the UI
+      // NEW WEBPAY: No hash required for redirect
       setRedirectPayload({
-        hash,
-        amount: amountInKobo,
+        amount: amountInKobo.toString(),
         ref,
         redirectUrl
       });
-
     } catch (err: any) {
       setErrorMessage(err.message || "Failed to initiate web redirect.");
     } finally {
@@ -817,23 +804,7 @@ export default function WebDeposit() {
     setTransactionRef(ref);
 
     try {
-      // 1. Fetch SHA512 Hash from Backend
-      console.log("[WebCheckout] Fetching hash from backend...");
-      const hashRes = await apiFetch("/api/interswitch/generate-checkout-hash", {
-        method: "POST",
-        body: JSON.stringify({
-          amount: parseFloat(amount),
-          txn_ref: ref,
-          redirect_url: window.location.href,
-        }),
-      });
-
-      if (!hashRes.ok) {
-        const errorData = await hashRes.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to generate security hash");
-      }
-
-      const { hash, amount: amountInKobo } = await hashRes.json();
+      const amountInKobo = Math.round(parseFloat(amount) * 100);
 
       const checkoutConfig = {
         merchant_code: config.merchantCode,
@@ -846,6 +817,7 @@ export default function WebDeposit() {
         cust_email: user?.email || "customer@stablex.com",
         cust_id: user?._id || "guest",
         onComplete: async (response: any) => {
+          console.log("[WebCheckout] Popup closed/complete:", response);
           try {
             const verifyRes = await apiFetch(
               `/api/interswitch/web-checkout-confirm?transactionRef=${ref}&amount=${amount}`
@@ -876,7 +848,7 @@ export default function WebDeposit() {
       if (typeof window.webpayCheckout === "function") {
         console.log("[WebCheckout] Registering pending transaction...");
 
-        // 2. Create Pending Transaction on Backend (CRITICAL: ensure userId and provider are handled by router.post('/deposit-pending'))
+        // 2. Create Pending Transaction on Backend
         const registerRes = await apiFetch("/api/transactions/deposit-pending", {
           method: "POST",
           body: JSON.stringify({
@@ -1316,7 +1288,6 @@ export default function WebDeposit() {
                     <input type="hidden" name="txn_ref" value={redirectPayload.ref} />
                     <input type="hidden" name="amount" value={redirectPayload.amount} />
                     <input type="hidden" name="currency" value="566" />
-                    <input type="hidden" name="hash" value={redirectPayload.hash} />
 
                     <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white py-6 text-lg">
                       Proceed to Secure Gateway →

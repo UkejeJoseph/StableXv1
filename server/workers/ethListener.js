@@ -29,9 +29,11 @@ const ERC20_ABI = [
 const RPC_URLS = [
     process.env.ETH_RPC_URL,
     'https://eth.llamarpc.com',
-    'https://cloudflare-eth.com',
     'https://ethereum-rpc.publicnode.com',
-    process.env.ETH_RPC_ALCHEMY_URL,
+    'https://eth-mainnet.public.blastapi.io',
+    'https://1rpc.io/eth',
+    'https://rpc.ankr.com/eth',
+    'https://cloudflare-eth.com',
 ].filter(Boolean);
 
 let ethProvider = null;
@@ -39,10 +41,10 @@ let ethProvider = null;
 const initProvider = async () => {
     for (const url of RPC_URLS) {
         try {
-            const p = new ethers.JsonRpcProvider(url, undefined, {
+            const p = new ethers.JsonRpcProvider(url, { chainId: 1, name: 'mainnet' }, {
                 staticNetwork: true,
-                polling: false, // Disabling ethers internal polling to rely on manual pollBlocks
-                timeout: 30000
+                batchMaxCount: 1,
+                timeout: 10000
             });
             const blockNumber = await p.getBlockNumber();
             console.log(`[ETH] Connected to RPC: ${url} (block ${blockNumber})`);

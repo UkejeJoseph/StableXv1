@@ -343,11 +343,15 @@ export async function getSwapRate(fromCurrency, toCurrency) {
     const SPREAD = 1.025;
     const usdToNgn = market.usdToNgn;
 
-    // Build rate lookup
+    // Normalization helper: USDT_TRC20 -> USDT, SOL_TRC20 -> SOL
+    const normalize = (c) => c.split('_')[0];
+    const fromBase = normalize(fromCurrency);
+    const toBase = normalize(toCurrency);
+
+    // Build rate lookup in USD
     const usdPrices = {
         NGN: 1 / usdToNgn,
-        USDT_TRC20: 1,
-        USDT_ERC20: 1,
+        USDT: 1,
         BTC: market.prices['BTC']?.usd,
         ETH: market.prices['ETH']?.usd,
         SOL: market.prices['SOL']?.usd,
@@ -355,19 +359,23 @@ export async function getSwapRate(fromCurrency, toCurrency) {
         BNB: market.prices['BNB']?.usd,
     };
 
-    const fromUsd = usdPrices[fromCurrency];
-    const toUsd = usdPrices[toCurrency];
+    const fromUsd = usdPrices[fromBase] || market.prices[fromBase]?.usd;
+    const toUsd = usdPrices[toBase] || market.prices[toBase]?.usd;
 
     if (!fromUsd || !toUsd) {
-        console.error('[PRICE-SERVICE] ❌ Unknown currency:', fromCurrency, toCurrency);
+        console.error('[PRICE-SERVICE] ❌ Unknown currency:', fromCurrency, '(', fromBase, ') or', toCurrency, '(', toBase, ')');
         throw new Error(`Unsupported currency pair: ${fromCurrency}/${toCurrency}`);
     }
 
     // Rate with spread applied
+    // (fromUsd / toUsd) is the raw market rate
     const rawRate = fromUsd / toUsd;
-    const rateWithSpread = toCurrency === 'NGN'
-        ? rawRate * usdToNgn * SPREAD
-        : rawRate / SPREAD;
+
+    // Applying spread: 
+    // If buying: rate is higher (costs more)
+    // If selling: rate is lower (receive less)
+    // Here we use a symmetric spread for simplicity or specific logic
+    const rateWithSpread = rawRate / SPREAD;
 
     console.log('[PRICE-SERVICE] Rate:', fromCurrency, '→', toCurrency, '=', rateWithSpread);
 

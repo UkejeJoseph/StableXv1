@@ -257,22 +257,18 @@ router.post('/swap', protect, async (req, res) => {
   const swapRef = `SWAP-${Date.now()}`;
 
   try {
-    const liveRates = await getLiveRates();
-    const SPREAD = 0.025;
+    const { getSwapRate } = await import('./services/priceService.js');
+    const swapData = await getSwapRate(fromCurrency, toCurrency);
 
-    // Normalize currencies (e.g. USDT_TRC20 -> USDT)
-    const normalize = (c) => c.split('_')[0];
-    const fromBase = normalize(fromCurrency);
-    const toBase = normalize(toCurrency);
-
-    const fromValNgn = fromCurrency === 'NGN' ? 1 : liveRates[`${fromCurrency}_NGN`] || liveRates[`${fromBase}_NGN`] || 0;
-    const toValNgn = toCurrency === 'NGN' ? 1 : liveRates[`${toCurrency}_NGN`] || liveRates[`${toBase}_NGN`] || 0;
-
-    if (!fromValNgn || !toValNgn) throw new Error(`Rates unavailable for ${fromCurrency}/${toCurrency}`);
-
-    const rate = (fromValNgn / toValNgn) * (1 - SPREAD);
+    const rate = swapData.rate;
     const receiveAmount = Number(amount) * rate;
-    const profit = (Number(amount) * fromValNgn) * SPREAD;
+
+    // Profit calculation for the platform (2.5% spread included in getSwapRate)
+    // Relative to NGN for consistent accounting
+    const market = await getLiveRates();
+    const usdToNgn = market.usdToNgn;
+    const fromUsd = (await getSwapRate(fromCurrency, 'USDT_TRC20')).rate;
+    const profit = (Number(amount) * fromUsd * usdToNgn) * 0.02439; // approx. 2.5% of the gross
 
     const treasuryUser = await User.findOne({ email: 'platform@stablex.internal' });
     if (!treasuryUser) throw new Error('Treasury error');

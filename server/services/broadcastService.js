@@ -58,12 +58,16 @@ export async function broadcastETH(toAddress, amount, currency = 'ETH') {
     // Connect to provider
     const rpcUrl = process.env.ETH_RPC_URL ||
         'https://rpc.ankr.com/eth' ||
-        'https://cloudflare-eth.com' ||
-        'https://ethereum.publicnode.com';
+        'https://1rpc.io/eth' ||
+        'https://eth-mainnet.public.blastapi.io' ||
+        'https://cloudflare-eth.com';
 
     console.log('[BROADCAST-ETH] RPC URL:', rpcUrl);
 
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const provider = new ethers.JsonRpcProvider(rpcUrl, { chainId: 1, name: 'mainnet' }, {
+        staticNetwork: true,
+        timeout: 10000
+    });
     const wallet = new ethers.Wallet(`0x${privateKey}`, provider);
 
     if (currency === 'ETH') {

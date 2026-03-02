@@ -164,10 +164,27 @@ class KorapayService {
         return data.data;
     }
 
+    async queryPayout(reference) {
+        if (!this.enabled) {
+            throw new Error('KoraPay credentials not configured.');
+        }
+        const url = `${KORA_BASE_URL}/transactions/${reference}`;
+        console.log('[KORAPAY] 🔍 Querying Payout status:', url);
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: this.headers
+        });
+
+        const data = await response.json();
+        return data; // Return full object for handler to decide
+    }
+
     async listBanks() {
         if (!this.enabled) {
             throw new Error('NGN deposits are not available. KoraPay credentials not configured.');
         }
+        const url = `${KORA_BASE_URL}/misc/banks?countryCode=NG`;
         console.log('[KORAPAY] 🏦 Fetching bank list from:', url);
         try {
             const response = await fetch(url, {

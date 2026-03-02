@@ -81,6 +81,7 @@ export async function verifyBankAccount(bankCode, accountId) {
     }
 
     const data = await response.json();
+    console.log('[ISW:Payout] 📥 Name enquiry response:', JSON.stringify(data));
     return { ok: true, data };
 }
 

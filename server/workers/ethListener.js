@@ -47,14 +47,14 @@ const initProvider = async () => {
                 timeout: 10000
             });
             const blockNumber = await p.getBlockNumber();
-            console.log(`[ETH] Connected to RPC: ${url} (block ${blockNumber})`);
+            console.log(`[ETH] ✅ Connected to RPC: ${url} (block ${blockNumber})`);
             ethProvider = p;
             return p;
         } catch (err) {
-            console.warn(`[ETH] ⚠️ RPC FAILOVER: Provider ${url} failed to respond. Trying next URL in pool...`);
+            console.warn(`[ETH] ⚠️ RPC FAILOVER: Provider ${url} failed:`, err.message);
         }
     }
-    console.error('[ETH] All RPC providers failed. ETH deposits disabled.');
+    console.error('[ETH] 🛑 ALL RPC PROVIDERS FAILED. ETH deposits disabled.');
     return null;
 };
 

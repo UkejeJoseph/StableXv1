@@ -125,6 +125,36 @@ export default function WebWithdraw() {
     }
   }, [accountNumber, selectedBank]);
 
+  // Handle Korapay Name Enquiry
+  useEffect(() => {
+    if (activeTab === "korapay_form" && accountNumber.length === 10 && selectedBank) {
+      const verifyKorapayAccount = async () => {
+        setIsVerifyingName(true);
+        setAccountName("");
+        setErrorMessage("");
+
+        try {
+          const res = await fetch(`/api/korapay/resolve?bankCode=${selectedBank}&accountNumber=${accountNumber}`, {
+            credentials: "include"
+          });
+          if (!res.ok) throw new Error("Korapay resolution failed");
+          const data = await res.json();
+
+          if (data.success && data.accountName) {
+            setAccountName(data.accountName);
+          }
+        } catch (error: any) {
+          console.warn("Korapay name enquiry failed:", error.message);
+        } finally {
+          setIsVerifyingName(false);
+        }
+      };
+
+      const timer = setTimeout(verifyKorapayAccount, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [accountNumber, selectedBank, activeTab]);
+
   // Handle Korapay Banks Fetching
   useEffect(() => {
     if (activeTab === "korapay_form" && korapayBanks.length === 0) {
@@ -148,7 +178,7 @@ export default function WebWithdraw() {
       };
       fetchKorapayBanks();
     }
-  }, [activeTab]);
+  }, [activeTab, korapayBanks.length]);
 
   const handleWithdraw = async () => {
     if (!amount || isNaN(Number(amount))) {
@@ -437,8 +467,8 @@ export default function WebWithdraw() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <PaymentMethodCard
                   id="bank_transfer"
-                  title="Direct Bank Transfer"
-                  icon={<Building2 className="w-5 h-5" />}
+                  title="Direct Bank Transfer (Interswitch)"
+                  icon={<Building2 className="w-5 h-5 text-blue-600" />}
                   processingTime="Instant"
                   fee="₦50 flat"
                   limits="₦1,000 - ₦50,000,000"
@@ -447,10 +477,10 @@ export default function WebWithdraw() {
                 />
                 <PaymentMethodCard
                   id="korapay_transfer"
-                  title="Alternative Bank Transfer"
+                  title="Alternative Bank Transfer (Korapay)"
                   icon={<Building2 className="w-5 h-5 text-purple-600" />}
                   processingTime="Instant"
-                  fee="₦50 flat (Korapay)"
+                  fee="₦50 flat"
                   limits="₦1,000 - ₦5,000,000"
                   recommended={false}
                   onClick={() => {
@@ -610,24 +640,37 @@ export default function WebWithdraw() {
 
                 <div className="space-y-2">
                   <Label>Account Number</Label>
-                  <Input
-                    type="text"
-                    maxLength={10}
-                    placeholder="0123456789"
-                    value={accountNumber}
-                    onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Account Name</Label>
-                  <Input
-                    type="text"
-                    placeholder="Legal Name on Account"
-                    value={accountName}
-                    onChange={(e) => setAccountName(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Please type your account name exactly as it appears.</p>
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      maxLength={10}
+                      placeholder="0123456789"
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
+                      className={accountName ? "border-green-500 focus-visible:ring-green-500" : ""}
+                    />
+                    {isVerifyingName && (
+                      <div className="absolute right-3 top-2.5">
+                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  {accountName && (
+                    <div className="flex items-center gap-2 mt-1 text-sm text-green-600 font-medium animate-in slide-in-from-top-1">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>{accountName}</span>
+                    </div>
+                  )}
+                  {!accountName && isVerifyingName && accountNumber.length === 10 && selectedBank && (
+                    <p className="text-xs text-muted-foreground animate-in fade-in">
+                      Verifying account via Korapay...
+                    </p>
+                  )}
+                  {!accountName && !isVerifyingName && accountNumber.length === 10 && selectedBank && (
+                    <p className="text-xs text-red-500 animate-in fade-in">
+                      Unable to verify account name. Please check details.
+                    </p>
+                  )}
                 </div>
 
                 {errorMessage && (

@@ -6,19 +6,29 @@ const RELOADLY_BASE_URL = 'https://giftcards.reloadly.com';
  * Get Reloadly OAuth access token
  */
 export const getReloadlyToken = async () => {
-    const res = await fetch('https://auth.reloadly.com/oauth/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            client_id: process.env.RELOADLY_CLIENT_ID,
-            client_secret: process.env.RELOADLY_CLIENT_SECRET,
-            grant_type: 'client_credentials',
-            audience: RELOADLY_BASE_URL,
-        }),
-    });
-    const data = await res.json();
-    if (!data.access_token) throw new Error('Reloadly auth failed: ' + JSON.stringify(data));
-    return data.access_token;
+    console.log('[RELOADLY] 🔑 Requesting token...');
+    try {
+        const res = await fetch('https://auth.reloadly.com/oauth/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                client_id: process.env.RELOADLY_CLIENT_ID,
+                client_secret: process.env.RELOADLY_CLIENT_SECRET,
+                grant_type: 'client_credentials',
+                audience: RELOADLY_BASE_URL,
+            }),
+        });
+        const data = await res.json();
+        if (!data.access_token) {
+            console.error('[RELOADLY] ❌ Auth failed:', JSON.stringify(data));
+            throw new Error('Reloadly auth failed: ' + (data.message || JSON.stringify(data)));
+        }
+        console.log('[RELOADLY] ✅ Token obtained');
+        return data.access_token;
+    } catch (error) {
+        console.error('[RELOADLY] 💥 Fetch error during auth:', error.message);
+        throw error;
+    }
 };
 
 /**

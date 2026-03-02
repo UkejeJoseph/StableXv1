@@ -313,10 +313,40 @@ export const initiatePayout = async (req, res) => {
 };
 
 /**
+ * Resolve Bank Account Name
+ */
+export const resolveAccount = async (req, res) => {
+    try {
+        const { bankCode, accountNumber } = req.query;
+        if (!bankCode || !accountNumber) {
+            return res.status(400).json({ message: 'Bank code and account number are required' });
+        }
+
+        console.log(`[KORAPAY-RESOLVE] 🔍 Resolving: ${accountNumber} at ${bankCode}`);
+        const resolved = await korapayService.resolveBankAccount(bankCode, accountNumber);
+
+        if (!resolved) {
+            return res.status(404).json({ message: 'Could not resolve account name' });
+        }
+
+        res.status(200).json({
+            success: true,
+            accountName: resolved.account_name,
+            accountNumber: resolved.account_number,
+            bankCode: bankCode
+        });
+    } catch (error) {
+        console.error('Korapay resolveAccount error:', error);
+        res.status(500).json({ message: error.message || 'Failed to resolve account' });
+    }
+};
+
+/**
  * Get Supported Banks
  */
 export const getBanks = async (req, res) => {
     try {
+        console.log('[KORAPAY-BANKS] 🏦 Fetching bank list...');
         const banks = await korapayService.listBanks();
         res.status(200).json(banks);
     } catch (error) {

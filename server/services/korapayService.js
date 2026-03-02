@@ -168,18 +168,24 @@ class KorapayService {
         if (!this.enabled) {
             throw new Error('NGN deposits are not available. KoraPay credentials not configured.');
         }
-        const url = `${KORA_BASE_URL}/misc/banks`;
+        console.log('[KORAPAY] 🏦 Fetching bank list from:', url);
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: this.headers
+            });
 
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: this.headers
-        });
-
-        const data = await response.json();
-        if (!data.status) {
-            throw new Error(`Korapay Bank List Error: ${data.message || 'Unknown error'}`);
+            const data = await response.json();
+            if (!data.status) {
+                console.error('[KORAPAY] ❌ Bank List Error:', JSON.stringify(data));
+                throw new Error(`Korapay Bank List Error: ${data.message || 'Unknown error'}`);
+            }
+            console.log(`[KORAPAY] ✅ Banks fetched: ${data.data?.length || 0}`);
+            return data.data;
+        } catch (error) {
+            console.error('[KORAPAY] 💥 Exception fetching banks:', error.message);
+            throw error;
         }
-        return data.data;
     }
 
     async resolveBankAccount(bankCode, accountNumber) {

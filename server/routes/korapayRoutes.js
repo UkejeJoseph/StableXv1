@@ -5,7 +5,8 @@ import {
     initiatePayout,
     getBanks,
     createTemporaryAccount,
-    initializePayWithBank
+    initializePayWithBank,
+    resolveAccount
 } from '../controllers/korapayController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -21,5 +22,6 @@ router.post('/deposit/pay-with-bank', protect, initializePayWithBank);
 // ── Payouts (Withdrawals) ─────────────────────
 router.post('/payout', protect, initiatePayout);
 router.get('/banks', getBanks);
+router.get('/resolve', protect, resolveAccount);
 
 export default router;

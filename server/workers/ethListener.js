@@ -46,6 +46,8 @@ const initProvider = async () => {
                 batchMaxCount: 1,
                 timeout: 10000
             });
+            // Disable ENS logic explicitly by setting provider.getEnsAddress to null behavior
+            p.getEnsAddress = async () => null;
             const blockNumber = await p.getBlockNumber();
             console.log(`[ETH] ✅ Connected to RPC: ${url} (block ${blockNumber})`);
             ethProvider = p;

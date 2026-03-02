@@ -115,7 +115,6 @@ export async function handleWebhook(req, res) {
                 await creditUserWallet(
                     existingTx.user,
                     'NGN',
-                    'user',
                     Number(amountInNgn),
                     txRef,
                     {

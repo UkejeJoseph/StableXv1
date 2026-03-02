@@ -144,8 +144,7 @@ async function handleChargeSuccess(data) {
     await creditUserWallet(
         userId,
         'NGN',
-        'user', // Explicitly provide type to satisfy polymorphic signature
-        Number(confirmedAmount), // Cast string string from JSON to number
+        Number(confirmedAmount), // Match numeric signature: amount comes after currency
         reference,
         { ...data, method: 'webhook_charge_success', provider: 'korapay' }
     );

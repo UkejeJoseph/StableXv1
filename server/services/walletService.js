@@ -103,7 +103,11 @@ export async function debitUserWallet(
 
     // Normalization
     currency = currency?.toUpperCase();
-    network = network?.toUpperCase();
+    if (currency === 'NGN') {
+        network = 'INTERNAL';
+    } else {
+        network = network?.toUpperCase();
+    }
 
     console.log('[WALLET-SERVICE] DEBIT');
     console.log('[WALLET-SERVICE] User:', userId);

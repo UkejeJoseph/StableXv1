@@ -136,7 +136,29 @@ router.post('/deposit-pending', protect, async (req, res) => {
   }
 });
 
-// ─── WITHDRAWALS ───────────────────────────────────────────────
+// ─── PAYMENT LINKS ───────────────────────────────────────────────
+
+router.post('/payment-link/create', protect, async (req, res) => {
+  try {
+    const { amount, currency } = req.body;
+    // Use the base URL of the request or a configured frontend URL
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.get('host');
+    const baseUrl = `${protocol}://${host}`;
+
+    let link = `${baseUrl}/web/pay/${req.user.username}`;
+    const params = [];
+    if (amount) params.push(`amount=${amount}`);
+    if (currency) params.push(`currency=${currency}`);
+    if (params.length > 0) link += `?${params.join('&')}`;
+
+    res.json({ success: true, link });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ─── WITHDRAWALS ─────────────────────────────────────────────────
 
 router.post('/withdraw-crypto', protect, transferLimiter, idempotency, async (req, res) => {
   const { amount, toAddress, currency, network } = req.body;

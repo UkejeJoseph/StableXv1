@@ -166,12 +166,37 @@ export default function WebWithdraw() {
           });
           if (!res.ok) throw new Error("Failed to fetch Korapay banks");
           const data = await res.json();
-          if (Array.isArray(data)) {
-            const formatted = data.map((b: any) => ({ Code: b.bank_code, Name: b.name }));
+
+          // Korapay API often returns data in data.data or directly as an array
+          const bankList = Array.isArray(data) ? data : (data.data && Array.isArray(data.data) ? data.data : []);
+
+          if (bankList.length > 0) {
+            const formatted = bankList.map((b: any) => ({
+              Code: b.bankCode || b.bank_code || b.code || b.Code,
+              Name: b.bankName || b.bank_name || b.name || b.Name
+            }));
             setKorapayBanks(formatted);
+          } else {
+            throw new Error("No banks returned from Korapay");
           }
         } catch (error: any) {
-          console.warn("Korapay Banks Error:", error.message);
+          console.warn("Korapay Banks Error, using fallback:", error.message);
+          // Fallback to standard Nigerian banks (CBN codes are consistent)
+          setKorapayBanks([
+            { Code: "044", Name: "Access Bank" },
+            { Code: "058", Name: "GTBank" },
+            { Code: "033", Name: "UBA" },
+            { Code: "057", Name: "Zenith Bank" },
+            { Code: "011", Name: "First Bank" },
+            { Code: "050", Name: "Ecobank" },
+            { Code: "032", Name: "Union Bank" },
+            { Code: "035", Name: "Wema Bank" },
+            { Code: "070", Name: "Fidelity Bank" },
+            { Code: "232", Name: "Sterling Bank" },
+            { Code: "100004", Name: "OPay" },
+            { Code: "090267", Name: "Kuda" },
+            { Code: "100003", Name: "PalmPay" },
+          ]);
         } finally {
           setIsLoadingKorapayBanks(false);
         }

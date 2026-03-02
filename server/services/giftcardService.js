@@ -20,8 +20,8 @@ export const getReloadlyToken = async () => {
         });
         const data = await res.json();
         if (!data.access_token) {
-            console.error('[RELOADLY] ❌ Auth failed:', JSON.stringify(data));
-            throw new Error('Reloadly auth failed: ' + (data.message || JSON.stringify(data)));
+            console.error('[RELOADLY] ❌ Auth failed. Response:', JSON.stringify(data, null, 2));
+            throw new Error('Reloadly auth failed: ' + (data.message || data.error_description || JSON.stringify(data)));
         }
         console.log('[RELOADLY] ✅ Token obtained');
         return data.access_token;

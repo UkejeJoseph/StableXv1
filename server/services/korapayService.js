@@ -182,27 +182,54 @@ class KorapayService {
 
     async listBanks() {
         if (!this.enabled) {
-            throw new Error('NGN deposits are not available. KoraPay credentials not configured.');
+            console.warn('[KORAPAY] ⚠️ Service disabled, using fallback bank list.');
+            return this._getFallbackBanks();
         }
         const url = `${KORA_BASE_URL}/misc/banks?countryCode=NG`;
         console.log('[KORAPAY] 🏦 Fetching bank list from:', url);
         try {
             const response = await fetch(url, {
                 method: 'GET',
-                headers: this.headers
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.KORAPAY_PUBLIC_KEY || process.env.KORA_PUBLIC_KEY}`
+                }
             });
+
+            if (response.status === 401) {
+                console.error('[KORAPAY] ❌ 401 Unauthorized. Check your KORAPAY_SECRET_KEY.');
+                return this._getFallbackBanks();
+            }
 
             const data = await response.json();
             if (!data.status) {
                 console.error('[KORAPAY] ❌ Bank List Error:', JSON.stringify(data));
-                throw new Error(`Korapay Bank List Error: ${data.message || 'Unknown error'}`);
+                return this._getFallbackBanks();
             }
             console.log(`[KORAPAY] ✅ Banks fetched: ${data.data?.length || 0}`);
             return data.data;
         } catch (error) {
             console.error('[KORAPAY] 💥 Exception fetching banks:', error.message);
-            throw error;
+            return this._getFallbackBanks();
         }
+    }
+
+    _getFallbackBanks() {
+        return [
+            { bank_name: "Access Bank", bank_code: "044" },
+            { bank_name: "GTBank", bank_code: "058" },
+            { bank_name: "UBA", bank_code: "033" },
+            { bank_name: "Zenith Bank", bank_code: "057" },
+            { bank_name: "First Bank", bank_code: "011" },
+            { bank_name: "Ecobank", bank_code: "050" },
+            { bank_name: "Union Bank", bank_code: "032" },
+            { bank_name: "Wema Bank", bank_code: "035" },
+            { bank_name: "Fidelity Bank", bank_code: "070" },
+            { bank_name: "Sterling Bank", bank_code: "232" },
+            { bank_name: "OPay", bank_code: "100004" },
+            { bank_name: "Kuda", bank_code: "090267" },
+            { bank_name: "PalmPay", bank_code: "100003" }
+        ];
     }
 
     async resolveBankAccount(bankCode, accountNumber) {

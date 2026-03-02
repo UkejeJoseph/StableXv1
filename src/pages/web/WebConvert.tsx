@@ -89,19 +89,8 @@ export default function WebConvert() {
   };
 
   const handleTransactionClick = () => {
-    if (!spendAmount || isNaN(Number(spendAmount))) {
-      toast({ title: "Invalid Amount", description: "Please enter a valid amount.", variant: "destructive" });
-      return;
-    }
-
-    const numAmount = Number(spendAmount);
-    const minAmount = spendCurrency === 'NGN' ? 1000 : 5;
-    if (numAmount < minAmount) {
-      toast({
-        title: "Amount Too Small",
-        description: `Minimum swap is ${minAmount} ${spendCurrency}`,
-        variant: "destructive"
-      });
+    if (!spendAmount || isNaN(Number(spendAmount)) || Number(spendAmount) <= 0) {
+      toast({ title: "Invalid Amount", description: "Please enter a valid amount greater than 0.", variant: "destructive" });
       return;
     }
 
@@ -153,16 +142,16 @@ export default function WebConvert() {
 
   return (
     <WebLayout>
-      <div className="flex flex-col h-full bg-[#0b0e11] text-foreground -mt-4">
+      <div className="flex flex-col h-full bg-background text-foreground -mt-4 transition-colors">
 
         {/* Page Header matching Bybit One-Click Buy */}
         <div className="flex items-center justify-between py-6 border-b border-border/20">
           <div className="flex items-center gap-4">
             <h1 className="text-2xl font-bold tracking-tight">One-Click Buy</h1>
             <div className="hidden sm:flex items-center gap-4 text-sm font-medium text-muted-foreground ml-4">
-              <span className="text-white border-b-2 border-[#F0B90B] pb-1 cursor-pointer">Express</span>
-              <span className="hover:text-white cursor-pointer pb-1 border-b-2 border-transparent">P2P Trading</span>
-              <span className="hover:text-white cursor-pointer pb-1 border-b-2 border-transparent">Fiat Deposit</span>
+              <span className="text-foreground border-b-2 border-accent pb-1 cursor-pointer">Express</span>
+              <span className="hover:text-foreground cursor-pointer pb-1 border-b-2 border-transparent">P2P Trading</span>
+              <span className="hover:text-foreground cursor-pointer pb-1 border-b-2 border-transparent">Fiat Deposit</span>
             </div>
           </div>
           <Button variant="outline" className="border-border/30 h-8 text-xs font-semibold gap-2">
@@ -172,17 +161,17 @@ export default function WebConvert() {
 
         {/* Main Content Area */}
         <div className="flex-1 py-12 flex justify-center">
-          <Card className="w-full max-w-[480px] bg-[#1e2329] border-border/20 p-6 shadow-2xl relative overflow-hidden">
+          <Card className="w-full max-w-[480px] bg-card border-border/20 p-6 shadow-2xl relative overflow-hidden transition-colors">
             <Tabs value={tab} onValueChange={setTab} className="w-full mb-6">
-              <TabsList className="bg-[#0b0e11] w-full p-1 rounded-lg">
-                <TabsTrigger value="buy" className="w-1/2 data-[state=active]:bg-[#2b3139] data-[state=active]:text-green-500 rounded-md">Buy</TabsTrigger>
-                <TabsTrigger value="sell" className="w-1/2 data-[state=active]:bg-[#2b3139] data-[state=active]:text-red-500 rounded-md">Sell</TabsTrigger>
+              <TabsList className="bg-background w-full p-1 rounded-lg">
+                <TabsTrigger value="buy" className="w-1/2 data-[state=active]:bg-muted data-[state=active]:text-green-500 rounded-md">Buy</TabsTrigger>
+                <TabsTrigger value="sell" className="w-1/2 data-[state=active]:bg-muted data-[state=active]:text-red-500 rounded-md">Sell</TabsTrigger>
               </TabsList>
             </Tabs>
 
             <div className="space-y-4 relative">
               {/* Spend Input */}
-              <div className="bg-[#0b0e11] rounded-xl p-4 border border-border/10 focus-within:border-[#F0B90B]/50 transition-colors">
+              <div className="bg-background rounded-xl p-4 border border-border/10 focus-within:border-accent/50 transition-colors">
                 <div className="flex justify-between text-xs text-muted-foreground mb-2">
                   <span>Spend</span>
                   <span>Balance: {getBalance(spendCurrency).toLocaleString()} {spendCurrency}</span>
@@ -195,12 +184,12 @@ export default function WebConvert() {
                     onChange={(e) => setSpendAmount(e.target.value)}
                     className="bg-transparent border-0 h-10 text-2xl font-semibold p-0 focus-visible:ring-0 shadow-none placeholder:text-muted-foreground/30 flex-1"
                   />
-                  <div className="bg-[#1e2329] rounded-md px-1 py-0.5 whitespace-nowrap">
+                  <div className="bg-muted rounded-md px-1 py-0.5 whitespace-nowrap">
                     <Select value={spendCurrency} onValueChange={setSpendCurrency}>
                       <SelectTrigger className="w-24 h-8 border-0 bg-transparent focus:ring-0 shadow-none font-bold text-sm">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#1e2329] border-border/20 text-white">
+                      <SelectContent className="bg-card border-border/20 text-foreground">
                         <SelectItem value="NGN">NGN</SelectItem>
                         <SelectItem value="USDT_TRC20">USDT (TRC20)</SelectItem>
                         <SelectItem value="BTC">BTC</SelectItem>
@@ -217,7 +206,7 @@ export default function WebConvert() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 rounded-full bg-[#1e2329] border-border/20 hover:bg-[#2b3139] hover:text-[#F0B90B] text-muted-foreground shadow-md"
+                  className="h-8 w-8 rounded-full bg-card border-border/20 hover:bg-muted hover:text-accent text-muted-foreground shadow-md"
                   onClick={handleSwap}
                 >
                   <ArrowDownUp className="w-4 h-4" />
@@ -225,7 +214,7 @@ export default function WebConvert() {
               </div>
 
               {/* Receive Input */}
-              <div className="bg-[#0b0e11] rounded-xl p-4 border border-border/10 focus-within:border-[#F0B90B]/50 transition-colors">
+              <div className="bg-background rounded-xl p-4 border border-border/10 focus-within:border-accent/50 transition-colors">
                 <div className="flex justify-between text-xs text-muted-foreground mb-2">
                   <span>Receive</span>
                 </div>
@@ -234,14 +223,14 @@ export default function WebConvert() {
                     type="text"
                     readOnly
                     value={receiveAmount}
-                    className="bg-transparent border-0 h-10 text-2xl font-semibold p-0 focus-visible:ring-0 shadow-none text-white/90 flex-1"
+                    className="bg-transparent border-0 h-10 text-2xl font-semibold p-0 focus-visible:ring-0 shadow-none text-foreground/90 flex-1"
                   />
-                  <div className="bg-[#1e2329] rounded-md px-1 py-0.5 whitespace-nowrap">
+                  <div className="bg-muted rounded-md px-1 py-0.5 whitespace-nowrap">
                     <Select value={receiveCurrency} onValueChange={setReceiveCurrency}>
                       <SelectTrigger className="w-24 h-8 border-0 bg-transparent focus:ring-0 shadow-none font-bold text-sm">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#1e2329] border-border/20 text-white">
+                      <SelectContent className="bg-card border-border/20 text-foreground">
                         <SelectItem value="USDT_TRC20">USDT (TRC20)</SelectItem>
                         <SelectItem value="BTC">BTC</SelectItem>
                         <SelectItem value="ETH">ETH</SelectItem>
@@ -257,10 +246,10 @@ export default function WebConvert() {
 
             {/* Info Panel */}
             {spendAmount && Number(spendAmount) > 0 && (
-              <div className="mt-6 space-y-3 bg-[#0b0e11]/50 p-3 rounded-lg border border-border/10">
+              <div className="mt-6 space-y-3 bg-secondary p-3 rounded-lg border border-border/10">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground flex items-center gap-1">Exchange Rate <Info className="w-3 h-3" /></span>
-                  <span className="font-medium text-white">1 {receiveCurrency === 'NGN' ? spendCurrency : receiveCurrency} ≈ {
+                  <span className="font-medium text-foreground">1 {receiveCurrency === 'NGN' ? spendCurrency : receiveCurrency} ≈ {
                     receiveCurrency === 'NGN'
                       ? (1 / (Number(receiveAmount) / Number(spendAmount))).toLocaleString(undefined, { maximumFractionDigits: 2 })
                       : (Number(spendAmount) / Number(receiveAmount)).toLocaleString(undefined, { maximumFractionDigits: 2 })
@@ -268,7 +257,7 @@ export default function WebConvert() {
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Transaction Fee</span>
-                  <span className="font-medium text-green-500">Included in rate</span>
+                  <span className="font-medium text-primary">Included in rate</span>
                 </div>
               </div>
             )}

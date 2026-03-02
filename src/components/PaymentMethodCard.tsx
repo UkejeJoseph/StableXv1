@@ -26,7 +26,7 @@ export function PaymentMethodCard({
     return (
         <Card
             onClick={() => onClick(id)}
-            className="bg-card border-border/50 hover:border-primary/50 cursor-pointer transition-all hover:bg-white/5 active:scale-[0.98] group relative overflow-hidden"
+            className="bg-card border-border/50 hover:border-accent/30 cursor-pointer transition-all hover:bg-muted/50 active:scale-[0.98] group relative overflow-hidden"
         >
             <CardContent className="p-5">
                 <div className="flex justify-between items-start mb-4">

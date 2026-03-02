@@ -206,14 +206,8 @@ export default function WebWithdraw() {
   }, [activeTab, korapayBanks.length]);
 
   const handleWithdraw = async () => {
-    if (!amount || isNaN(Number(amount))) {
-      setErrorMessage("Please enter a valid amount");
-      return;
-    }
-
-    const numAmount = Number(amount);
-    if (numAmount < 500) {
-      setErrorMessage("Minimum withdrawal is 500 NGN");
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      setErrorMessage("Please enter a valid amount greater than 0");
       return;
     }
 
@@ -323,14 +317,8 @@ export default function WebWithdraw() {
   };
 
   const handleKorapayWithdraw = async () => {
-    if (!amount || isNaN(Number(amount))) {
-      setErrorMessage("Please enter a valid amount");
-      return;
-    }
-
-    const numAmount = Number(amount);
-    if (numAmount < 1000) {
-      setErrorMessage("Minimum Korapay withdrawal is 1,000 NGN");
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      setErrorMessage("Please enter a valid amount greater than 0");
       return;
     }
 

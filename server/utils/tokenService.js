@@ -3,9 +3,9 @@ import crypto from 'crypto';
 import RefreshToken from '../models/refreshTokenModel.js';
 
 export const generateAccessToken = (id) => {
-    // 4 hours for access token
+    // 30 days for access token
     return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback_secret_do_not_use_in_prod', {
-        expiresIn: '4h',
+        expiresIn: '30d',
     });
 };
 

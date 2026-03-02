@@ -103,13 +103,13 @@ export default function WebWallet() {
     <WebLayout>
       <div className="max-w-4xl mx-auto space-y-6">
 
-        <div className="bg-navy text-white p-6 mx-4 rounded-xl mt-4">
+        <div className="bg-card border border-border/50 text-foreground p-6 mx-4 rounded-xl mt-4 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm opacity-80">Total Wallets</p>
             <Button
               variant="ghost"
               size="icon"
-              className="text-white"
+              className="text-muted-foreground hover:text-foreground"
               onClick={refreshBalances}
               disabled={isRefreshing}
               data-testid="button-refresh-balances"
@@ -159,7 +159,7 @@ export default function WebWallet() {
                   No wallets yet. Create your first wallet to start receiving crypto.
                 </p>
                 <Link to="/create-wallet">
-                  <Button className="bg-navy" data-testid="button-create-first-wallet">
+                  <Button className="bg-accent text-accent-foreground hover:bg-accent/90" data-testid="button-create-first-wallet">
                     Create Wallet
                   </Button>
                 </Link>

@@ -6,44 +6,49 @@
 
 @layer base {
   :root {
-    /* ─── Light Mode: Soft Premium Emerald ─── */
-    --background: 210 30% 99%;
-    --foreground: 220 30% 10%;
+    /* ─── Light Mode: Premium Pearl & Navy ─── */
+    --background: 210 40% 98%;
+    /* Soft Pearl White */
+    --foreground: 222 47% 11%;
+    /* Deep Navy/Charcoal */
 
     --card: 0 0% 100%;
-    --card-foreground: 220 30% 10%;
+    /* Pure White card */
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 30% 10%;
+    --popover-foreground: 222 47% 11%;
 
     --primary: 162 82% 28%;
     /* Premium Emerald */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 20% 96%;
-    --secondary-foreground: 220 30% 10%;
+    --secondary: 210 30% 94%;
+    /* Soft blue-grey */
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 20% 96%;
-    --muted-foreground: 215 15% 45%;
+    --muted: 210 30% 94%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 162 82% 28%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 45 93% 47%;
+    /* StableX Gold (#F0B90B) */
+    --accent-foreground: 222 47% 11%;
 
     --success: 162 82% 28%;
     --success-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 55%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 214 20% 92%;
-    --input: 214 20% 92%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
     --ring: 162 82% 28%;
 
     --radius: 0.75rem;
 
-    --navy: 162 82% 28%;
-    --navy-light: 162 70% 38%;
-    --navy-dark: 162 90% 20%;
+    --navy: 222 47% 11%;
+    --navy-light: 222 40% 20%;
+    --navy-dark: 222 50% 5%;
   }
 
   /* ─── Dark Mode: Space Green ─── */

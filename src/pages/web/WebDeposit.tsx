@@ -340,15 +340,6 @@ export default function WebDeposit() {
       });
       return;
     }
-    if (parseFloat(amount) < 100) {
-      setErrorMessage("Minimum deposit amount is ₦100");
-      toast({
-        title: "Minimum Amount",
-        description: "Minimum deposit amount is ₦100.",
-        variant: "destructive",
-      });
-      return;
-    }
     if (!config) {
       setErrorMessage("Payment system is still loading. Please wait.");
       toast({
@@ -440,11 +431,11 @@ export default function WebDeposit() {
 
   // ── USSD Payment ──
   const handleUssdPayment = async () => {
-    if (!amount || parseFloat(amount) < 100) {
-      setErrorMessage("Minimum deposit amount is ₦100");
+    if (!amount || parseFloat(amount) <= 0) {
+      setErrorMessage("Please enter a valid amount greater than 0");
       toast({
-        title: "Minimum Amount",
-        description: "Minimum deposit amount is ₦100.",
+        title: "Invalid Amount",
+        description: "Please enter a valid amount greater than 0.",
         variant: "destructive",
       });
       return;
@@ -523,8 +514,8 @@ export default function WebDeposit() {
 
   // ── Korapay Bank Transfer (Jeroid Style) ──
   const handleKorapayBankTransfer = async () => {
-    if (!amount || parseFloat(amount) < 1000) {
-      setErrorMessage("Minimum deposit amount is ₦1,000");
+    if (!amount || parseFloat(amount) <= 0) {
+      setErrorMessage("Please enter a valid amount greater than 0");
       return;
     }
 
@@ -596,7 +587,7 @@ export default function WebDeposit() {
 
   const handleKorapayCheckout = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      setErrorMessage("Please enter a valid amount");
+      setErrorMessage("Please enter a valid amount greater than 0");
       return;
     }
 
@@ -670,7 +661,7 @@ export default function WebDeposit() {
   // ── Korapay Web Redirect (Hosted Checkout) ──
   const handleKorapayWebRedirect = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      setErrorMessage("Please enter a valid amount");
+      setErrorMessage("Please enter a valid amount greater than 0");
       return;
     }
 
@@ -710,8 +701,8 @@ export default function WebDeposit() {
 
   // ── Korapay Pay with Bank (Direct Debit) ──
   const handleKorapayPayWithBank = async (bankCode: string) => {
-    if (!amount || parseFloat(amount) < 200) {
-      setErrorMessage("Minimum deposit amount for Pay with Bank is ₦200");
+    if (!amount || parseFloat(amount) <= 0) {
+      setErrorMessage("Please enter a valid amount greater than 0");
       return;
     }
 
@@ -750,11 +741,7 @@ export default function WebDeposit() {
   // ── Web Redirect (Form Post Method) ──
   const handleWebRedirect = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      setErrorMessage("Please enter a valid amount");
-      return;
-    }
-    if (parseFloat(amount) < 100) {
-      setErrorMessage("Minimum deposit amount is ₦100");
+      setErrorMessage("Please enter a valid amount greater than 0");
       return;
     }
 
@@ -785,11 +772,7 @@ export default function WebDeposit() {
   // ── Web Checkout (ALL payment methods in one popup) ──
   const handleWebCheckout = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      setErrorMessage("Please enter a valid amount");
-      return;
-    }
-    if (parseFloat(amount) < 100) {
-      setErrorMessage("Minimum deposit amount is ₦100");
+      setErrorMessage("Please enter a valid amount greater than 0");
       return;
     }
     if (!config) {
@@ -846,10 +829,14 @@ export default function WebDeposit() {
       };
 
       if (typeof window.webpayCheckout === "function") {
-        console.log("[WebCheckout] Registering pending transaction...");
+        console.log("INTERSWITCH WEBPAY PAYLOAD =>", JSON.stringify(checkoutConfig, null, 2));
 
-        // 2. Create Pending Transaction on Backend
-        const registerRes = await apiFetch("/api/transactions/deposit-pending", {
+        // 1. Trigger the popup immediately to preserve the user gesture
+        window.webpayCheckout(checkoutConfig);
+
+        // 2. Register the pending transaction in the background
+        console.log("[WebCheckout] Registering pending transaction in background...");
+        apiFetch("/api/transactions/deposit-pending", {
           method: "POST",
           body: JSON.stringify({
             amount: parseFloat(amount),
@@ -857,15 +844,19 @@ export default function WebDeposit() {
             reference: ref,
             provider: 'interswitch'
           }),
+        }).then(async (registerRes) => {
+          if (!registerRes.ok) {
+            const regError = await registerRes.json();
+            console.error("[WebCheckout] Background registration failed:", regError);
+            // We don't throw here because throwing in a floating promise is unhandled
+            // and the user is already in the checkout flow.
+          } else {
+            console.log("[WebCheckout] Background registration successful.");
+          }
+        }).catch(err => {
+          console.error("[WebCheckout] Background API call failed (Network/Cloudflare?):", err);
         });
 
-        if (!registerRes.ok) {
-          const regError = await registerRes.json();
-          throw new Error(regError.error || "Failed to register pending transaction");
-        }
-
-        console.log("INTERSWITCH WEBPAY PAYLOAD =>", JSON.stringify(checkoutConfig, null, 2));
-        window.webpayCheckout(checkoutConfig);
       } else {
         throw new Error("Payment script not fully loaded. Please refresh.");
       }
@@ -879,8 +870,8 @@ export default function WebDeposit() {
 
   // ── Dynamic Virtual Account ──
   const handleDynamicTransfer = async () => {
-    if (!amount || parseFloat(amount) < 100) {
-      setErrorMessage("Minimum deposit amount is ₦100");
+    if (!amount || parseFloat(amount) <= 0) {
+      setErrorMessage("Please enter a valid amount greater than 0");
       return;
     }
 
@@ -1264,7 +1255,7 @@ export default function WebDeposit() {
                     placeholder="Enter amount"
                   />
                   <Button
-                    className="w-full mt-2 bg-slate-800 hover:bg-slate-900 text-white"
+                    className="w-full mt-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                     onClick={handleWebRedirect}
                     disabled={isProcessing || !amount}
                   >

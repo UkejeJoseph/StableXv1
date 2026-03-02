@@ -141,7 +141,7 @@ router.get('/google/callback',
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'strict',
-                maxAge: 4 * 60 * 60 * 1000 // 4 hours
+                maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
             });
 
             const userData = {
@@ -185,7 +185,7 @@ router.post('/refresh', async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 4 * 60 * 60 * 1000 // 4 hours
+            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
         });
 
         res.json({ success: true, token: "cookie-auth-active" });

@@ -36,10 +36,10 @@ export default function WebPayPage() {
         if (!amount || isNaN(Number(amount))) return;
 
         const numAmount = Number(amount);
-        if (numAmount < 1) {
+        if (numAmount <= 0) {
             toast({
-                title: "Amount Too Small",
-                description: "Minimum internal transfer is 1 USDT",
+                title: "Invalid Amount",
+                description: "Transfer amount must be greater than 0",
                 variant: "destructive"
             });
             return;

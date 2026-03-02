@@ -165,8 +165,8 @@ const WebMerchantPayouts = () => {
         }
 
         const amount = parseFloat(payoutAmount);
-        if (isNaN(amount) || amount < 1000) {
-            toast({ title: "Amount Too Small", description: "Minimum payout is \u20A61,000", variant: "destructive" });
+        if (isNaN(amount) || amount <= 0) {
+            toast({ title: "Invalid Amount", description: "Payout amount must be greater than 0", variant: "destructive" });
             return;
         }
         if (amount > balanceNGN) {

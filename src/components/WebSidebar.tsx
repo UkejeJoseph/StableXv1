@@ -56,10 +56,10 @@ export function WebLayout({ children, hideSidebar = false }: { children: React.R
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-[#0b0e11] text-foreground flex flex-col font-sans">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans transition-colors duration-300">
 
       {/* Top Header - Bybit Style */}
-      <header className="h-16 bg-[#12161a] border-b border-border/20 flex items-center justify-between px-4 sticky top-0 z-30">
+      <header className="h-16 bg-card border-b border-border/20 flex items-center justify-between px-4 sticky top-0 z-30 transition-colors">
 
         {/* Left Side Header Nav */}
         <div className="flex items-center gap-6">
@@ -69,15 +69,15 @@ export function WebLayout({ children, hideSidebar = false }: { children: React.R
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate(-1)}
-                className="text-white hover:bg-white/10 h-8 w-8 mr-2"
+                className="text-foreground hover:bg-accent/10 h-8 w-8 mr-2"
                 data-testid="button-back-web"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             )}
             <Link to="/" className="flex items-center gap-2 mr-4">
-              <div className="w-8 h-8 bg-[#F0B90B] rounded-md flex items-center justify-center font-bold text-black text-xl">S</div>
-              <span className="text-xl font-bold tracking-tight text-white hidden sm:block">StableX</span>
+              <div className="w-8 h-8 bg-accent rounded-md flex items-center justify-center font-bold text-accent-foreground text-xl">S</div>
+              <span className="text-xl font-bold tracking-tight text-foreground hidden sm:block">StableX</span>
             </Link>
           </div>
 
@@ -85,10 +85,10 @@ export function WebLayout({ children, hideSidebar = false }: { children: React.R
 
             {/* Buy Crypto Dropdown */}
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-1 hover:text-white px-3 py-2 rounded-md outline-none data-[state=open]:text-white">
+              <DropdownMenuTrigger className="flex items-center gap-1 hover:text-accent px-3 py-2 rounded-md outline-none data-[state=open]:text-accent">
                 Buy Crypto <ChevronDown className="w-4 h-4 opacity-70" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48 bg-[#1e2329] border-border/20 text-white">
+              <DropdownMenuContent className="w-48 bg-card border-border/20 text-foreground">
                 <DropdownMenuItem asChild className="hover:bg-white/10 cursor-pointer">
                   <Link to="/web/convert"><ArrowLeftRight className="w-4 h-4 mr-2" /> One-Click Buy</Link>
                 </DropdownMenuItem>
@@ -134,16 +134,16 @@ export function WebLayout({ children, hideSidebar = false }: { children: React.R
             />
           </div>
 
-          <Button asChild size="sm" className="bg-[#F0B90B] hover:bg-[#F0B90B]/90 text-black font-semibold h-8 hidden sm:flex">
+          <Button asChild size="sm" className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold h-8 hidden sm:flex">
             <Link to="/web/deposit">Deposit</Link>
           </Button>
 
           {/* Assets Dropdown */}
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-white outline-none data-[state=open]:text-white hidden lg:flex">
+            <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-accent outline-none data-[state=open]:text-accent hidden lg:flex">
               Assets <ChevronDown className="w-4 h-4 opacity-70" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-[#1e2329] border-border/20 text-white p-2">
+            <DropdownMenuContent align="end" className="w-56 bg-card border-border/20 text-foreground p-2">
               <div className="flex items-center justify-between px-2 py-2 mb-2 border-b border-border/20">
                 <span className="text-sm font-semibold">Total Equity</span>
                 <Link to="/web/dashboard" className="text-xs text-[#F0B90B] hover:underline">Overview</Link>
@@ -159,14 +159,14 @@ export function WebLayout({ children, hideSidebar = false }: { children: React.R
 
           {/* Orders Dropdown */}
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-white outline-none data-[state=open]:text-white hidden lg:flex">
+            <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-accent outline-none data-[state=open]:text-accent hidden lg:flex">
               Orders <ChevronDown className="w-4 h-4 opacity-70" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40 bg-[#1e2329] border-border/20 text-white">
-              <DropdownMenuItem asChild className="hover:bg-white/10 cursor-pointer">
+            <DropdownMenuContent align="end" className="w-40 bg-card border-border/20 text-foreground">
+              <DropdownMenuItem asChild className="hover:bg-accent/10 cursor-pointer">
                 <Link to="/web/orders">Spot Orders</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild className="hover:bg-white/10 cursor-pointer">
+              <DropdownMenuItem asChild className="hover:bg-accent/10 cursor-pointer">
                 <Link to="/web/orders">Buy Crypto History</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -183,9 +183,9 @@ export function WebLayout({ children, hideSidebar = false }: { children: React.R
                 {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
               </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 bg-[#1e2329] border-border/20 text-white p-2 z-50">
+            <DropdownMenuContent align="end" className="w-64 bg-card border-border/20 text-foreground p-2 z-50">
               <div className="px-2 py-3 border-b border-border/20 mb-2">
-                <p className="font-semibold text-sm">{user?.email}</p>
+                <p className="font-semibold text-sm text-foreground">{user?.email}</p>
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <span className={`text-xs px-2 py-0.5 rounded ${kycStatus === 'verified' ? 'bg-green-500/20 text-green-500' : kycStatus === 'rejected' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                     {kycStatus === 'verified' ? '✓ Verified' : kycStatus === 'rejected' ? '✗ Rejected' : '⏳ Pending'}
@@ -199,7 +199,7 @@ export function WebLayout({ children, hideSidebar = false }: { children: React.R
 
               {/* Merchant Access Button */}
               {isMerchant && (
-                <DropdownMenuItem asChild className="hover:bg-white/10 cursor-pointer text-[#F0B90B] font-medium mb-1 border border-[#F0B90B]/30 rounded-lg p-2 flex items-center justify-between">
+                <DropdownMenuItem asChild className="hover:bg-accent/10 cursor-pointer text-accent font-medium mb-1 border border-accent/30 rounded-lg p-2 flex items-center justify-between">
                   <Link to="/web/merchant">
                     <div className="flex items-center">
                       <Globe className="w-4 h-4 mr-2" /> Merchant Dashboard
@@ -218,7 +218,7 @@ export function WebLayout({ children, hideSidebar = false }: { children: React.R
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator className="bg-border/20" />
-              <DropdownMenuItem onClick={handleLogout} className="hover:bg-red-500/20 text-red-400 cursor-pointer">
+              <DropdownMenuItem onClick={handleLogout} className="hover:bg-red-500/10 text-red-500 cursor-pointer">
                 <LogOut className="w-4 h-4 mr-2" /> Sign Out
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -231,7 +231,7 @@ export function WebLayout({ children, hideSidebar = false }: { children: React.R
       <div className="flex flex-1 overflow-hidden">
 
         {/* Deep Navigation Left Sidebar */}
-        <aside className="w-64 bg-[#12161a] border-r border-border/20 hidden lg:flex flex-col h-[calc(100vh-4rem)] overflow-y-auto z-20">
+        <aside className="w-64 bg-card border-r border-border/20 hidden lg:flex flex-col h-[calc(100vh-4rem)] overflow-y-auto z-20 transition-colors">
           <nav className="flex-1 px-3 py-6 space-y-6">
 
             {/* Unified Trading / Assets */}
@@ -411,19 +411,19 @@ export function WebLayout({ children, hideSidebar = false }: { children: React.R
             {/* Dark/Light Mode Toggle */}
             <button
               onClick={toggleTheme}
-              className="w-full flex items-center justify-between px-4 py-3 bg-[#1e2329] rounded-xl border border-border/10 hover:border-[#F0B90B]/30 transition-colors group"
+              className="w-full flex items-center justify-between px-4 py-3 bg-secondary rounded-xl border border-border/10 hover:border-accent/30 transition-colors group"
             >
-              <div className="flex items-center gap-2 text-sm text-muted-foreground group-hover:text-white">
-                {theme === 'dark' ? <Moon className="w-4 h-4 text-blue-400" /> : <Sun className="w-4 h-4 text-yellow-400" />}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground group-hover:text-foreground">
+                {theme === 'dark' ? <Moon className="w-4 h-4 text-blue-400" /> : <Sun className="w-4 h-4 text-yellow-500" />}
                 {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
               </div>
               <div className={`w-10 h-5 rounded-full relative transition-colors ${theme === 'dark' ? 'bg-blue-500/30' : 'bg-yellow-500/30'}`}>
-                <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all ${theme === 'dark' ? 'left-0.5' : 'left-[22px]'}`} />
+                <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 shadow-sm transition-all ${theme === 'dark' ? 'left-0.5' : 'left-[22px]'}`} />
               </div>
             </button>
 
-            <div className="bg-[#1e2329] p-4 rounded-xl border border-border/10">
-              <h4 className="text-sm font-semibold text-white mb-2">Need Help?</h4>
+            <div className="bg-secondary p-4 rounded-xl border border-border/10">
+              <h4 className="text-sm font-semibold text-foreground mb-2">Need Help?</h4>
               <p className="text-xs text-muted-foreground mb-3">Contact support or view our guides.</p>
               <Button size="sm" variant="outline" className="w-full h-8 text-xs border-border/30">
                 Help Center
@@ -433,7 +433,7 @@ export function WebLayout({ children, hideSidebar = false }: { children: React.R
         </aside>
 
         {/* Dynamic Page Content */}
-        <main className="flex-1 overflow-y-auto h-[calc(100vh-4rem)] bg-[#0b0e11] relative">
+        <main className="flex-1 overflow-y-auto h-[calc(100vh-4rem)] bg-background relative transition-colors">
           <div className="w-full max-w-[1400px] mx-auto p-4 lg:p-6 lg:pl-10 pb-24 lg:pb-20">
             {children}
           </div>
@@ -442,7 +442,7 @@ export function WebLayout({ children, hideSidebar = false }: { children: React.R
       </div>
 
       {/* Mobile Bottom Navigation (Binance/Bybit Style) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#12161a] border-t border-border/20 flex items-center justify-around z-40 px-2 pb-safe shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t border-border/20 flex items-center justify-around z-40 px-2 pb-safe shadow-[0_-4px_10px_rgba(0,0,0,0.3)] transition-colors">
         <Link to="/web/dashboard" className={`flex flex-col items-center justify-center gap-1 w-16 h-full ${isActive('/web/dashboard') ? 'text-[#F0B90B]' : 'text-muted-foreground hover:text-white'}`}>
           <Home className="w-5 h-5" />
           <span className="text-[10px] font-medium">Home</span>

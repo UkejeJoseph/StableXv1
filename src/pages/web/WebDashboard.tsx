@@ -97,14 +97,14 @@ const WebDashboard = () => {
             <ServicesList />
             <DashboardSidebarWidgets />
 
-            <Card className="p-6 bg-[#0b0e11] border-border/40 relative overflow-hidden group hover:border-[#F0B90B]/30 transition-all shadow-xl" data-testid="rates-banner">
+            <Card className="p-6 bg-card border-border/40 relative overflow-hidden group hover:border-accent/30 transition-all shadow-xl" data-testid="rates-banner">
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
                     <TrendingUp className="w-6 h-6 text-[#F0B90B]" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-xl text-white">Market Pulse</h3>
+                    <h3 className="font-bold text-xl text-foreground">Market Pulse</h3>
                     <p className="text-xs text-muted-foreground">Aggregated Live Feeds</p>
                   </div>
                 </div>
@@ -117,12 +117,12 @@ const WebDashboard = () => {
                           {token.symbol.slice(0, 2)}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-white leading-none">{token.symbol}</p>
+                          <p className="text-sm font-bold text-foreground leading-none">{token.symbol}</p>
                           <p className="text-[10px] text-muted-foreground mt-1">{token.name}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold text-white leading-none">
+                        <p className="text-sm font-bold text-foreground leading-none">
                           ${token.price.toLocaleString(undefined, { minimumFractionDigits: token.price < 1 ? 4 : 2 })}
                         </p>
                         <p className={`text-[10px] mt-1 font-medium ${token.priceChange24h >= 0 ? "text-green-500" : "text-red-500"}`}>
@@ -133,7 +133,7 @@ const WebDashboard = () => {
                   ))}
                 </div>
 
-                <Button variant="link" className="w-full text-[#F0B90B] mt-6 gap-2 p-0 h-auto font-bold flex items-center justify-center border-t border-border/10 pt-4">
+                <Button variant="link" className="w-full text-accent mt-6 gap-2 p-0 h-auto font-bold flex items-center justify-center border-t border-border/10 pt-4">
                   <span>View All Markets</span>
                   <Plus className="w-4 h-4" />
                 </Button>

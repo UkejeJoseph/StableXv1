@@ -7,13 +7,13 @@ async function heal() {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('✅ [HEAL] Connected.');
 
-    // 1. Find all NGN wallets with network 'user'
+    // 1. Find all NGN wallets where network is NOT 'INTERNAL'
     const sickWallets = await Wallet.find({
         currency: 'NGN',
-        network: 'user'
+        network: { $ne: 'INTERNAL' }
     });
 
-    console.log(`🔍 [HEAL] Found ${sickWallets.length} NGN wallets with wrong network 'user'`);
+    console.log(`🔍 [HEAL] Found ${sickWallets.length} NGN wallets with wrong network (not 'INTERNAL')`);
 
     for (const wallet of sickWallets) {
         console.log(`🩹 [HEAL] Merging NGN balance for user ${wallet.user}: ${wallet.balance}`);
@@ -27,13 +27,18 @@ async function heal() {
 
         if (internalWallet) {
             console.log(`➕ [HEAL] Adding ${wallet.balance} to existing INTERNAL wallet`);
-            internalWallet.balance += wallet.balance;
-            await internalWallet.save();
+            await Wallet.updateOne(
+                { _id: internalWallet._id },
+                { $inc: { balance: wallet.balance } }
+            );
             await wallet.deleteOne();
         } else {
             console.log(`🏷️ [HEAL] Renaming 'user' to 'INTERNAL'`);
-            wallet.network = 'INTERNAL';
-            await wallet.save();
+            // Use updateOne to bypass schema validation for NGN internal wallets
+            await Wallet.updateOne(
+                { _id: wallet._id },
+                { $set: { network: 'INTERNAL' } }
+            );
         }
     }
 

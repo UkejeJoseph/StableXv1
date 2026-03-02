@@ -25,7 +25,11 @@ export async function creditUserWallet(
 
     // Normalization
     currency = currency?.toUpperCase();
-    network = network?.toUpperCase();
+    if (currency === 'NGN') {
+        network = 'INTERNAL';
+    } else {
+        network = network?.toUpperCase();
+    }
 
     console.log('[WALLET-SERVICE] CREDIT');
     console.log('[WALLET-SERVICE] User:', userId);

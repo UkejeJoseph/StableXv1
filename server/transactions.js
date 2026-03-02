@@ -301,10 +301,15 @@ router.post('/swap', protect, async (req, res) => {
           treasuryUser._id, fromCurrency, Number(amount), `TREAS_IN_${swapRef}-2`, { fromUser: req.user._id }, 'internal', session
         );
 
-        // Step 3: Debit treasury toCurrency
-        await debitUserWallet(
-          treasuryUser._id, toCurrency, receiveAmount, `TREAS_OUT_${swapRef}-3`, { toUser: req.user._id }, 'internal', session
-        );
+        // Step 3: Debit treasury toCurrency (Liquidity check)
+        try {
+          await debitUserWallet(
+            treasuryUser._id, toCurrency, receiveAmount, `TREAS_OUT_${swapRef}-3`, { toUser: req.user._id }, 'internal', session
+          );
+        } catch (liquidityErr) {
+          console.error('[SWAP] ❌ TREASURY LIQUIDITY ERROR:', liquidityErr.message);
+          throw new Error(`Swap liquidity unavailable for ${toCurrency}. Please try again later.`);
+        }
 
         // Step 4: Credit user toCurrency
         await creditUserWallet(

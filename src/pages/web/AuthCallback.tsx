@@ -38,12 +38,17 @@ export default function AuthCallback() {
                 }
 
                 setUser(userData);
-                navigate("/web/dashboard");
+                if (userData.role === 'admin') {
+                    navigate("/web/admin");
+                } else {
+                    navigate("/web/dashboard");
+                }
             } catch (err) {
                 console.error("[AUTH CALLBACK] Failed to parse auth data");
                 navigate("/web/login?error=parse_failed");
             }
         } else if (token) {
+            // We don't have role here, so we have to go to dashboard or wait for UserContext to refresh
             navigate("/web/dashboard");
         } else {
             navigate("/web/login");

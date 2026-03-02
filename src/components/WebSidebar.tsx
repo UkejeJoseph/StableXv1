@@ -212,6 +212,11 @@ export function WebLayout({ children, hideSidebar = false }: { children: React.R
               <DropdownMenuItem asChild className="hover:bg-white/10 cursor-pointer">
                 <Link to="/web/account"><User className="w-4 h-4 mr-2" /> Account & Security</Link>
               </DropdownMenuItem>
+              {user?.role === 'admin' && (
+                <DropdownMenuItem asChild className="hover:bg-primary/20 cursor-pointer text-primary font-bold">
+                  <Link to="/web/admin"><Shield className="w-4 h-4 mr-2" /> Admin Portal</Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator className="bg-border/20" />
               <DropdownMenuItem onClick={handleLogout} className="hover:bg-red-500/20 text-red-400 cursor-pointer">
                 <LogOut className="w-4 h-4 mr-2" /> Sign Out

@@ -383,7 +383,7 @@ export default function AdminWallets() {
                             </Button>
                         </div>
                         <div className="grid gap-4 md:grid-cols-2">
-                            {['USDT_TRC20', 'NGN', 'ETH', 'BTC', 'SOL'].map(curr => {
+                            {['USDT_TRC20', 'USDT_ERC20', 'NGN', 'ETH', 'BTC', 'SOL'].map(curr => {
                                 const balance = treasuryBalances.find(b => b.currency === curr)?.balance || 0;
                                 return (
                                     <div key={curr} className="p-4 rounded-2xl bg-card/40 border border-border/40 backdrop-blur-sm flex justify-between items-center group">
@@ -500,7 +500,7 @@ export default function AdminWallets() {
                                     <SelectValue placeholder="Select currency" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {['USDT_TRC20', 'NGN', 'ETH', 'BTC', 'SOL'].map(c => (
+                                    {['USDT_TRC20', 'USDT_ERC20', 'NGN', 'ETH', 'BTC', 'SOL'].map(c => (
                                         <SelectItem key={c} value={c}>{c}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -550,7 +550,7 @@ export default function AdminWallets() {
                                     <SelectValue placeholder="Select currency" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {['USDT_TRC20', 'TRX', 'SOL', 'BTC'].map(c => (
+                                    {['USDT_TRC20', 'USDT_ERC20', 'TRX', 'SOL', 'BTC'].map(c => (
                                         <SelectItem key={c} value={c}>{c}</SelectItem>
                                     ))}
                                 </SelectContent>

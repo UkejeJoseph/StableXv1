@@ -13,10 +13,13 @@ import {
     getTreasuryBalances,
     getHotWalletBalances,
     treasuryLimiter,
-    triggerBulkPayout
+    triggerBulkPayout,
+    adminLogin
 } from '../controllers/adminController.js';
 
 const router = express.Router();
+
+router.post('/login', adminLogin);
 
 router.get('/users', protect, admin, getUsers);
 router.put('/users/:id/kyc', protect, admin, updateUserStatus);

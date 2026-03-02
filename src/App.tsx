@@ -39,6 +39,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 // Web Versions
 import WebLogin from "./pages/web/WebLogin";
+import WebAdminLogin from "./pages/web/WebAdminLogin";
 import WebSignup from "./pages/web/WebSignup";
 import WebVerifyOtp from "./pages/web/WebVerifyOtp";
 import WebForgotPassword from "./pages/web/WebForgotPassword";
@@ -99,6 +100,7 @@ function AnimatedRoutes() {
 
             {/* Public Routes (Desktop Web Mode) */}
             <Route path="/web/login" element={<PageTransition><WebLogin /></PageTransition>} />
+            <Route path="/web/admin-login" element={<PageTransition><WebAdminLogin /></PageTransition>} />
             <Route path="/web/signup" element={<PageTransition><WebSignup /></PageTransition>} />
             <Route path="/web/verify" element={<PageTransition><WebVerifyOtp /></PageTransition>} />
             <Route path="/web/forgot-password" element={<PageTransition><WebForgotPassword /></PageTransition>} />

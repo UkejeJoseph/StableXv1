@@ -62,16 +62,17 @@ export default function WebConvert() {
       const toBase = receiveCurrency.split('_')[0];
 
       if (spendCurrency === 'NGN') {
-        rate = rates[`NGN_${toBase}`] || rates[`NGN_${receiveCurrency}`] || 0;
+        rate = rates[`NGN_${receiveCurrency}`] || rates[`NGN_${toBase}`] || 0;
       } else if (receiveCurrency === 'NGN') {
-        rate = rates[`${fromBase}_NGN`] || rates[`${spendCurrency}_NGN`] || 0;
+        rate = rates[`${spendCurrency}_NGN`] || rates[`${fromBase}_NGN`] || 0;
       } else {
         // Crypto to Crypto via NGN as bridge
-        const fromToNgn = rates[`${fromBase}_NGN`] || rates[`${spendCurrency}_NGN`] || 0;
-        const ngnToTo = rates[`NGN_${toBase}`] || rates[`NGN_${receiveCurrency}`] || 0;
+        const fromToNgn = rates[`${spendCurrency}_NGN`] || rates[`${fromBase}_NGN`] || 0;
+        const ngnToTo = rates[`NGN_${receiveCurrency}`] || rates[`NGN_${toBase}`] || 0;
         if (fromToNgn && ngnToTo) rate = fromToNgn * ngnToTo;
       }
     }
+
 
     if (rate) {
       const displayDecimals = receiveCurrency === 'NGN' ? 2 : 6;

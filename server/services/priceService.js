@@ -288,26 +288,46 @@ export async function getMarketPrices() {
     // Step 3: Calculate NGN rates
     const { ngnRates, usdToNgn } = await getNGNRates(cryptoPrices);
 
-    // Step 4: Build response
+    // Step 4: Build comprehensive rates map
+    const rates = {
+        // NGN Base rates
+        USDT_NGN: ngnRates['USDT_TRC20']?.ngn || usdToNgn,
+        NGN_USDT: 1 / (ngnRates['USDT_TRC20']?.ngn || usdToNgn),
+
+        // Network specific USDT
+        USDT_TRC20_NGN: ngnRates['USDT_TRC20']?.ngn || usdToNgn,
+        NGN_USDT_TRC20: 1 / (ngnRates['USDT_TRC20']?.ngn || usdToNgn),
+        USDT_ERC20_NGN: ngnRates['USDT_ERC20']?.ngn || usdToNgn,
+        NGN_USDT_ERC20: 1 / (ngnRates['USDT_ERC20']?.ngn || usdToNgn),
+    };
+
+    // Add Crypto -> NGN and NGN -> Crypto for all fetched coins
+    Object.entries(cryptoPrices).forEach(([symbol, data]) => {
+        const priceInNgn = data.usd * usdToNgn;
+
+        // Standard pair
+        rates[`${symbol}_NGN`] = priceInNgn;
+        rates[`NGN_${symbol}`] = 1 / priceInNgn;
+
+        // Network-suffixed variants
+        if (['ETH', 'SOL', 'BTC', 'TRX'].includes(symbol)) {
+            rates[`${symbol}_TRC20_NGN`] = priceInNgn; // Compatibility fallback
+            rates[`NGN_${symbol}_TRC20`] = 1 / priceInNgn;
+        }
+    });
+
+    // Step 5: Build response
     const result = {
         prices: cryptoPrices,
         ngnRates,
         usdToNgn,
-        // Flat rates for swap use
-        rates: {
-            USDT_NGN: ngnRates['USDT_TRC20']?.ngn || usdToNgn,
-            NGN_USDT: 1 / (ngnRates['USDT_TRC20']?.ngn || usdToNgn),
-            BTC_NGN: cryptoPrices['BTC']?.usd * usdToNgn,
-            ETH_NGN: cryptoPrices['ETH']?.usd * usdToNgn,
-            SOL_NGN: cryptoPrices['SOL']?.usd * usdToNgn,
-            TRX_NGN: cryptoPrices['TRX']?.usd * usdToNgn,
-            BNB_NGN: cryptoPrices['BNB']?.usd * usdToNgn,
-        },
+        rates,
         source,
         stale: false,
         cachedAt: Date.now(),
         timestamp: new Date().toISOString(),
     };
+
 
     console.log('[PRICE-SERVICE] Result built from:', source);
     console.log('[PRICE-SERVICE] BTC price: $', cryptoPrices['BTC']?.usd);

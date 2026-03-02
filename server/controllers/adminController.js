@@ -9,6 +9,60 @@ import { Connection, PublicKey } from '@solana/web3.js';
 import axios from 'axios';
 import { TronWeb } from 'tronweb';
 import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
+import { generateAuthTokens } from '../utils/tokenService.js';
+
+// @desc    Admin login without OTP verification
+// @route   POST /api/admin/login
+// @access  Public
+export const adminLogin = asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
+    console.log(`[ADMIN-AUTH] Fast login attempt for: ${email}`);
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+        res.status(401);
+        throw new Error('Invalid email or password');
+    }
+
+    const passwordMatch = await user.matchPassword(password);
+
+    if (passwordMatch) {
+        // Enforce role check if desired, but user requested "even any user" could login IF they have the right pass at this endpoint
+        // Let's enforce that this login acts as an admin login by returning the user data
+
+        const { accessToken, refreshToken } = await generateAuthTokens(user._id);
+
+        res.cookie('token', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 4 * 60 * 60 * 1000 // 4 hours
+        });
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
+        console.log(`[ADMIN-AUTH] ✅ Fast login successful for: ${email} (ID: ${user._id})`);
+        res.json({
+            _id: user._id,
+            email: user.email,
+            username: user.username,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role, // The frontend redirects to /web/admin if this is 'admin'
+            kycStatus: user.kycStatus,
+            isVerified: user.isVerified,
+        });
+    } else {
+        res.status(401);
+        throw new Error('Invalid email or password');
+    }
+});
 
 // @desc    Get all users with basic wallet/balance info
 // @route   GET /api/admin/users

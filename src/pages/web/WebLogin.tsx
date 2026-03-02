@@ -19,7 +19,11 @@ export default function Login() {
 
     useEffect(() => {
         if (user) {
-            navigate("/web/dashboard");
+            if (user.role === 'admin') {
+                navigate("/web/admin");
+            } else {
+                navigate("/web/dashboard");
+            }
         }
     }, [user, navigate]);
 
@@ -40,9 +44,14 @@ export default function Login() {
                 setUser(data);
                 toast({
                     title: "Welcome back!",
-                    description: "Logged in successfully.",
+                    description: data.role === 'admin' ? "Logged in as Admin." : "Logged in successfully.",
                 });
-                navigate("/web/dashboard");
+
+                if (data.role === 'admin') {
+                    navigate("/web/admin");
+                } else {
+                    navigate("/web/dashboard");
+                }
             } else {
                 // Handle "Verify" error specifically?
                 if (data.message && data.message.includes("verify")) {

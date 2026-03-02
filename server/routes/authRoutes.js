@@ -166,7 +166,8 @@ router.get('/google/callback',
 // @desc    Refresh Access Token
 // @route   POST /api/auth/refresh
 router.post('/refresh', async (req, res) => {
-    const { refreshToken } = req.body;
+    // Check cookies first (HttpOnly), then fallback to body
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
     if (!refreshToken) return res.status(401).json({ message: 'Refresh Token required' });
 
     try {

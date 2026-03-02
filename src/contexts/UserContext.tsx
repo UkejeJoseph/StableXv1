@@ -50,12 +50,16 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 } catch (err) {
                     setUser(null);
                 }
-            } else {
+            } else if (res.status === 401 || res.status === 403) {
+                // Only clear user state if the server explicitly rejects authentication
                 setUser(null);
+            } else {
+                // If 500, 502, network error, etc., don't log them out immediately
+                console.warn(`[UserContext] Profile fetch failed with status ${res.status}`);
             }
         } catch (error) {
-            console.error("Failed to fetch user profile:", error);
-            setUser(null);
+            console.error("[UserContext] Failed to fetch user profile:", error);
+            // Don't setUser(null) on pure network errors (offline)
         } finally {
             if (retry) {
                 setIsLoading(false);
@@ -65,14 +69,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     useEffect(() => {
         refreshUser();
-
-        // Proactive session refresh every 5 minutes
-        const interval = setInterval(() => {
-            console.log("[UserContext] Proactive session refresh...");
-            refreshUser(true);
-        }, 5 * 60 * 1000);
-
-        return () => clearInterval(interval);
+        // Removed the aggressive 5-minute proactive session refresh.
+        // The token now lasts 30 days, and apiFetch handles 401 retry-refresh centrally.
     }, []);
 
     const logout = async () => {

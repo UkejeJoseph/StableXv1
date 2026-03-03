@@ -281,11 +281,11 @@ export const getSystemBalances = asyncHandler(async (req, res) => {
         success: true,
         data: {
             revenue: {
-                allTime: totalRevenue[0]?.total || 0,
-                today: todayRevenue[0]?.total || 0,
-                thisWeek: weekRevenue[0]?.total || 0,
-                thisMonth: monthRevenue[0]?.total || 0,
-                byStream: revenueByStream,
+                allTime: (totalRevenue.length > 0 && totalRevenue[0]?.total) ? totalRevenue[0].total : 0,
+                today: (todayRevenue.length > 0 && todayRevenue[0]?.total) ? todayRevenue[0].total : 0,
+                thisWeek: (weekRevenue.length > 0 && weekRevenue[0]?.total) ? weekRevenue[0].total : 0,
+                thisMonth: (monthRevenue.length > 0 && monthRevenue[0]?.total) ? monthRevenue[0].total : 0,
+                byStream: revenueByStream || [],
             },
             platformWallets,
             liabilities,

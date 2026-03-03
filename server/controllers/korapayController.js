@@ -36,7 +36,7 @@ export const initializeDeposit = async (req, res) => {
 
         // Call Korapay Service
         const koraData = await korapayService.initializeCheckoutCharge({
-            amount: Number(amount),
+            amount: Math.floor(parseFloat(amount)),
             email: user.email,
             name,
             reference,
@@ -118,7 +118,7 @@ export const createTemporaryAccount = async (req, res) => {
  */
 export const initializePayWithBank = async (req, res) => {
     try {
-        const { amount, bankCode } = req.body;
+        const { amount, bankCode, redirectUrl, narration } = req.body;
         const user = req.user;
 
         if (!amount || Number(amount) < 200) {
@@ -141,7 +141,7 @@ export const initializePayWithBank = async (req, res) => {
             currency: 'NGN',
             reference,
             provider: 'korapay',
-            metadata: { description: 'Korapay Pay with Bank Deposit' },
+            metadata: { description: 'Korapay Pay with Bank Deposit', bankCode, narration },
         });
 
         const name = user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'StableX User';
@@ -152,7 +152,9 @@ export const initializePayWithBank = async (req, res) => {
             name,
             email: user.email,
             reference,
-            bankCode
+            bankCode,
+            redirectUrl,
+            narration: narration || 'StableX NGN Deposit'
         });
 
         if (!koraRes.status) {
@@ -352,6 +354,20 @@ export const getBanks = async (req, res) => {
     } catch (error) {
         console.error('Korapay getBanks error:', error);
         res.status(500).json({ message: error.message || 'Failed to fetch banks' });
+    }
+};
+
+/**
+ * Get Supported Banks for Pay with Bank
+ */
+export const getPayWithBankBanks = async (req, res) => {
+    try {
+        console.log('[KORAPAY-PWB-BANKS] 🏦 Fetching PWB bank list...');
+        const banks = await korapayService.listPayWithBankBanks();
+        res.status(200).json(banks);
+    } catch (error) {
+        console.error('Korapay getPayWithBankBanks error:', error);
+        res.status(500).json({ message: error.message || 'Failed to fetch PWB banks' });
     }
 };
 

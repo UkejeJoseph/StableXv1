@@ -616,7 +616,7 @@ export default function WebDeposit() {
           window.Korapay.initialize({
             key: data.publicKey,
             reference: data.reference,
-            amount: parseFloat(amount),
+            amount: Math.floor(parseFloat(amount)),
             currency: "NGN",
             customer: {
               name: user?.fullName || "StableX Customer",
@@ -714,7 +714,8 @@ export default function WebDeposit() {
         method: "POST",
         body: JSON.stringify({
           amount: parseFloat(amount),
-          bankCode
+          bankCode,
+          redirectUrl: `${window.location.origin}/dashboard/wallet/deposit-verify`
         })
       });
 

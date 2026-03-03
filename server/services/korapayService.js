@@ -70,7 +70,7 @@ class KorapayService {
         console.log('[KORAPAY-SERVICE] Ref:', reference, 'Amount:', amount, 'Email:', email);
 
         const payload = {
-            amount,
+            amount: Math.floor(parseFloat(amount)),
             currency: 'NGN',
             reference,
             customer: { name, email },
@@ -105,8 +105,9 @@ class KorapayService {
         console.log('[KORAPAY-BANK-TRANSFER] Initiating for user:', email, 'amount:', amount);
 
         const payload = {
+            account_name: name,
             reference,
-            amount,
+            amount: Math.floor(parseFloat(amount)),
             currency: 'NGN',
             customer: { name, email },
             merchant_bears_cost: true,
@@ -114,7 +115,7 @@ class KorapayService {
             narration: 'StableX NGN Deposit',
         };
 
-        const res = await fetch(`${KORA_BASE_URL}/charges/initialize-bank-transfer`, {
+        const res = await fetch(`${KORA_BASE_URL}/charges/bank-transfer`, {
             method: 'POST',
             headers: this.headers,
             body: JSON.stringify(payload),
@@ -124,17 +125,18 @@ class KorapayService {
         return data;
     }
 
-    async initializePayWithBank({ amount, name, email, reference, bankCode }) {
+    async initializePayWithBank({ amount, name, email, reference, bankCode, redirectUrl, narration = 'StableX NGN Deposit' }) {
         console.log('[KORAPAY-PWB] Initiating Pay With Bank');
         const payload = {
-            amount,
+            amount: Math.floor(parseFloat(amount)),
             currency: 'NGN',
             reference,
             bank_code: bankCode,
             customer: { name, email },
             merchant_bears_cost: true,
             notification_url: `${process.env.BACKEND_URL}/webhook/korapay`,
-            narration: 'StableX NGN Deposit',
+            redirect_url: redirectUrl,
+            narration: narration,
         };
         const res = await fetch(`${KORA_BASE_URL}/charge/pay-with-bank`, {
             method: 'POST',
@@ -168,7 +170,7 @@ class KorapayService {
         if (!this.enabled) {
             throw new Error('KoraPay credentials not configured.');
         }
-        const url = `${KORA_BASE_URL}/transactions/${reference}`;
+        const url = `${KORA_BASE_URL}/payouts/${reference}`;
         console.log('[KORAPAY] 🔍 Querying Payout status:', url);
 
         const response = await fetch(url, {
@@ -214,6 +216,24 @@ class KorapayService {
         }
     }
 
+    async listPayWithBankBanks() {
+        if (!this.enabled) {
+            return this._getFallbackBanks().filter(b => ['100004', '100033'].includes(b.bank_code));
+        }
+        const url = `${KORA_BASE_URL}/charge/pay-with-bank/banks`;
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: this.headers
+            });
+            const data = await response.json();
+            return data.status ? data.data : this._getFallbackBanks().filter(b => ['100004', '100033'].includes(b.bank_code));
+        } catch (error) {
+            console.error('[KORAPAY] 💥 Exception fetching PWB banks:', error.message);
+            return this._getFallbackBanks().filter(b => ['100004', '100033'].includes(b.bank_code));
+        }
+    }
+
     _getFallbackBanks() {
         return [
             { bank_name: "Access Bank", bank_code: "044" },
@@ -228,7 +248,7 @@ class KorapayService {
             { bank_name: "Sterling Bank", bank_code: "232" },
             { bank_name: "OPay", bank_code: "100004" },
             { bank_name: "Kuda", bank_code: "090267" },
-            { bank_name: "PalmPay", bank_code: "100003" }
+            { bank_name: "PalmPay", bank_code: "100033" }
         ];
     }
 
@@ -241,7 +261,7 @@ class KorapayService {
                 body: JSON.stringify({
                     bank: bankCode,
                     account: accountNumber,
-                    currency: 'NGN',
+                    currency: 'NG',
                 }),
             });
             const data = await res.json();
@@ -262,13 +282,12 @@ class KorapayService {
             reference,
             destination: {
                 type: 'bank_account',
-                amount,
+                amount: Number(amount),
                 currency: 'NGN',
                 narration,
                 bank_account: {
                     bank: bankCode,
-                    account: accountNumber,
-                    name: accountName
+                    account: accountNumber
                 },
                 customer: {
                     email,

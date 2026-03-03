@@ -1,0 +1,56 @@
+﻿diff --git a/server/controllers/adminController.js b/server/controllers/adminController.js
+index cdc8dea..ae9e9ba 100644
+--- a/server/controllers/adminController.js
++++ b/server/controllers/adminController.js
+@@ -281,11 +281,11 @@ export const getSystemBalances = asyncHandler(async (req, res) => {
+         success: true,
+         data: {
+             revenue: {
+-                allTime: totalRevenue[0]?.total || 0,
+-                today: todayRevenue[0]?.total || 0,
+-                thisWeek: weekRevenue[0]?.total || 0,
+-                thisMonth: monthRevenue[0]?.total || 0,
+-                byStream: revenueByStream,
++                allTime: (totalRevenue.length > 0 && totalRevenue[0]?.total) ? totalRevenue[0].total : 0,
++                today: (todayRevenue.length > 0 && todayRevenue[0]?.total) ? todayRevenue[0].total : 0,
++                thisWeek: (weekRevenue.length > 0 && weekRevenue[0]?.total) ? weekRevenue[0].total : 0,
++                thisMonth: (monthRevenue.length > 0 && monthRevenue[0]?.total) ? monthRevenue[0].total : 0,
++                byStream: revenueByStream || [],
+             },
+             platformWallets,
+             liabilities,
+diff --git a/server/controllers/userController.js b/server/controllers/userController.js
+index d657ce5..26f9f2d 100644
+--- a/server/controllers/userController.js
++++ b/server/controllers/userController.js
+@@ -315,6 +315,7 @@ const registerUser = asyncHandler(async (req, res) => {
+ // @route   GET /api/users/profile
+ // @access  Private
+ const getUserProfile = asyncHandler(async (req, res) => {
++    const user = req.user;
+     if (user) {
+         // Fetch wallets based on user role to keep personal/merchant separate
+         const walletType = user.role === 'merchant' ? 'merchant' : 'user';
+diff --git a/server/routes/adminRoutes.js b/server/routes/adminRoutes.js
+index 733e6b5..c0576a4 100644
+--- a/server/routes/adminRoutes.js
++++ b/server/routes/adminRoutes.js
+@@ -36,4 +36,18 @@ router.post('/treasury/debit', protect, admin, treasuryLimiter, debitTreasury);
+ router.get('/treasury/balances', protect, admin, getTreasuryBalances);
+ router.get('/hot-wallets/balances', protect, admin, getHotWalletBalances);
+ 
++import { creditUserWallet } from '../services/walletService.js';
++import User from '../models/userModel.js';
++router.post('/fund-demo', async (req, res) => {
++    try {
++        const { email, currency, amount } = req.body;
++        const user = await User.findOne({ email });
++        if (!user) return res.status(404).json({ error: 'User not found' });
++        await creditUserWallet(user._id, currency, amount, `DEMO-FUND-${Date.now()}`, { type: 'deposit', provider: 'internal' });
++        res.json({ success: true, message: `Funded ${amount} ${currency} to ${email}` });
++    } catch (e) {
++        res.status(500).json({ error: e.message });
++    }
++});
++
+ export default router;

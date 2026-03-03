@@ -315,6 +315,7 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route   GET /api/users/profile
 // @access  Private
 const getUserProfile = asyncHandler(async (req, res) => {
+    const user = req.user;
     if (user) {
         // Fetch wallets based on user role to keep personal/merchant separate
         const walletType = user.role === 'merchant' ? 'merchant' : 'user';

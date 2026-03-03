@@ -17,7 +17,7 @@ export const initializeDeposit = async (req, res) => {
         }
 
         const user = req.user;
-        const reference = `STX-KPY-${Date.now()}-${user._id}`;
+        const reference = `STX-KPY-${Date.now()}-${Math.random().toString(36).substring(2, 7)}-${user._id}`;
         console.log('[KORAPAY-CHECKOUT] Generated reference:', reference);
 
         // Create a pending transaction
@@ -129,7 +129,7 @@ export const initializePayWithBank = async (req, res) => {
             return res.status(400).json({ message: 'Bank code is required' });
         }
 
-        const reference = `STX-KPY-PWB-${Date.now()}-${user._id}`;
+        const reference = `STX-KPY-PWB-${Date.now()}-${Math.random().toString(36).substring(2, 7)}-${user._id}`;
         console.log('[KORAPAY-PWB] Generated reference:', reference);
 
         // Create a pending transaction
@@ -251,7 +251,7 @@ export const initiatePayout = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid bank account details' });
         }
 
-        const reference = `STX-KPY-WDR-${Date.now()}`;
+        const reference = `STX-KPY-WDR-${Date.now()}-${Math.random().toString(36).substring(2, 7)}-${userId}`;
         const narration = 'StableX NGN Withdrawal';
 
         // Step 2 & 3: Check balance and deduct atomically via unified service

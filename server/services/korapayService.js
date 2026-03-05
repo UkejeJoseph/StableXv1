@@ -265,7 +265,11 @@ class KorapayService {
                 }),
             });
             const data = await res.json();
-            return data.status ? data.data : null;
+            if (!data.status) {
+                console.error('[KORAPAY-RESOLVE] ❌ Kora API Error:', data.message || JSON.stringify(data));
+                return null;
+            }
+            return data.data;
         } catch (err) {
             console.error('[KORAPAY-RESOLVE] ❌ Fetch error:', err.message);
             return null;

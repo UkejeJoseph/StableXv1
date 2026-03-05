@@ -2,7 +2,7 @@
 // Interswitch Payouts Service
 // Handles Fiat Withdrawals (Bank Transfers) & Account Name Inquiry
 // ──────────────────────────────────────────────────────────────
-import { CONFIG, URLS, getAccessToken } from './interswitchConfig.js';
+import { CONFIG, URLS, getAccessToken, IS_LIVE } from './interswitchConfig.js';
 import crypto from 'crypto';
 
 // Use same base URL as Collections for Quickteller Business APIs (which handle payouts)

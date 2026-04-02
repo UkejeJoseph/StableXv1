@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 export function ConnectWeb3Wallet() {
     const { user } = useUser();
@@ -24,12 +25,8 @@ export function ConnectWeb3Wallet() {
         if (!user) return;
         setIsLinking(true);
         try {
-            const response = await fetch("/api/wallets/connect", {
+            const response = await apiFetch("/api/wallets/connect", {
                 method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
                 body: JSON.stringify({ address: walletAddress, network: "ETH" }), // Default to ETH/EVM
             });
 

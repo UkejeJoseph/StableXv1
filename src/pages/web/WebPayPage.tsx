@@ -6,6 +6,7 @@ import { Loader2, Send, CheckCircle2, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { WebLayout } from "@/components/WebSidebar";
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 export default function WebPayPage() {
     const { user } = useUser();
@@ -47,12 +48,8 @@ export default function WebPayPage() {
 
         setIsLoading(true);
         try {
-            const res = await fetch(`/api/transactions/transfer/internal`, {
+            const res = await apiFetch(`/api/transactions/transfer/internal`, {
                 method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
                 body: JSON.stringify({
                     recipient_username: username,
                     amount,

@@ -4,6 +4,7 @@ import { Landmark, CheckCircle2, Clock, ArrowUpRight, Loader2 } from "lucide-rea
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 interface Settlement {
     batchId: string;
@@ -36,9 +37,7 @@ export default function WebMerchantSettlements() {
     const fetchSettlements = async () => {
         if (!user) return;
         try {
-            const res = await fetch("/api/merchant/settlements", {
-                credentials: "include",
-            });
+            const res = await apiFetch("/api/merchant/settlements");
             const data = await res.json();
             if (data.success) {
                 setSettlements(data.data);

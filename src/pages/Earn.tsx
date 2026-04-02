@@ -26,6 +26,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { SiTether } from "react-icons/si";
+import { apiFetch } from "@/lib/api";
 
 interface StakingPool {
   id: string;
@@ -75,9 +76,7 @@ export default function Earn() {
   const fetchPositions = async () => {
     setPositionsLoading(true);
     try {
-      const res = await fetch("/api/staking/positions", {
-        credentials: "include"
-      });
+      const res = await apiFetch("/api/staking/positions");
       const data = await res.json();
       if (data.success) {
         setPositions(data.data || []);
@@ -96,10 +95,8 @@ export default function Earn() {
     }
     setIsStaking(true);
     try {
-      const res = await fetch("/api/staking/stake", {
+      const res = await apiFetch("/api/staking/stake", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           currency: "USDT_TRC20",
           amount: parseFloat(stakeAmount)
@@ -131,10 +128,8 @@ export default function Earn() {
     if (!selectedPosition) return;
     setIsUnstaking(true);
     try {
-      const res = await fetch("/api/staking/unstake", {
+      const res = await apiFetch("/api/staking/unstake", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ positionId: selectedPosition._id })
       });
       const data = await res.json();

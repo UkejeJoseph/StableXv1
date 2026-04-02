@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link, useLocation } from "react-router-dom";
 import { getMarketPrices } from "@/lib/marketData";
+import { apiFetch } from "@/lib/api";
 
 export function PortfolioOverview() {
     const [isHidden, setIsHidden] = useState(false);
@@ -24,9 +25,7 @@ export function PortfolioOverview() {
 
     const fetchSummary = async () => {
         try {
-            const res = await fetch("/api/dashboard/summary", {
-                credentials: "include",
-            });
+            const res = await apiFetch("/api/dashboard/summary");
             if (!res.ok) throw new Error("Could not fetch portfolio summary");
             const data = await res.json();
             setSummaryData(data);

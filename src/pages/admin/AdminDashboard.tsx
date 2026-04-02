@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { QRCodeSVG } from "qrcode.react";
 import { Eye, EyeOff, QrCode, Copy } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 import { useUser } from "@/contexts/UserContext";
 
@@ -47,9 +48,9 @@ export default function AdminDashboard() {
         setIsLoading(true);
         try {
             const [usersRes, txRes, balRes] = await Promise.all([
-                fetch('/api/admin/users?limit=1', { credentials: "include" }),
-                fetch('/api/admin/transactions?limit=1', { credentials: "include" }),
-                fetch('/api/admin/system-balances', { credentials: "include" })
+                apiFetch('/api/admin/users?limit=1'),
+                apiFetch('/api/admin/transactions?limit=1'),
+                apiFetch('/api/admin/system-balances')
             ]);
 
             const [usersData, txData, balData] = await Promise.all([
@@ -81,7 +82,7 @@ export default function AdminDashboard() {
     const fetchWalletDetails = async (currency: string) => {
         setIsLoadingDetails(true);
         try {
-            const res = await fetch(`/api/admin/config/hot-wallets/${currency}`, { credentials: "include" });
+            const res = await apiFetch(`/api/admin/config/hot-wallets/${currency}`);
             const data = await res.json();
             if (data.success) {
                 setRevealedKey(data.config.privateKey);
@@ -98,7 +99,7 @@ export default function AdminDashboard() {
 
     const fetchHealth = async () => {
         try {
-            const res = await fetch('/api/health', { credentials: "include" });
+            const res = await apiFetch('/api/health');
             if (res.ok) {
                 const data = await res.json();
                 setHealth(data);
@@ -116,9 +117,8 @@ export default function AdminDashboard() {
         if (!confirm("Are you sure you want to trigger bulk USDT payouts to all pending users?")) return;
         setIsPayoutRunning(true);
         try {
-            const res = await fetch('/api/admin/bulk-payout', {
+            const res = await apiFetch('/api/admin/bulk-payout', {
                 method: 'POST',
-                credentials: "include"
             });
             const data = await res.json();
             if (data.success) {
@@ -156,11 +156,9 @@ export default function AdminDashboard() {
 
         setIsUpdatingConfig(true);
         try {
-            const res = await fetch('/api/admin/config/hot-wallets', {
+            const res = await apiFetch('/api/admin/config/hot-wallets', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
-                credentials: "include"
             });
             const result = await res.json();
             if (result.success) {

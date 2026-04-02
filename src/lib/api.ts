@@ -5,6 +5,9 @@
  */
 
 export async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
+    const BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || "";
+    const fullUrl = url.startsWith("/") ? `${BASE_URL}${url}` : url;
+    
     const defaultOptions: RequestInit = {
         credentials: "include", // Ensure cookies are sent
         headers: {
@@ -14,25 +17,24 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
         ...options,
     };
 
-    let response = await fetch(url, defaultOptions);
-
-    // If 401 Unauthorized, try to refresh the token
-    if (response.status === 401) {
+    let response = await fetch(fullUrl, defaultOptions);
+    
+    // If 401 Unauthorized and not already trying to refresh, try to refresh the token
+    if (response.status === 401 && !url.includes("/api/auth/refresh")) {
         console.warn(`[API] 401 Unauthorized on ${url}. Attempting to refresh token...`);
-
+        
         try {
-            const refreshRes = await fetch("/api/auth/refresh", {
+            const refreshRes = await fetch(`${BASE_URL}/api/auth/refresh`, {
                 method: "POST",
                 credentials: "include",
             });
-
+            
             if (refreshRes.ok) {
                 console.log("[API] Token refresh successful. Retrying original request...");
-                // Retry the original request
-                response = await fetch(url, defaultOptions);
+                // Retry the original request with the same fullUrl
+                response = await fetch(fullUrl, defaultOptions);
             } else {
                 console.error("[API] Token refresh failed. User must re-login.");
-                // Let the 401 bubble up or handle logout if needed
             }
         } catch (err) {
             console.error("[API] Fatal error during token refresh:", err);

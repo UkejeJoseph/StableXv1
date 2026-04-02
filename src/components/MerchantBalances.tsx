@@ -5,6 +5,7 @@ import { Plus, ArrowUpFromLine, Replace, History } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 export function MerchantBalances() {
     const { user } = useUser();
@@ -28,9 +29,7 @@ export function MerchantBalances() {
     const fetchSummary = async () => {
         if (!user) return;
         try {
-            const res = await fetch("/api/dashboard/summary", {
-                credentials: "include",
-            });
+            const res = await apiFetch("/api/dashboard/summary");
             const data = await res.json();
             setSummaryData(data);
         } catch (e) {

@@ -1,16 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
 import { type StoredWallet } from '@/lib/wallet';
+import { apiFetch } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
 
 export function useWallets() {
     return useQuery({
         queryKey: ['wallets'],
         queryFn: async () => {
-            const res = await fetch("/api/wallets", {
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            });
+            const res = await apiFetch("/api/wallets");
 
             if (!res.ok) {
                 // Return empty array on 401/unauthorized

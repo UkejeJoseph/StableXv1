@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 interface WebhookLog {
     id: string;
@@ -36,8 +37,8 @@ export default function WebMerchantWebhooks() {
         try {
             // Fetch webhook URL and logs in parallel
             const [urlRes, logsRes] = await Promise.all([
-                fetch("/api/merchant/webhook", { credentials: "include" }),
-                fetch("/api/merchant/webhook-logs", { credentials: "include" }),
+                apiFetch("/api/merchant/webhook"),
+                apiFetch("/api/merchant/webhook-logs"),
             ]);
 
             const urlData = await urlRes.json();
@@ -70,12 +71,8 @@ export default function WebMerchantWebhooks() {
 
         setIsSaving(true);
         try {
-            const res = await fetch("/api/developer/webhook", {
+            const res = await apiFetch("/api/developer/webhook", {
                 method: "PUT",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
                 body: JSON.stringify({ webhookUrl }),
             });
 

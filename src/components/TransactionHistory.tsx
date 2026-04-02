@@ -10,6 +10,7 @@ import {
   Clock,
   RefreshCw,
 } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
 
 interface Transaction {
   _id: string;
@@ -107,9 +108,7 @@ export function TransactionHistory() {
     setLoading(true);
     try {
       const typeParam = activeTab !== 'all' ? `?type=${activeTab}` : '';
-      const response = await fetch(`/api/transactions/history${typeParam}`, {
-        credentials: "include",
-      });
+      const response = await apiFetch(`/api/transactions/history${typeParam}`);
       if (!response.ok) throw new Error("Failed to fetch history");
       const data = await response.json();
       if (data.success) {

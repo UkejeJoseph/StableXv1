@@ -25,6 +25,7 @@ import { useNavigate } from "react-router-dom";
 import { useBalances } from "@/hooks/useBalances";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
+import { apiFetch } from "@/lib/api";
 
 interface Bank {
   Code: string;
@@ -65,9 +66,7 @@ export default function WebWithdraw() {
     const fetchBanks = async () => {
       setIsLoadingBanks(true);
       try {
-        const res = await fetch("/api/interswitch/banks", {
-          credentials: "include"
-        });
+        const res = await apiFetch("/api/interswitch/banks");
         if (!res.ok) throw new Error("Could not load banks");
         const data = await res.json();
         if (data.success && Array.isArray(data.banks)) {
@@ -104,9 +103,7 @@ export default function WebWithdraw() {
         setErrorMessage("");
 
         try {
-          const res = await fetch(`/api/interswitch/name-enquiry?bankCode=${selectedBank}&accountId=${accountNumber}`, {
-            credentials: "include"
-          });
+          const res = await apiFetch(`/api/interswitch/name-enquiry?bankCode=${selectedBank}&accountId=${accountNumber}`);
           if (!res.ok) throw new Error("Name enquiry failed");
           const data = await res.json();
 
@@ -134,9 +131,7 @@ export default function WebWithdraw() {
         setErrorMessage("");
 
         try {
-          const res = await fetch(`/api/korapay/resolve?bankCode=${selectedBank}&accountNumber=${accountNumber}`, {
-            credentials: "include"
-          });
+          const res = await apiFetch(`/api/korapay/resolve?bankCode=${selectedBank}&accountNumber=${accountNumber}`);
           if (!res.ok) throw new Error("Korapay resolution failed");
           const data = await res.json();
 
@@ -161,9 +156,7 @@ export default function WebWithdraw() {
       const fetchKorapayBanks = async () => {
         setIsLoadingKorapayBanks(true);
         try {
-          const res = await fetch("/api/korapay/banks", {
-            credentials: "include"
-          });
+          const res = await apiFetch("/api/korapay/banks");
           if (!res.ok) throw new Error("Failed to fetch Korapay banks");
           const data = await res.json();
 
@@ -245,12 +238,8 @@ export default function WebWithdraw() {
           beneficiaryName: accountName,
         };
 
-        const res = await fetch("/api/transactions/withdraw", {
+        const res = await apiFetch("/api/transactions/withdraw", {
           method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify(payload)
         });
 
@@ -278,12 +267,8 @@ export default function WebWithdraw() {
           network: selectedWallet,
         };
 
-        const res = await fetch("/api/transactions/withdraw-crypto", {
+        const res = await apiFetch("/api/transactions/withdraw-crypto", {
           method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify(payload)
         });
 
@@ -341,12 +326,8 @@ export default function WebWithdraw() {
     setErrorMessage("");
 
     try {
-      const res = await fetch("/api/korapay/payout", {
+      const res = await apiFetch("/api/korapay/payout", {
         method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           amount,
           accountNumber,

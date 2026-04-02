@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 interface Message {
     role: "user" | "model";
@@ -55,10 +56,8 @@ export function AIChatWidget() {
                 parts: [{ text: msg.content }]
             }));
 
-            const response = await fetch('/api/ai/chat', {
+            const response = await apiFetch('/api/ai/chat', {
                 method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message: userMessage,
                     history: chatHistory

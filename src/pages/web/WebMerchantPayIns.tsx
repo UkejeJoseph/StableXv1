@@ -5,6 +5,7 @@ import { Copy, ArrowDownLeft, Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 interface Transaction {
     _id: string;
@@ -29,9 +30,7 @@ const WebMerchantPayIns = () => {
     const fetchTransactions = async () => {
         if (!user) return;
         try {
-            const res = await fetch("/api/transactions/history", {
-                credentials: "include",
-            });
+            const res = await apiFetch("/api/transactions/history");
             const data = await res.json();
             if (data.success) {
                 // Filter only for pay-ins (deposits) that look like checkout payments or standard deposits

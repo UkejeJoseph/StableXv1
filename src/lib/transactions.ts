@@ -1,3 +1,4 @@
+import { apiFetch } from "./api";
 import { NetworkType } from "./wallet";
 
 export interface TransactionRequest {
@@ -107,12 +108,8 @@ export async function sendTransaction(request: TransactionRequest): Promise<Tran
   const { network, toAddress, amount } = request;
 
   try {
-    const response = await fetch("/api/transactions/withdraw-crypto", {
+    const response = await apiFetch("/api/transactions/withdraw-crypto", {
       method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         network,
         toAddress,

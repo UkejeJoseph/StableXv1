@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/api";
 
 interface PriceData {
     time: string;
@@ -47,7 +48,7 @@ export function PriceChart({ symbol }: PriceChartProps) {
                     limit = 42;
                 }
 
-                const response = await fetch(
+                const response = await apiFetch(
                     `/api/prices/klines?symbol=${binanceSymbol}&interval=${interval}&limit=${limit}`
                 );
                 const klines = await response.json();

@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, ArrowLeft, Mail, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { BackButton } from "@/components/BackButton";
+import { apiFetch } from "@/lib/api";
 
 import { useUser } from "@/contexts/UserContext";
 
@@ -45,11 +46,9 @@ export default function VerifyOtp() {
         setIsResending(true);
 
         try {
-            const res = await fetch("/api/users/resend-otp", {
+            const res = await apiFetch("/api/users/resend-otp", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email }),
-                credentials: "include"
+                body: JSON.stringify({ email })
             });
 
             const data = await res.json();
@@ -89,11 +88,9 @@ export default function VerifyOtp() {
         setIsLoading(true);
 
         try {
-            const res = await fetch("/api/users/verify-otp", {
+            const res = await apiFetch("/api/users/verify-otp", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, otp }),
-                credentials: "include"
+                body: JSON.stringify({ email, otp })
             });
 
             const data = await res.json();

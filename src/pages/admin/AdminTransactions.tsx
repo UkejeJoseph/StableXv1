@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Copy, ArrowUpRight, ArrowDownLeft, RefreshCcw, Activity } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { apiFetch } from "@/lib/api";
 
 export default function AdminTransactions() {
     const [transactions, setTransactions] = useState<any[]>([]);
@@ -17,9 +18,7 @@ export default function AdminTransactions() {
 
     const fetchTransactions = async () => {
         try {
-            const res = await fetch('/api/admin/transactions?limit=100', {
-                credentials: "include",
-            });
+            const res = await apiFetch('/api/admin/transactions?limit=100');
             const data = await res.json();
             setTransactions(data.transactions);
         } catch (error) {

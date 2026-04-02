@@ -60,6 +60,7 @@ interface USSDBank {
 
 import { useUser } from "@/contexts/UserContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
 
 export default function Deposit() {
   const { user } = useUser();
@@ -178,10 +179,8 @@ export default function Deposit() {
     setIsProcessing(true);
     setErrorMessage("");
     try {
-      const res = await fetch(`/api/korapay/deposit/verify`, {
+      const res = await apiFetch(`/api/korapay/deposit/verify`, {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reference: targetRef }),
       });
       if (!res.ok) {
@@ -212,7 +211,7 @@ export default function Deposit() {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const res = await fetch("/api/interswitch/config", { credentials: "include" });
+        const res = await apiFetch("/api/interswitch/config");
         if (!res.ok) throw new Error("Could not load checkout config");
         const data = await res.json();
         setConfig(data);
@@ -254,7 +253,7 @@ export default function Deposit() {
   useEffect(() => {
     if (activeTab === "ussd" && ussdBanks.length === 0) {
       setIsLoadingUssdBanks(true);
-      fetch("/api/interswitch/ussd-banks", { credentials: "include" })
+      apiFetch("/api/interswitch/ussd-banks")
         .then(async (res) => {
           if (!res.ok) throw new Error("Failed to fetch USSD banks");
           return res.json();
@@ -290,12 +289,8 @@ export default function Deposit() {
       const ref = transactionRef || `REF-${Date.now()}`;
       const endpoint = isCrypto ? "/api/transactions/deposit-pending" : "/api/transactions/deposit";
 
-      const res = await fetch(endpoint, {
+      const res = await apiFetch(endpoint, {
         method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           amount: parseFloat(amount),
           currency: selectedWallet,
@@ -367,9 +362,8 @@ export default function Deposit() {
       onComplete: async (response: any) => {
         if (response.resp === "00" || response.responseCode === "00") {
           try {
-            const verifyRes = await fetch(
-              `/api/interswitch/transaction-status?transactionRef=${ref}&amount=${amount}`,
-              { credentials: "include" }
+            const verifyRes = await apiFetch(
+              `/api/interswitch/transaction-status?transactionRef=${ref}&amount=${amount}`
             );
             if (!verifyRes.ok) throw new Error("Verification service unavailable");
             const verifyData = await verifyRes.json();
@@ -432,10 +426,8 @@ export default function Deposit() {
     setTransactionRef(ref);
 
     try {
-      const response = await fetch("/api/interswitch/pay-ussd", {
+      const response = await apiFetch("/api/interswitch/pay-ussd", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount,
           transactionRef: ref,
@@ -484,10 +476,8 @@ export default function Deposit() {
     setKorapayAccount(null);
 
     try {
-      const response = await fetch("/api/korapay/deposit/bank-transfer", {
+      const response = await apiFetch("/api/korapay/deposit/bank-transfer", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount }),
       });
 
@@ -524,10 +514,8 @@ export default function Deposit() {
   const verifyPaymentServerSide = async (reference: string) => {
     console.log("[KORAPAY-CHECKOUT] Verifying payment server-side, ref:", reference);
     try {
-      const res = await fetch(`/api/korapay/deposit/verify`, {
+      const res = await apiFetch(`/api/korapay/deposit/verify`, {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reference }),
       });
       const result = await res.json();
@@ -556,10 +544,8 @@ export default function Deposit() {
     setIsProcessing(true);
 
     try {
-      const res = await fetch("/api/korapay/deposit/initialize", {
+      const res = await apiFetch("/api/korapay/deposit/initialize", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: parseFloat(amount),
         })
@@ -628,10 +614,8 @@ export default function Deposit() {
     try {
       const redirectUrl = `${window.location.origin}/dashboard/wallet/deposit-verify`;
 
-      const res = await fetch("/api/korapay/deposit/initialize", {
+      const res = await apiFetch("/api/korapay/deposit/initialize", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: parseFloat(amount),
           redirectUrl
@@ -669,10 +653,8 @@ export default function Deposit() {
     setIsProcessing(true);
 
     try {
-      const res = await fetch("/api/korapay/deposit/pay-with-bank", {
+      const res = await apiFetch("/api/korapay/deposit/pay-with-bank", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: parseFloat(amount),
           bankCode,
@@ -720,10 +702,8 @@ export default function Deposit() {
     try {
       const redirectUrl = `${window.location.origin}/dashboard/wallet/deposit-verify`;
 
-      const hashRes = await fetch("/api/interswitch/generate-checkout-hash", {
+      const hashRes = await apiFetch("/api/interswitch/generate-checkout-hash", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: parseFloat(amount),
           txn_ref: ref,
@@ -773,10 +753,8 @@ export default function Deposit() {
     try {
       // 1. Fetch SHA512 Hash from Backend (includes internal validation and kobo conversion)
       console.log("[WebCheckout] Fetching hash from backend...");
-      const hashRes = await fetch("/api/interswitch/generate-checkout-hash", {
+      const hashRes = await apiFetch("/api/interswitch/generate-checkout-hash", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: parseFloat(amount),
           txn_ref: ref,
@@ -803,11 +781,8 @@ export default function Deposit() {
         cust_id: user?._id || "guest",
         onComplete: async (response: any) => {
           try {
-            const verifyRes = await fetch(
-              `/api/interswitch/web-checkout-confirm?transactionRef=${ref}&amount=${amount}`,
-              {
-                credentials: "include",
-              }
+            const verifyRes = await apiFetch(
+              `/api/interswitch/web-checkout-confirm?transactionRef=${ref}&amount=${amount}`
             );
             if (!verifyRes.ok) throw new Error("Web checkout verification failed");
             const verifyData = await verifyRes.json();
@@ -836,12 +811,8 @@ export default function Deposit() {
         console.log("[WebCheckout] Registering pending transaction...");
 
         // 2. Create Pending Transaction on Backend
-        await fetch("/api/transactions/deposit-pending", {
+        await apiFetch("/api/transactions/deposit-pending", {
           method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify({
             amount: parseFloat(amount),
             currency: "NGN",
@@ -877,10 +848,8 @@ export default function Deposit() {
     setTransactionRef(ref);
 
     try {
-      const response = await fetch("/api/interswitch/pay-transfer", {
+      const response = await apiFetch("/api/interswitch/pay-transfer", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount,
           transactionRef: ref,

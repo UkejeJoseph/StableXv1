@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Copy, ShieldCheck, User as UserIcon, Loader2, Search, ChevronDown } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { apiFetch } from "@/lib/api";
 import {
     Select,
     SelectContent,
@@ -55,7 +56,7 @@ export default function AdminUsers() {
 
     const fetchUserStats = async () => {
         try {
-            const res = await fetch('/api/admin/user-stats', { credentials: 'include' });
+            const res = await apiFetch('/api/admin/user-stats');
             const data = await res.json();
             if (data.success) setUserStats(data.stats);
         } catch (err) {
@@ -65,7 +66,7 @@ export default function AdminUsers() {
 
     const fetchUsers = async () => {
         try {
-            const res = await fetch('/api/admin/users?limit=50', { credentials: "include" });
+            const res = await apiFetch('/api/admin/users?limit=50');
             const data = await res.json();
             if (data.users) setUsers(data.users);
         } catch (error) {
@@ -94,10 +95,8 @@ export default function AdminUsers() {
             const body: Record<string, any> = {};
             body[field] = field === "kycLevel" ? Number(value) : value;
 
-            const res = await fetch(`/api/admin/users/${userId}/kyc`, {
+            const res = await apiFetch(`/api/admin/users/${userId}/kyc`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
                 body: JSON.stringify(body),
             });
 

@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, KeyRound } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
-
-const API = import.meta.env.VITE_API_URL || "";
+import { apiFetch } from "@/lib/api";
 
 export default function WebResetPassword() {
     const [newPassword, setNewPassword] = useState("");
@@ -42,9 +41,8 @@ export default function WebResetPassword() {
         setIsLoading(true);
 
         try {
-            const res = await fetch(`${API}/api/auth/reset-password`, {
+            const res = await apiFetch(`/api/auth/reset-password`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ token, newPassword }),
             });
 

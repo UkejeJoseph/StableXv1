@@ -14,8 +14,8 @@ import {
 import { ArrowDownUp, Info } from "lucide-react";
 import { SiBitcoin, SiEthereum, SiSolana, SiTether } from "react-icons/si";
 import { useBalances } from "@/hooks/useBalances";
-import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
+import { apiFetch } from "@/lib/api";
 
 const EXCHANGE_RATES = {
   NGN_USDT: 0.00062,
@@ -62,7 +62,7 @@ export default function Convert() {
 
   const fetchRates = async () => {
     try {
-      const res = await fetch("/api/transactions/rates");
+      const res = await apiFetch("/api/transactions/rates");
       if (!res.ok) throw new Error("Failed to fetch rates");
       const data = await res.json();
       if (data.success) {
@@ -136,12 +136,8 @@ export default function Convert() {
     setIsProcessing(true);
 
     try {
-      const res = await fetch("/api/transactions/swap", {
+      const res = await apiFetch("/api/transactions/swap", {
         method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           fromCurrency,
           toCurrency,

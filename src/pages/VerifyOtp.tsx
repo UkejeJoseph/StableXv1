@@ -9,6 +9,7 @@ import { Loader2, ArrowLeft, Mail } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 export default function VerifyOtp() {
     const { setUser } = useUser();
@@ -43,11 +44,9 @@ export default function VerifyOtp() {
         setIsResending(true);
 
         try {
-            const res = await fetch("/api/users/resend-otp", {
+            const res = await apiFetch("/api/users/resend-otp", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
-                credentials: "include"
             });
 
             const data = await res.json();
@@ -86,11 +85,9 @@ export default function VerifyOtp() {
         setIsLoading(true);
 
         try {
-            const res = await fetch("/api/users/verify", {
+            const res = await apiFetch("/api/users/verify", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, otp }),
-                credentials: "include"
             });
 
             const data = await res.json();

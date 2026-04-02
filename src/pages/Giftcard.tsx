@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { apiFetch } from "@/lib/api";
 import { Gift, ChevronRight, Loader2, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,9 +36,7 @@ export default function Giftcard() {
     const fetchCards = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch("/api/giftcards?country=NG", {
-          credentials: "include"
-        });
+        const res = await apiFetch("/api/giftcards?country=NG");
         if (!res.ok) throw new Error("Failed to load gift cards");
         const data = await res.json();
         if (data.success) {
@@ -58,7 +57,7 @@ export default function Giftcard() {
 
     const fetchRates = async () => {
       try {
-        const res = await fetch("/api/transactions/rates");
+        const res = await apiFetch("/api/transactions/rates");
         if (!res.ok) throw new Error("Could not fetch rates");
         const data = await res.json();
         if (data.success && data.rates) {
@@ -78,10 +77,8 @@ export default function Giftcard() {
     if (!selectedAmount || !recipientEmail || !selectedCard) return;
     setIsPurchasing(true);
     try {
-      const res = await fetch("/api/giftcards/purchase", {
+      const res = await apiFetch("/api/giftcards/purchase", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productId: selectedCard.productId,
           unitPrice: selectedAmount,

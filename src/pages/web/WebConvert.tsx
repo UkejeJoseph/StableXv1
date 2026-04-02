@@ -21,6 +21,7 @@ import { useBalances } from "@/hooks/useBalances";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMarketData } from "@/hooks/useMarketData";
 import { fetchSwapRate } from "@/lib/marketData";
+import { apiFetch } from "@/lib/api";
 
 export default function WebConvert() {
   const queryClient = useQueryClient();
@@ -101,10 +102,8 @@ export default function WebConvert() {
     setShowConfirm(false);
     setIsLoading(true);
     try {
-      const res = await fetch("/api/transactions/swap", {
+      const res = await apiFetch("/api/transactions/swap", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fromCurrency: spendCurrency,
           toCurrency: receiveCurrency,

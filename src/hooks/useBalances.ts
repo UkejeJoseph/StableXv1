@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-
-const API = import.meta.env.VITE_API_URL || "";
+import { apiFetch } from "@/lib/api";
 
 export const useBalances = () => {
     const [balances, setBalances] = useState<any[]>([]);
@@ -12,13 +11,12 @@ export const useBalances = () => {
             setLoading(true);
             setError(null);
 
-            const res = await fetch(`${API}/api/wallets/`, {
-                credentials: 'include'
-            });
+            const res = await apiFetch("/api/wallets/");
 
             if (!res.ok) {
                 if (res.status === 401) {
                     setBalances([]);
+                    setLoading(false);
                     return;
                 }
                 throw new Error('Failed to fetch balances');

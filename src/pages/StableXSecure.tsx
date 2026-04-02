@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { apiFetch } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
@@ -153,7 +154,7 @@ export default function StableXSecure() {
   const { data: walletsData, isLoading } = useQuery({
     queryKey: ['userWallets'],
     queryFn: async () => {
-      const res = await fetch('/api/wallets', { credentials: 'include' });
+      const res = await apiFetch('/api/wallets');
       if (!res.ok) throw new Error('Failed to fetch wallets');
       return res.json();
     }

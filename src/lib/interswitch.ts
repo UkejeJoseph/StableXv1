@@ -1,3 +1,5 @@
+import { apiFetch } from "./api";
+
 const API_BASE = '/api/interswitch';
 
 export interface PurchaseRequest {
@@ -64,11 +66,8 @@ export function encryptCardData(
 }
 
 export async function initiatePurchase(request: PurchaseRequest): Promise<PurchaseResponse> {
-  const response = await fetch(`${API_BASE}/purchase`, {
+  const response = await apiFetch(`${API_BASE}/purchase`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify(request),
   });
 
@@ -76,11 +75,8 @@ export async function initiatePurchase(request: PurchaseRequest): Promise<Purcha
 }
 
 export async function verifyOTP(request: OTPVerifyRequest): Promise<OTPVerifyResponse> {
-  const response = await fetch(`${API_BASE}/verify-otp`, {
+  const response = await apiFetch(`${API_BASE}/verify-otp`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify(request),
   });
 
@@ -88,11 +84,8 @@ export async function verifyOTP(request: OTPVerifyRequest): Promise<OTPVerifyRes
 }
 
 export async function resendOTP(paymentId: string, transactionRef: string): Promise<{ success: boolean; message?: string }> {
-  const response = await fetch(`${API_BASE}/resend-otp`, {
+  const response = await apiFetch(`${API_BASE}/resend-otp`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify({ paymentId, transactionRef }),
   });
 
@@ -103,7 +96,7 @@ export async function getTransactionStatus(
   transactionRef: string,
   amount: number
 ): Promise<TransactionStatusResponse> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE}/transaction-status?transactionRef=${transactionRef}&amount=${amount}`
   );
 

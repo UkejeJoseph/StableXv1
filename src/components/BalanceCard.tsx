@@ -2,10 +2,11 @@ import { ArrowUpRight, Wallet } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useWallet } from "@/contexts/WalletContext";
 import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
 
 const fetchExchangeRate = async (): Promise<number> => {
   try {
-    const res = await fetch("/api/transactions/rates");
+    const res = await apiFetch("/api/transactions/rates");
     const data = await res.json();
     if (data.success && data.rates?.USDT_NGN) {
       return data.rates.USDT_NGN;

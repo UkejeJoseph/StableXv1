@@ -1,5 +1,4 @@
-// Backend proxy for market data
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import { apiFetch } from "./api";
 
 export interface CryptoPrice {
   id: string;
@@ -42,9 +41,7 @@ export interface MarketData {
 export async function fetchMarketData(): Promise<MarketData> {
   console.log('[MARKET-DATA] Fetching from backend proxy...');
 
-  const res = await fetch(`${API_BASE}/api/prices/markets`, {
-    credentials: 'include',
-  });
+  const res = await apiFetch(`/api/prices/markets`);
 
   if (!res.ok) {
     console.error('[MARKET-DATA] ❌ Backend price fetch failed:', res.status);
@@ -68,9 +65,8 @@ export async function fetchSwapRate(
 ): Promise<number> {
   console.log('[MARKET-DATA] Fetching swap rate:', from, '→', to);
 
-  const res = await fetch(
-    `${API_BASE}/api/prices/rate?from=${from}&to=${to}`,
-    { credentials: 'include' }
+  const res = await apiFetch(
+    `/api/prices/rate?from=${from}&to=${to}`
   );
 
   if (!res.ok) {

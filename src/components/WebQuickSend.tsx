@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Search, Send, CheckCircle2, Copy } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 interface WebQuickSendProps {
     isOpen: boolean;
@@ -28,9 +29,7 @@ export function WebQuickSend({ isOpen, onClose }: WebQuickSendProps) {
         if (!username.trim() || !user) return;
         setIsLoading(true);
         try {
-            const res = await fetch(`/api/users/search?q=${username}`, {
-                credentials: "include",
-            });
+            const res = await apiFetch(`/api/users/search?q=${username}`);
             const data = await res.json();
 
             if (!res.ok) throw new Error(data.message || "User not found");
@@ -48,12 +47,8 @@ export function WebQuickSend({ isOpen, onClose }: WebQuickSendProps) {
         if (!user) return;
         setIsLoading(true);
         try {
-            const res = await fetch(`/api/transactions/payment-link/create`, {
+            const res = await apiFetch(`/api/transactions/payment-link/create`, {
                 method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
                 body: JSON.stringify({ currency: "USDT_TRC20" })
             });
             const data = await res.json();
@@ -84,12 +79,8 @@ export function WebQuickSend({ isOpen, onClose }: WebQuickSendProps) {
 
         setIsLoading(true);
         try {
-            const res = await fetch(`/api/transactions/transfer/internal`, {
+            const res = await apiFetch(`/api/transactions/transfer/internal`, {
                 method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
                 body: JSON.stringify({
                     recipient_username: recipient.username,
                     amount,

@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, User, Store, ArrowLeft } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
+import { apiFetch } from "@/lib/api";
 
 export default function Signup() {
     const [role, setRole] = useState("user");
@@ -66,9 +67,8 @@ export default function Signup() {
         setIsLoading(true);
 
         try {
-            const res = await fetch("/api/users", {
+            const res = await apiFetch("/api/users", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     email: formData.email,
                     password: formData.password,

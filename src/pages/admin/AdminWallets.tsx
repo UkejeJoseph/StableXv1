@@ -22,6 +22,7 @@ import {
     Info
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { apiFetch } from "@/lib/api";
 import {
     Dialog,
     DialogContent,
@@ -94,8 +95,8 @@ export default function AdminWallets() {
         setIsLoading(true);
         try {
             const [hwRes, tRes] = await Promise.all([
-                fetch('/api/admin/hot-wallets/balances', { credentials: 'include' }),
-                fetch('/api/admin/treasury/balances', { credentials: 'include' })
+                apiFetch('/api/admin/hot-wallets/balances'),
+                apiFetch('/api/admin/treasury/balances')
             ]);
 
             const hwData = await hwRes.json();
@@ -129,15 +130,13 @@ export default function AdminWallets() {
 
         setIsActionLoading(true);
         try {
-            const res = await fetch('/api/admin/treasury/credit', {
+            const res = await apiFetch('/api/admin/treasury/credit', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     currency: selectedCurrency,
                     amount: parseFloat(actionAmount),
                     reason: actionReason
                 }),
-                credentials: 'include'
             });
 
             const data = await res.json();
@@ -164,15 +163,13 @@ export default function AdminWallets() {
 
         setIsActionLoading(true);
         try {
-            const res = await fetch('/api/admin/treasury/debit', {
+            const res = await apiFetch('/api/admin/treasury/debit', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     currency: selectedCurrency,
                     amount: parseFloat(actionAmount),
                     reason: actionReason
                 }),
-                credentials: 'include'
             });
 
             const data = await res.json();

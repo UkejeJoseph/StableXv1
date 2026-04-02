@@ -15,6 +15,7 @@ import {
   type NetworkType,
 } from "@/lib/wallet";
 import { ConnectWeb3Wallet } from "@/components/ConnectWeb3Wallet";
+import { apiFetch } from "@/lib/api";
 
 type IconComponent = typeof SiBitcoin;
 
@@ -129,12 +130,8 @@ export default function CreateWallet() {
     setNetwork(selectedNetwork);
     setIsProcessing(true);
     try {
-      const response = await fetch("/api/wallets/generate", {
+      const response = await apiFetch("/api/wallets/generate", {
         method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ network: selectedNetwork }),
       });
 
@@ -186,12 +183,8 @@ export default function CreateWallet() {
     if (!user) return;
     setIsProcessing(true);
     try {
-      const response = await fetch("/api/wallets/import", {
+      const response = await apiFetch("/api/wallets/import", {
         method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           network,
           importMethod,

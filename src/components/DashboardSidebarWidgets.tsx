@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Gift, Megaphone } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 export function DashboardSidebarWidgets() {
     const { user } = useUser();
@@ -12,14 +13,12 @@ export function DashboardSidebarWidgets() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const annRes = await fetch("/api/dashboard/announcements");
+                const annRes = await apiFetch("/api/dashboard/announcements");
                 const annData = await annRes.json();
                 if (annData.success) setAnnouncements(annData.announcements);
 
                 if (user) {
-                    const rewRes = await fetch("/api/dashboard/rewards", {
-                        credentials: "include",
-                    });
+                    const rewRes = await apiFetch("/api/dashboard/rewards");
                     const rewData = await rewRes.json();
                     if (rewData.success) setRewards(rewData.rewards);
                 }

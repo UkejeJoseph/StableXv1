@@ -16,6 +16,7 @@ import { getMarketPrices, type CryptoPrice } from "@/lib/marketData";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { QuickActionsGrid } from "@/components/QuickActionsGrid";
+import { apiFetch } from "@/lib/api";
 
 const WebDashboard = () => {
   const { balances = [], loading: isWalletsLoading, error, refetch: refetchWallets } = useBalances();
@@ -37,11 +38,9 @@ const WebDashboard = () => {
 
   const handleConnect = (providerId: string, address: string, network: string) => {
     // Logic to save the external wallet connection to backend
-    fetch("/api/wallets/connect", {
+    apiFetch("/api/wallets/connect", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ address, network, providerId }),
-      credentials: "include"
     }).then(() => refetchWallets());
   };
 

@@ -3,6 +3,7 @@ import { LayoutDashboard, TrendingUp, ArrowUpRight, ArrowDownRight, Loader2 } fr
 import { Card } from "@/components/ui/card";
 import { useBalances } from "@/hooks/useBalances";
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 interface TransactionRecord {
   _id: string;
@@ -17,7 +18,7 @@ interface TransactionRecord {
 
 const Merchant = () => {
   const { user } = useUser();
-  const { data: balancesData } = useBalances();
+  const { balances, loading: isWalletsLoading } = useBalances();
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [rate, setRate] = useState<number>(1600);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,10 +35,8 @@ const Merchant = () => {
     try {
       // Fetch transactions and rates in parallel
       const [txRes, rateRes] = await Promise.all([
-        fetch("/api/transactions/history", {
-          credentials: "include",
-        }),
-        fetch("/api/transactions/rates"),
+        apiFetch("/api/transactions/history"),
+        apiFetch("/api/transactions/rates"),
       ]);
 
       const txData = await txRes.json();
@@ -70,7 +69,8 @@ const Merchant = () => {
     .reduce((sum, tx) => sum + tx.amount, 0);
 
   // Get user's NGN balance from useBalances hook
-  const ngnBalance = balancesData?.NGN || 0;
+  const ngnWallet = balances?.find((w: any) => w.currency === "NGN");
+  const ngnBalance = ngnWallet?.balance || 0;
 
   return (
     <div className="space-y-6">

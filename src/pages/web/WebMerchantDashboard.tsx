@@ -12,6 +12,7 @@ import { DashboardSidebarWidgets } from "@/components/DashboardSidebarWidgets";
 import { MerchantBalances } from "@/components/MerchantBalances";
 import { MerchantKYCPanel } from "@/components/MerchantKYCPanel";
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 const WebMerchantDashboard = () => {
     const { user } = useUser();
@@ -29,9 +30,7 @@ const WebMerchantDashboard = () => {
     const fetchDeveloperSettings = async () => {
         if (!user) return;
         try {
-            const res = await fetch("/api/developer/keys", {
-                credentials: "include",
-            });
+            const res = await apiFetch("/api/developer/keys");
             const data = await res.json();
             if (data.success) {
                 setApiKeys(data.apiKeys);
@@ -39,9 +38,7 @@ const WebMerchantDashboard = () => {
             }
 
             // Fetch User for KYC
-            const userRes = await fetch("/api/users/profile", {
-                credentials: "include",
-            });
+            const userRes = await apiFetch("/api/users/profile");
             const userData = await userRes.json();
             if (userData._id) {
                 setKycStatus(userData.kycStatus || 'pending');
@@ -61,9 +58,8 @@ const WebMerchantDashboard = () => {
     const generateKeys = async () => {
         setIsGenerating(true);
         try {
-            const res = await fetch("/api/developer/keys", {
+            const res = await apiFetch("/api/developer/keys", {
                 method: "POST",
-                credentials: "include",
             });
             const data = await res.json();
             if (data.success) {
@@ -81,12 +77,8 @@ const WebMerchantDashboard = () => {
 
     const updateWebhook = async () => {
         try {
-            const res = await fetch("/api/developer/webhook", {
+            const res = await apiFetch("/api/developer/webhook", {
                 method: "PUT",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
                 body: JSON.stringify({ webhookUrl })
             });
             const data = await res.json();

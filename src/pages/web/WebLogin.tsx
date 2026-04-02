@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, LogIn } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 export default function Login() {
     const { user, setUser } = useUser();
@@ -32,9 +33,8 @@ export default function Login() {
         setIsLoading(true);
 
         try {
-            const res = await fetch("/api/users/login", {
+            const res = await apiFetch("/api/users/login", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
             });
 

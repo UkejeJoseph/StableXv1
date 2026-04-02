@@ -8,6 +8,7 @@ import { Loader2, ShieldCheck, ArrowRight, Store, CheckCircle2, Copy, AlertCircl
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 interface CheckoutDetails {
     amount: number;
@@ -58,8 +59,8 @@ const CheckoutWidget = () => {
     const fetchCheckoutDetails = async () => {
         try {
             const [resDetails, resRates] = await Promise.all([
-                fetch(`/api/v1/checkout/${sessionId}/details`, { credentials: "include" }),
-                fetch("/api/transactions/rates", { credentials: "include" })
+                apiFetch(`/api/v1/checkout/${sessionId}/details`),
+                apiFetch("/api/transactions/rates")
             ]);
 
             const data = await resDetails.json();
@@ -91,7 +92,7 @@ const CheckoutWidget = () => {
         stopPolling();
         pollingInterval.current = setInterval(async () => {
             try {
-                const res = await fetch(`/api/v1/checkout/${sessionId}/status`, { credentials: "include" });
+                const res = await apiFetch(`/api/v1/checkout/${sessionId}/status`);
                 const data = await res.json();
                 if (data.success && data.status === 'completed') {
                     setDetails(prev => prev ? { ...prev, status: 'completed' } : null);
@@ -137,10 +138,8 @@ const CheckoutWidget = () => {
 
         setProcessing(true);
         try {
-            const res = await fetch(`/api/v1/checkout/${sessionId}/pay-internal`, {
-                method: "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" }
+            const res = await apiFetch(`/api/v1/checkout/${sessionId}/pay-internal`, {
+                method: "POST"
             });
             const data = await res.json();
 

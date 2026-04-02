@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 export default function WebAdminLogin() {
     const { user, setUser } = useUser();
@@ -32,9 +33,8 @@ export default function WebAdminLogin() {
         setIsLoading(true);
 
         try {
-            const res = await fetch("/api/admin/login", {
+            const res = await apiFetch("/api/admin/login", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
             });
 

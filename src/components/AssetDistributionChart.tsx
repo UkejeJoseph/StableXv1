@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { getMarketPrices } from "@/lib/marketData";
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 const COLORS = ['#F0B90B', '#3b82f6', '#f97316', '#22c59e', '#8b5cf6', '#64748b'];
 
@@ -15,9 +16,7 @@ export function AssetDistributionChart() {
         const fetchSummary = async () => {
             if (!user) return;
             try {
-                const res = await fetch("/api/dashboard/summary", {
-                    credentials: "include",
-                });
+                const res = await apiFetch("/api/dashboard/summary");
 
                 if (!res.ok) throw new Error("Failed to fetch dashboard summary");
 

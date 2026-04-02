@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useUser } from "@/contexts/UserContext";
+import { apiFetch } from "@/lib/api";
 
 interface BankAccount {
     _id: string;
@@ -51,7 +52,7 @@ const WebMerchantPayouts = () => {
         if (!user) return;
         try {
             // Fetch NGN Balance
-            const walletRes = await fetch("/api/wallets", { credentials: "include" });
+            const walletRes = await apiFetch("/api/wallets");
             const walletData = await walletRes.json();
             if (walletData.success || walletData.wallets) {
                 const wallets = walletData.wallets || walletData.data || [];
@@ -60,7 +61,7 @@ const WebMerchantPayouts = () => {
             }
 
             // Fetch Saved Bank Accounts
-            const accountsRes = await fetch("/api/merchant/bank-accounts", { credentials: "include" });
+            const accountsRes = await apiFetch("/api/merchant/bank-accounts");
             const accountsData = await accountsRes.json();
             if (accountsData.success) {
                 setBankAccounts(accountsData.bankAccounts);
@@ -74,7 +75,7 @@ const WebMerchantPayouts = () => {
 
     const fetchBanks = async () => {
         try {
-            const res = await fetch("/api/korapay/banks", { credentials: "include" });
+            const res = await apiFetch("/api/korapay/banks");
             const data = await res.json();
             if (Array.isArray(data)) {
                 setAvailableBanks(data.map((b: any) => ({ Code: b.bank_code, Name: b.name })));
@@ -88,9 +89,7 @@ const WebMerchantPayouts = () => {
         if (newAccNumber.length !== 10 || !newAccBank) return;
         setIsVerifyingName(true);
         try {
-            const res = await fetch(`/api/interswitch/name-enquiry?bankCode=${newAccBank}&accountId=${newAccNumber}`, {
-                credentials: "include"
-            });
+            const res = await apiFetch(`/api/interswitch/name-enquiry?bankCode=${newAccBank}&accountId=${newAccNumber}`);
             const data = await res.json();
             if (data.success && data.accountName) {
                 setNewAccName(data.accountName);
@@ -114,10 +113,8 @@ const WebMerchantPayouts = () => {
         const bankObj = availableBanks.find(b => b.Code === newAccBank);
 
         try {
-            const res = await fetch("/api/merchant/bank-accounts", {
+            const res = await apiFetch("/api/merchant/bank-accounts", {
                 method: "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     accountNumber: newAccNumber,
                     bankCode: newAccBank,
@@ -143,9 +140,8 @@ const WebMerchantPayouts = () => {
 
     const handleDeleteAccount = async (id: string) => {
         try {
-            const res = await fetch(`/api/merchant/bank-accounts/${id}`, {
+            const res = await apiFetch(`/api/merchant/bank-accounts/${id}`, {
                 method: "DELETE",
-                credentials: "include"
             });
             const data = await res.json();
             if (data.success) {
@@ -176,10 +172,8 @@ const WebMerchantPayouts = () => {
 
         setIsProcessingPayout(true);
         try {
-            const res = await fetch("/api/korapay/payout", {
+            const res = await apiFetch("/api/korapay/payout", {
                 method: "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     amount: amount,
                     accountNumber: selectedAccount.accountNumber,

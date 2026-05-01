@@ -84,17 +84,21 @@ passport.use(new GoogleStrategy({
             user.walletDerivationIndex = nextIndex;
             await user.save();
 
-            // Encrypt and save wallets
-            return {
-                user: user._id,
-                walletType: user.role === 'merchant' ? 'merchant' : 'user',
-                network: w.currency,
-                currency: w.currency,
-                address: w.address,
-                encryptedPrivateKey: encryptedData,
-                iv,
-                authTag
-            };
+            // Encrypt each wallet's private key and save
+            const walletsToSave = walletsData.map(w => {
+                const { encryptedData, iv, authTag } = encrypt(w.privateKey);
+                return {
+                    user: user._id,
+                    walletType: user.role === 'merchant' ? 'merchant' : 'user',
+                    network: w.currency,
+                    currency: w.currency,
+                    address: w.address,
+                    encryptedPrivateKey: encryptedData,
+                    privateKeyIv: iv,
+                    privateKeyAuthTag: authTag
+                };
+            });
+
             await Wallet.insertMany(walletsToSave);
             console.log(`[GOOGLE AUTH] ✅ Created ${walletsToSave.length} wallets for user ${user._id}`);
 
@@ -138,6 +142,14 @@ router.get('/google/callback',
 
             // Set the HTTP-only cookie for Google Auth
             res.cookie('token', accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+            });
+
+            // Set the Refresh Token cookie
+            res.cookie('refreshToken', refreshToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'strict',

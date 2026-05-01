@@ -24,9 +24,15 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
         console.warn(`[API] 401 Unauthorized on ${url}. Attempting to refresh token...`);
         
         try {
+            const refreshToken = localStorage.getItem("refreshToken");
+            
             const refreshRes = await fetch(`${BASE_URL}/api/auth/refresh`, {
                 method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 credentials: "include",
+                body: JSON.stringify({ refreshToken }),
             });
             
             if (refreshRes.ok) {

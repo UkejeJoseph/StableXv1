@@ -144,7 +144,7 @@ router.get('/google/callback',
             res.cookie('token', accessToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
+                sameSite: 'none',
                 maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
             });
 
@@ -152,7 +152,7 @@ router.get('/google/callback',
             res.cookie('refreshToken', refreshToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
+                sameSite: 'none',
                 maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
             });
 
@@ -197,7 +197,7 @@ router.post('/refresh', async (req, res) => {
         res.cookie('token', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'none',
             maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
         });
 

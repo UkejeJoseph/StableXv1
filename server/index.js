@@ -79,7 +79,11 @@ if (!process.env.NODE_ENV) {
 console.log('✅ Environment validated.');
 
 app.use(cors({
-  origin: true, // Allow requests from Vite proxy or current origin
+  origin: [
+    'https://stable-xv1.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ],
   credentials: true // Crucial for accepting cookies from frontend
 }));
 // ✅ Step 1: Webhook route FIRST (raw body required)

@@ -81,14 +81,14 @@ const authUser = asyncHandler(async (req, res) => {
         res.cookie('token', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'none',
             maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
         });
 
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'none',
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
 
@@ -130,8 +130,8 @@ const verifyOtp = asyncHandler(async (req, res) => {
             await user.save();
 
             const { accessToken, refreshToken } = await generateAuthTokens(user._id);
-            res.cookie('token', accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 30 * 24 * 60 * 60 * 1000 });
-            res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 30 * 24 * 60 * 60 * 1000 });
+            res.cookie('token', accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none', maxAge: 30 * 24 * 60 * 60 * 1000 });
+            res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none', maxAge: 30 * 24 * 60 * 60 * 1000 });
 
             return res.json({ _id: user._id, email: user.email, role: user.role, message: "Account verified successfully" });
         }
@@ -188,14 +188,14 @@ const verifyOtp = asyncHandler(async (req, res) => {
     res.cookie('token', accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'none',
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
 
     res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'none',
         maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
@@ -371,13 +371,13 @@ const logoutUser = asyncHandler(async (req, res) => {
     res.cookie('token', '', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'none',
         expires: new Date(0),
     });
     res.cookie('refreshToken', '', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'none',
         expires: new Date(0),
     });
     res.status(200).json({ message: 'Logged out successfully' });

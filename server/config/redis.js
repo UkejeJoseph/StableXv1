@@ -3,8 +3,10 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const isTLS = process.env.REDIS_URL && process.env.REDIS_URL.startsWith('rediss://');
+
 const redisClient = new Redis(process.env.REDIS_URL, {
-    tls: { rejectUnauthorized: false },
+    ...(isTLS ? { tls: { rejectUnauthorized: false } } : {}),
     maxRetriesPerRequest: 1,
     retryStrategy(times) {
         if (times > 2) return null;

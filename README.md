@@ -1,4 +1,4 @@
-# Welcome to your StabelEX demo
+# Welcome to your StableX demo
 
 ## Project info
 
